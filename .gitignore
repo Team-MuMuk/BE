@@ -62,3 +62,5 @@ dist/
 *.html linguist-vendored
 /static/** linguist-vendored
 /build/** linguist-vendored
+
+.env
