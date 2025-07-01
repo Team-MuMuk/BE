@@ -4,14 +4,9 @@
 /out/
 target/
 
-# Gradle
-.gradle/
-!gradle/wrapper/gradle-wrapper.jar
 
 # Gradle Wrapper logs
 gradle-app.setting
-gradlew
-gradlew.bat
 
 # IntelliJ IDEA
 .idea/
