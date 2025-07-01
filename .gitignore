@@ -64,3 +64,6 @@ dist/
 /build/** linguist-vendored
 
 .env
+
+
+nginx/nginx.conf

@@ -21,6 +21,27 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    ports:
+      - "90:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt/live/api.mumuk.store:/etc/letsencrypt/live/api.mumuk.store:ro
+      - /etc/letsencrypt/archive:/etc/letsencrypt/archive:ro
+      - /etc/letsencrypt/privkey.pem:/etc/letsencrypt/privkey.pem:ro
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - mumuk_network
+    restart: always
+    healthcheck:
+      test: [ "CMD", "curl", "-kf", "http://localhost" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 networks:
   mumuk_network:
