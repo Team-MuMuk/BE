@@ -1,0 +1,48 @@
+services:
+
+  backend:
+    container_name: backend
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    expose:
+      - "8080"
+    environment:
+      - POSTGRESQL_USER=${PROD_DB_USERNAME}
+      - POSTGRESQL_PASSWORD=${PROD_DB_PASSWORD}
+      - POSTGRESQL_URL=jdbc:postgresql://${PROD_DB_ENDPOINT}:5432/${PROD_DB_NAME}
+    networks:
+      - mumuk_network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    ports:
+      - "90:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt/live/api.mumuk.site:/etc/letsencrypt/live/api.mumuk.site:ro
+      - /etc/letsencrypt/archive:/etc/letsencrypt/archive:ro
+      - /etc/letsencrypt/privkey.pem:/etc/letsencrypt/privkey.pem:ro
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - mumuk_network
+    restart: always
+    healthcheck:
+      test: [ "CMD", "curl", "-kf", "http://localhost" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  mumuk_network:
+    driver: bridge
