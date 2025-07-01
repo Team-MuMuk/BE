@@ -53,6 +53,12 @@ jobs:
       - name: Build with Gradle without tests
         run: ./gradlew clean bootJar -x test
 
+      - name: Print SSH key (for debug only)
+        run: |
+          echo "===== START SSH KEY ====="
+          echo "${{ secrets.NCP_SSH_KEY }}"
+          echo "===== END SSH KEY ====="
+
       - name: Copy JAR to EC2
         uses: appleboy/scp-action@master
         with:
