@@ -16,6 +16,8 @@ public class EnvConfig {
         Dotenv dotenv = Dotenv.configure()
                 .directory("/home/ubuntu/BE")
                 .filename(".env")
+                .ignoreIfMalformed()    // 형식이 잘못돼도 무시
+                .ignoreIfMissing()
                 .load();
 
         String appEnv = dotenv.get("APP_ENV", "dev"); // 기본값은 dev
