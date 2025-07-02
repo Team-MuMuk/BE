@@ -60,7 +60,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "build/libs/*.jar"
-          target: "/home/ubuntu/UMC-MuMuk/build/libs/"
+          target: "/home/ubuntu/BE/build/libs/"
   CD:
     needs: CI
     runs-on: ubuntu-latest
@@ -73,7 +73,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /home/ubuntu/UMC-MuMuk
+            cd /home/ubuntu/BE
 
             sudo chmod -R u+w ./nginx
 
