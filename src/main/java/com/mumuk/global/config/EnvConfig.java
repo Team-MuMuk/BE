@@ -13,7 +13,7 @@ public class EnvConfig {
     @Bean
     public DataSource dataSource() {
         Dotenv dotenv = Dotenv.configure()
-                .directory(System.getProperty("user.dir"))
+                .directory("/home/ubuntu/BE")
                 .filename(".env")
                 .load();
 
