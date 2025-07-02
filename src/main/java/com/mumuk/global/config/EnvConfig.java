@@ -20,13 +20,13 @@ public class EnvConfig {
                 .ignoreIfMissing()
                 .load();
 
-//        String appEnv = dotenv.get("APP_ENV", "dev");
-
         HikariDataSource dataSource = new HikariDataSource();
 
         dataSource.setJdbcUrl(dotenv.get("LOCAL_DB_URL"));
         dataSource.setUsername(dotenv.get("LOCAL_DB_USERNAME"));
         dataSource.setPassword(dotenv.get("LOCAL_DB_PASSWORD"));
+
+//        String appEnv = dotenv.get("APP_ENV", "dev");
 
 //        if ("prod".equalsIgnoreCase(appEnv)) {
 //            String endpoint = dotenv.get("PROD_DB_ENDPOINT");
