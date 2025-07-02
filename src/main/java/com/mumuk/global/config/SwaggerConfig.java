@@ -17,8 +17,8 @@ public class SwaggerConfig {
 
     private Info apiInfo() {
         return new Info()
-                .title("오늘 뭐먹지? Swagger")
-                .description("'오늘 뭐먹지' 팀의 Swagger 입니다.")
+                .title("✨오늘 뭐 해먹지💡? Swagger")
+                .description("오늘 뭐 해먹지 팀의 배포 Swagger 입니다.")
                 .version("1.0");
     }
 }
