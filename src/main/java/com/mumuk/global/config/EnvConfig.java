@@ -12,7 +12,10 @@ public class EnvConfig {
 
     @Bean
     public DataSource dataSource() {
-        Dotenv dotenv = Dotenv.load();      // .env 파일 자동 로드
+        Dotenv dotenv = Dotenv.configure()
+                .directory(System.getProperty("user.dir"))
+                .filename(".env")
+                .load();
 
         String appEnv = dotenv.get("APP_ENV", "dev"); // 기본값은 dev
 
