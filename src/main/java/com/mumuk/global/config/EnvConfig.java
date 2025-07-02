@@ -21,27 +21,21 @@ public class EnvConfig {
                 .load();
 
         HikariDataSource dataSource = new HikariDataSource();
+        String appEnv = dotenv.get("APP_ENV", "dev");
 
-        dataSource.setJdbcUrl(dotenv.get("LOCAL_DB_URL"));
-        dataSource.setUsername(dotenv.get("LOCAL_DB_USERNAME"));
-        dataSource.setPassword(dotenv.get("LOCAL_DB_PASSWORD"));
+        if ("prod".equalsIgnoreCase(appEnv)) {
+            String endpoint = dotenv.get("PROD_DB_ENDPOINT");
+            String dbName = dotenv.get("PROD_DB_NAME");
+            String jdbcUrl = "jdbc:postgresql://" + endpoint + ":5432/" + dbName;
 
-//        String appEnv = dotenv.get("APP_ENV", "dev");
-
-//        if ("prod".equalsIgnoreCase(appEnv)) {
-//            String endpoint = dotenv.get("PROD_DB_ENDPOINT");
-//            String dbName = dotenv.get("PROD_DB_NAME");
-//            String jdbcUrl = "jdbc:postgresql://" + endpoint + ":5432/" + dbName;
-//
-//            dataSource.setJdbcUrl(jdbcUrl);
-//            dataSource.setUsername(dotenv.get("PROD_DB_USERNAME"));
-//            dataSource.setPassword(dotenv.get("PROD_DB_PASSWORD"));
-//        } else {
-            // dev 환경
-//            dataSource.setJdbcUrl(dotenv.get("LOCAL_DB_URL"));
-//            dataSource.setUsername(dotenv.get("LOCAL_DB_USERNAME"));
-//            dataSource.setPassword(dotenv.get("LOCAL_DB_PASSWORD"));
-//        }
+            dataSource.setJdbcUrl(jdbcUrl);
+            dataSource.setUsername(dotenv.get("PROD_DB_USERNAME"));
+            dataSource.setPassword(dotenv.get("PROD_DB_PASSWORD"));
+        } else {
+            dataSource.setJdbcUrl(dotenv.get("LOCAL_DB_URL"));
+            dataSource.setUsername(dotenv.get("LOCAL_DB_USERNAME"));
+            dataSource.setPassword(dotenv.get("LOCAL_DB_PASSWORD"));
+        }
 
         return dataSource;
     }
