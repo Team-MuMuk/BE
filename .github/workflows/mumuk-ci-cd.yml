@@ -45,11 +45,6 @@ jobs:
           echo "${{ secrets.APPLICATION }}" > ./application-prod.yml
         shell: bash
 
-      - name: Create nginx.conf
-        run: |
-          mkdir -p ./nginx
-          echo "${{ secrets.NGINX_CONF }}" | base64 -d > ./nginx/nginx.conf
-
       - name: Build with Gradle without tests
         run: ./gradlew clean bootJar -x test
 
@@ -87,7 +82,11 @@ jobs:
             if [ "$(sudo docker ps -qa)" ]; then
               sudo docker ps -qa | xargs -r sudo docker rm -f
             fi
-            sudo docker rmi $(sudo docker images -q) || true
-
+            
+            IMAGES=$(sudo docker images -q)
+            if [ -n "$IMAGES" ]; then
+            sudo docker rmi $IMAGES
+            fi
+  
             sudo docker-compose up --build -d
             sudo docker image prune -f
