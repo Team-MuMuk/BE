@@ -2,9 +2,14 @@ package com.mumuk.global.security.jwt;
 
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
 
 /**
@@ -14,12 +19,30 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private final JwtTokenProvider jwtTokenProvider;
-    private final JwtProperties jwtProperties;
+    @Value("${jwt.secret}")
+    private String secret;
 
-    public JwtUtil(JwtTokenProvider jwtTokenProvider, JwtProperties jwtProperties) {
+    @Value("${jwt.access-token-validity}")
+    private long accessTokenValidity;
+
+    @Value("${jwt.refresh-token-validity}")
+    private long refreshTokenValidity;
+
+    private final JwtTokenProvider jwtTokenProvider;
+
+    private JwtParser jwtParser;
+    private Key secretKey;
+
+    public JwtUtil(JwtTokenProvider jwtTokenProvider) {
         this.jwtTokenProvider = jwtTokenProvider;
-        this.jwtProperties = jwtProperties;
+    }
+
+    @PostConstruct
+    public void init() {
+        this.secretKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
+        this.jwtParser = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build();
     }
 
     public String extractCategory(String token) {
@@ -33,11 +56,11 @@ public class JwtUtil {
     }
 
     public int getAccessTokenValidity() {
-        return (int) (jwtProperties.getAccessTokenValidity() / 1000);   // JWT 유효 시간 형변환
+        return (int) (accessTokenValidity / 1000);   // JWT 유효 시간 형변환
     }
 
     public int getRefreshTokenValidity() {
-        return (int) (jwtProperties.getRefreshTokenValidity() / 1000);  // JWT 유효 시간 형변환
+        return (int) (refreshTokenValidity / 1000);  // JWT 유효 시간 형변환
     }
 
     public Long getUserIdFromToken(String token) {

@@ -1,15 +1,16 @@
 package com.mumuk.global.security.jwt;
 
 import com.mumuk.global.apiPayload.code.ErrorCode;
-import com.mumuk.global.security.handler.AuthFailureHandler;
+import com.mumuk.global.apiPayload.exception.AuthException;
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
 
 /**
@@ -19,35 +20,40 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
-    private final JwtProperties jwtProperties;
+    @Value("${jwt.secret}")
+    private String secret;
+
+    @Value("${jwt.access-token-validity}")
+    private long accessTokenValidity;
+
+    @Value("${jwt.refresh-token-validity}")
+    private long refreshTokenValidity;
 
     private JwtParser jwtParser;
     private Key secretKey;
 
     @PostConstruct
     public void init() {
-        this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
+        this.secretKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
         this.jwtParser = Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build();
     }
 
-    public JwtTokenProvider(JwtProperties jwtProperties) {this.jwtProperties = jwtProperties;}
-
     // email 기반의 JWT 생성
     public String createAccessToken(String email) {
         try {
-            return generateToken(email, jwtProperties.getAccessTokenValidity(),"access");
+            return generateToken(email, accessTokenValidity,"access");
         } catch (Exception e) {
-            throw new AuthFailureHandler(ErrorCode.JWT_GENERATION_FAILED);
+            throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
         }
     }
 
     public String createRefreshToken(String email) {
         try {
-            return generateToken(email, jwtProperties.getRefreshTokenValidity(), "refresh");
+            return generateToken(email, refreshTokenValidity, "refresh");
         } catch (Exception e) {
-            throw new AuthFailureHandler(ErrorCode.JWT_GENERATION_FAILED);
+            throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
         }
     }
 
@@ -69,9 +75,9 @@ public class JwtTokenProvider {
             Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             return true;
         } catch (ExpiredJwtException e) {
-            throw new AuthFailureHandler(ErrorCode.JWT_EXPIRED_TOKEN);
+            throw new AuthException(ErrorCode.JWT_EXPIRED_TOKEN);
         } catch (JwtException e) {
-            throw new AuthFailureHandler(ErrorCode.JWT_INVALID_TOKEN);
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
     }
 
