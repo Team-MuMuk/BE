@@ -30,7 +30,6 @@ public enum ErrorCode implements BaseCode {
     INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_EMAIL", "이메일 형식이 올바르지 않습니다."),
     INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_PW", "비밀번호는 영문, 숫자, 특수문자를 포함해야 합니다.");
 
-
     private final HttpStatus status;
     private final String code;
     private final String message;

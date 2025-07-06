@@ -1,14 +1,14 @@
-package com.mumuk.global.security.handler;
+package com.mumuk.global.apiPayload.exception;
 
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.response.BaseResponse;
 import lombok.Getter;
 
 @Getter
-public class AuthFailureHandler extends RuntimeException {
+public class AuthException extends RuntimeException {
     private final ErrorCode errorCode;
 
-    public AuthFailureHandler(ErrorCode errorCode) {
+    public AuthException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
     }
