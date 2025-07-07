@@ -10,3 +10,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+
+jwt:
+  secret: ${JWT_SECRET_KEY}
+  access-token-validity: ${JWT_ACCESS_TOKEN_VALIDITY}    # 1시간
+  refresh-token-validity: ${JWT_REFRESH_TOKEN_VALIDITY}  # 2주
