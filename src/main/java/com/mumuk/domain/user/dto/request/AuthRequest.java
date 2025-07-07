@@ -9,7 +9,7 @@ public class AuthRequest {
     @Getter
     @Setter
     @NoArgsConstructor
-    public static class SingUpReq {
+    public static class SignUpReq {
         @NotBlank
         private String name;
 

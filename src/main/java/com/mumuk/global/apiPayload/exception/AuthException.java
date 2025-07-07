@@ -2,6 +2,7 @@ package com.mumuk.global.apiPayload.exception;
 
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.response.BaseResponse;
+import com.mumuk.global.apiPayload.response.Response;
 import lombok.Getter;
 
 @Getter
@@ -13,7 +14,7 @@ public class AuthException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public BaseResponse<String> toResponse() {
-        return new BaseResponse<>(false, errorCode.getCode(), errorCode.getMessage());
+    public Response<Void> toResponse() {
+        return  Response.fail(errorCode);
     }
 }

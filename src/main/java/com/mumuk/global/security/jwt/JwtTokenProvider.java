@@ -44,7 +44,7 @@ public class JwtTokenProvider {
     public String createAccessToken(String email) {
         try {
             return generateToken(email, accessTokenValidity,"access");
-        } catch (Exception e) {
+        } catch (JwtException e) {
             throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
         }
     }
@@ -52,7 +52,7 @@ public class JwtTokenProvider {
     public String createRefreshToken(String email) {
         try {
             return generateToken(email, refreshTokenValidity, "refresh");
-        } catch (Exception e) {
+        } catch (JwtException e) {
             throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
         }
     }
@@ -114,7 +114,7 @@ public class JwtTokenProvider {
         try {
             validateToken(token); // 내부적으로 예외 던짐
             return true;
-        } catch (JwtException e) {
+        } catch (AuthException e) {
             return false;
         }
     }

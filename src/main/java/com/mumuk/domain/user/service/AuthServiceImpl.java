@@ -28,7 +28,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Transactional
-    public void signUp(AuthRequest.SingUpReq request) {
+    public void signUp(AuthRequest.SignUpReq request) {
 
         validateRequest(request);
 
@@ -67,18 +67,20 @@ public class AuthServiceImpl implements AuthService {
         response.setHeader("Authorization", "Bearer " + accessToken);
         response.setHeader("X-Refresh-Token", refreshToken);
 
-        return new TokenResponse("Bearer " + accessToken, refreshToken);
+        return new TokenResponse(accessToken, refreshToken);
     }
 
     @Transactional
     public void logout(String accessToken) {
-        // 토큰에서 이메일 추출
+        if (accessToken == null || !accessToken.startsWith("Bearer ")) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
         String email = jwtTokenProvider.getEmailFromToken(accessToken);
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
-        // RefreshToken 제거
         user.updateRefreshToken(null);
         userRepository.save(user);
     }
@@ -99,7 +101,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
-    private void validateRequest(AuthRequest.SingUpReq request) {
+    private void validateRequest(AuthRequest.SignUpReq request) {
 
         if (!isValidNickname(request.getNickname())) {
             throw new AuthException(ErrorCode.INVALID_NICKNAME_FORMAT);

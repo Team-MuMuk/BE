@@ -6,11 +6,14 @@ import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.response.BaseResponse;
 import com.mumuk.global.apiPayload.exception.AuthException;
+import com.mumuk.global.apiPayload.response.Response;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -29,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private static final List<String> EXCLUDED_URLS = List.of(
-            "/swagger-ui", "/v3/api-docs"
+            "/swagger-ui", "/v3/api-docs", "/api/auth/sign-up", "/api/auth/login"
     );
 
     @Override
@@ -52,8 +55,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 User user = userRepository.findByEmail(email)
                         .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
-                JwtAuthenticationToken authentication = new JwtAuthenticationToken(user.getEmail());
+                List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+
+                JwtAuthenticationToken authentication =
+                        new JwtAuthenticationToken(user.getEmail(), authorities);
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            }else {
+                SecurityContextHolder.clearContext();
             }
 
             // 인증 성공하든, 토큰이 없어도 (인증 제외가 아니므로) 무조건 필터 통과 시도
@@ -64,7 +73,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
 
-            BaseResponse<String> errorResponse = e.toResponse();
+            Response<Void> errorResponse = e.toResponse();
+            String json = new ObjectMapper().writeValueAsString(errorResponse);
+            response.getWriter().write(json);
+        }catch (Exception e) {
+            log.error("[500] JWT 필터 처리 중 예상치 못한 오류 발생", e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json;charset=UTF-8");
+
+            Response<String> errorResponse = Response.fail(ErrorCode.INTERNAL_SERVER_ERROR);
             String json = new ObjectMapper().writeValueAsString(errorResponse);
             response.getWriter().write(json);
         }

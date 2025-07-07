@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
 
-    void signUp(AuthRequest.SingUpReq request);
+    void signUp(AuthRequest.SignUpReq request);
     TokenResponse logIn(AuthRequest.LogInReq request, HttpServletResponse response);
     void logout(String accessToken);
     void withdraw(String accessToken);

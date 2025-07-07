@@ -15,7 +15,7 @@ public class User extends BaseEntity {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    private LoginType loginType = LoginType.LOCAL;;
+    private LoginType loginType = LoginType.LOCAL;
 
     @Column(name = "알림 동의 여부", nullable = false)
     private Boolean isFcmAgreed = false;
