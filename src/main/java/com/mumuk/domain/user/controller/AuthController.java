@@ -6,6 +6,7 @@ import com.mumuk.domain.user.dto.response.TokenResponse;
 import com.mumuk.domain.user.service.AuthService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -24,18 +25,21 @@ public class AuthController {
     }
 
 
+    @Operation(summary = "회원 가입")
     @PostMapping("/sign-up")
     public Response<String> signUp(@Valid @RequestBody AuthRequest.SignUpReq request) {
         authService.signUp(request);
         return Response.ok(ResultCode.USER_SIGNUP_OK, "회원 가입이 완료되었습니다.");
     }
 
+    @Operation(summary = "로그인", description = "이메일과 비밀번호 입력을 통해 로그인 후, Access Token 과 Refresh Token 이 반환됩니다.")
     @PostMapping("/login")
     public Response<TokenResponse> login(@Valid @RequestBody AuthRequest.LogInReq request, HttpServletResponse response) {
         TokenResponse tokenResponse = authService.logIn(request, response);
         return Response.ok(ResultCode.USER_LOGIN_OK, tokenResponse);
     }
 
+    @Operation(summary = "로그아웃", description = "Access Token 을 통해 검증 후 로그아웃")
     @PatchMapping("/logout")
     public Response<String> logout(HttpServletRequest request) {
         String accessToken = request.getHeader("Authorization");
@@ -43,6 +47,7 @@ public class AuthController {
         return Response.ok(ResultCode.USER_LOGOUT_OK, "로그아웃이 완료되었습니다.");
     }
 
+    @Operation(summary = "회원 탈퇴", description = "Access Token 을 통해 검증 후 회원 탈퇴")
     @DeleteMapping("/withdraw")
     public Response<String> withdraw(HttpServletRequest request) {
         String accessToken = request.getHeader("Authorization");
@@ -50,5 +55,11 @@ public class AuthController {
         return Response.ok(ResultCode.USER_WITHDRAW_OK, "회원 탈퇴가 완료되었습니다.");
     }
 
+    @Operation(summary = "토큰 재발급", description = "Refresh Token 을 통해 새로운 Access Token 과 Refresh Token 을 발급합니다.")
+    @PostMapping("/reissue")
+    public Response<TokenResponse> reissue(@RequestHeader("X-Refresh-Token") String refreshToken) {
+        TokenResponse tokenResponse = authService.reissue(refreshToken);
+        return Response.ok(ResultCode.TOKEN_REISSUE_OK, tokenResponse);
+    }
 
 }

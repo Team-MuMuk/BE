@@ -10,4 +10,5 @@ public interface AuthService {
     TokenResponse logIn(AuthRequest.LogInReq request, HttpServletResponse response);
     void logout(String accessToken);
     void withdraw(String accessToken);
+    TokenResponse reissue(String refreshToken);
 }

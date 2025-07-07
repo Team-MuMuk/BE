@@ -100,6 +100,36 @@ public class AuthServiceImpl implements AuthService {
         userRepository.delete(user);
     }
 
+    @Transactional
+    public TokenResponse reissue(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
+        String email = jwtTokenProvider.getEmailFromToken(refreshToken);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        // 저장된 refreshToken이 없으면 재발급 불가
+        String storedRefreshToken = user.getRefreshToken();
+        if (storedRefreshToken == null || !jwtTokenProvider.validateToken(storedRefreshToken)) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
+        String newAccessToken = jwtTokenProvider.createAccessToken(email);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(email);
+
+        // refreshToken 갱신
+        user.updateRefreshToken(newRefreshToken);
+        userRepository.save(user);
+
+        return new TokenResponse(newAccessToken, newRefreshToken);
+    }
 
     private void validateRequest(AuthRequest.SignUpReq request) {
 
