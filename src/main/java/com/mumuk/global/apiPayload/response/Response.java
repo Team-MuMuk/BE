@@ -31,6 +31,11 @@ public class Response<T> {
         return new Response<>(ResultCode.OK.getStatus(), ResultCode.OK.getCode(), ResultCode.OK.getMessage(), data);
     }
 
+
+    public static <T> Response<T> ok(ResultCode resultCode, T data) {
+        return new Response<>(resultCode.getStatus(), resultCode.getCode(), resultCode.getMessage(), data);
+    }
+
     public static <T> Response<T> of(BaseCode code, T data){
 
         return new Response<>(code.getStatus(), code.getCode(), code.getMessage(), data);
