@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
-import io.swagger.v3.oas.models.servers.Server;
 
 
 @Configuration
@@ -16,30 +15,20 @@ public class SwaggerConfig {
 
     @Bean
     public OpenAPI customOpenAPI() {
-        String accessTokenSchemeName = "accessToken";
-        String refreshTokenSchemeName = "refreshToken";
-
-        // API 요청헤더에 인증정보 포함
-        SecurityRequirement securityRequirement = new SecurityRequirement().addList(accessTokenSchemeName);
-
-        // SecuritySchemes 등록
-        Components components = new Components()
-                .addSecuritySchemes(accessTokenSchemeName, new SecurityScheme()
-                        .name("accessToken")
-                        .type(SecurityScheme.Type.HTTP)
-                        .scheme("bearer")
-                        .bearerFormat("JWT"))
-                .addSecuritySchemes(refreshTokenSchemeName, new SecurityScheme()
-                        .name("refreshToken")
-                        .type(SecurityScheme.Type.HTTP)
-                        .scheme("bearer")
-                        .bearerFormat("JWT"));
-
         return new OpenAPI()
-                .components(components)
-                .info(apiInfo())
-                .addServersItem(new Server().url("/"))
-                .addSecurityItem(securityRequirement);
+                .components(new Components()
+                        .addSecuritySchemes("BearerAuth", new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")
+                                .in(SecurityScheme.In.HEADER)
+                                .name("Authorization")) // Swagger UI에서 자동 주입
+                        .addSecuritySchemes("RefreshToken", new SecurityScheme()
+                                .type(SecurityScheme.Type.APIKEY)
+                                .in(SecurityScheme.In.HEADER)
+                                .name("X-Refresh-Token")))
+                .addSecurityItem(new SecurityRequirement().addList("BearerAuth"))
+                .info(apiInfo());
     }
 
     private Info apiInfo() {

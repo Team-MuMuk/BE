@@ -16,6 +16,7 @@ public enum ResultCode implements BaseCode {
     USER_FETCH_OK(HttpStatus.OK, "USER_200", "유저 정보 조회 성공"),
     TOKEN_REISSUE_OK(HttpStatus.OK, "TOKEN_200", "토큰 재발급 성공"),
     USER_LOGOUT_OK(HttpStatus.OK, "USER_200", "유저 로그아웃 성공"),
+    USER_WITHDRAW_OK(HttpStatus.OK, "USER_200", "유저 탈퇴 성공"),
     USER_LOGIN_OK(HttpStatus.OK, "USER_200", "유저 로그인 성공"),
     USER_SIGNUP_OK(HttpStatus.OK, "USER_201", "유저 회원가입 성공");
 

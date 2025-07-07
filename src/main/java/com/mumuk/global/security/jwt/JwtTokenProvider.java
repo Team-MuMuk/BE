@@ -86,8 +86,13 @@ public class JwtTokenProvider {
         return jwtParser.parseClaimsJws(token).getBody();
     }
 
-    public String extractEmail(String token) {
+    public String getEmailFromToken(String token) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7).trim();
+        }
+
         Claims claims = Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
+
         return claims.getSubject();
     }
 

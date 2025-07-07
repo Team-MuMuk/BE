@@ -23,7 +23,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, JwtTokenProvider jwtTokenProvider, UserRepository userRepository) {
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, UserRepository userRepository) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
     }
@@ -47,7 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = extractToken(request);
 
             if (token != null && jwtTokenProvider.validateToken(token)) {
-                String email = jwtTokenProvider.extractEmail(token);
+                String email = jwtTokenProvider.getEmailFromToken(token);
 
                 User user = userRepository.findByEmail(email)
                         .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
