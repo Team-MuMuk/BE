@@ -23,16 +23,35 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
 
+    /**
+     * Creates and returns a {@link JwtAuthenticationFilter} configured with the application's JWT token provider and user repository.
+     *
+     * @return a JwtAuthenticationFilter for handling JWT-based authentication
+     */
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter(jwtTokenProvider, userRepository);
     }
 
+    /**
+     * Creates a bean for password encoding using the BCrypt hashing algorithm.
+     *
+     * @return a PasswordEncoder that uses BCrypt for hashing passwords
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Configures and returns the application's security filter chain.
+     *
+     * Enables CORS, disables CSRF protection, sets session management to stateless, and permits all incoming requests, including static resources and Swagger endpoints. The JWT authentication filter is defined but not added to the filter chain.
+     *
+     * @param http the {@link HttpSecurity} to modify
+     * @return the configured {@link SecurityFilterChain}
+     * @throws Exception if an error occurs during configuration
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http

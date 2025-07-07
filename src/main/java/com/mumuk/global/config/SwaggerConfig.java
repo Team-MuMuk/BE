@@ -13,6 +13,11 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 @Configuration
 public class SwaggerConfig {
 
+    /**
+     * Configures and returns the OpenAPI specification for the application, including JWT bearer authentication and API metadata.
+     *
+     * @return the configured OpenAPI instance with security schemes and API information
+     */
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
@@ -28,6 +33,11 @@ public class SwaggerConfig {
     }
 
 
+    /**
+     * Creates and returns API metadata information for the OpenAPI documentation, including title, description, and version.
+     *
+     * @return an Info object containing the API's title, description, and version.
+     */
     private Info apiInfo() {
         return new Info()
                 .title("✨오늘 뭐 해먹지💡? Swagger")

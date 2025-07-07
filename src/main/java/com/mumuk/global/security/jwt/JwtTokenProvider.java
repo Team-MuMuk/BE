@@ -32,6 +32,11 @@ public class JwtTokenProvider {
     private JwtParser jwtParser;
     private Key secretKey;
 
+    /**
+     * Initializes the cryptographic signing key and JWT parser using the configured secret.
+     *
+     * This method is automatically invoked after dependency injection to prepare the provider for token operations.
+     */
     @PostConstruct
     public void init() {
         this.secretKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
@@ -40,7 +45,15 @@ public class JwtTokenProvider {
                 .build();
     }
 
-    // email 기반의 JWT 생성
+    /**
+     * Generates a JWT access token for the specified email.
+     *
+     * The token includes the email as the subject and a "category" claim set to "access".
+     * Throws an AuthException with JWT_GENERATION_FAILED if token creation fails.
+     *
+     * @param email the email address to associate with the access token
+     * @return the generated JWT access token as a String
+     */
     public String createAccessToken(String email) {
         try {
             return generateToken(email, accessTokenValidity,"access");
@@ -49,6 +62,13 @@ public class JwtTokenProvider {
         }
     }
 
+    /**
+     * Generates a refresh JWT token for the specified email.
+     *
+     * @param email the email address to associate with the refresh token
+     * @return a signed JWT refresh token containing the email as the subject
+     * @throws AuthException if token generation fails
+     */
     public String createRefreshToken(String email) {
         try {
             return generateToken(email, refreshTokenValidity, "refresh");
@@ -57,6 +77,14 @@ public class JwtTokenProvider {
         }
     }
 
+    /**
+     * Generates a JWT token for the specified email with a given validity period and category.
+     *
+     * @param email the email address to set as the token's subject
+     * @param validity the duration in milliseconds for which the token is valid
+     * @param category the token category, such as "access" or "refresh"
+     * @return the generated JWT token as a compact string
+     */
     private String generateToken(String email, long validity, String category) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + validity);
@@ -70,6 +98,13 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    /**
+     * Validates the given JWT token's signature and expiration.
+     *
+     * @param token the JWT token to validate
+     * @return true if the token is valid
+     * @throws AuthException if the token is expired or invalid
+     */
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
@@ -81,11 +116,24 @@ public class JwtTokenProvider {
         }
     }
 
-    // JWT 의 payload(Claims 객체) 추출
+    /**
+     * Extracts and returns the claims (payload) from the provided JWT token.
+     *
+     * @param token the JWT token to parse
+     * @return the claims contained within the token
+     */
     public Claims parseClaims(String token) {
         return jwtParser.parseClaimsJws(token).getBody();
     }
 
+    /**
+     * Extracts the email (subject) from the given JWT token.
+     *
+     * If the token starts with the "Bearer " prefix, it is removed before parsing.
+     *
+     * @param token the JWT token, optionally prefixed with "Bearer "
+     * @return the email address contained in the token's subject claim
+     */
     public String getEmailFromToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7).trim();
@@ -96,11 +144,21 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
-    // JWT 발급 시 필요한 시크릿 키를 Key 객체로 변환 (서명 검증)
+    /**
+     * Returns the cryptographic key used for signing and verifying JWT tokens.
+     *
+     * @return the secret key for JWT operations
+     */
     private Key getSigningKey() {
         return this.secretKey;
     }
 
+    /**
+     * Determines whether the given JWT token is expired.
+     *
+     * @param token the JWT token to check
+     * @return true if the token is expired; false otherwise
+     */
     public boolean isExpired(String token) {
         try {
             Claims claims = parseClaims(token);
@@ -110,6 +168,12 @@ public class JwtTokenProvider {
         }
     }
 
+    /**
+     * Checks whether the provided JWT token is valid and not expired.
+     *
+     * @param token the JWT token to validate
+     * @return true if the token is valid; false otherwise
+     */
     public boolean isValid(String token) {
         try {
             validateToken(token); // 내부적으로 예외 던짐

@@ -108,7 +108,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(Response.fail(ErrorCode.INTERNAL_SERVER_ERROR, ex.getMessage()));
     }
 
-    // ===================== 예기치 못한 예외 ======================
+    /**
+     * Handles any unhandled exceptions by returning a generic internal server error response.
+     *
+     * Logs the exception and responds with HTTP 500 and a standardized error code, without exposing internal details.
+     *
+     * @return a ResponseEntity containing a failure response with an internal server error code
+     */
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Response<Void>> handleUnknownException(Exception ex) {
@@ -119,6 +125,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
 
+    /**
+     * Handles authentication-related exceptions and returns a standardized error response.
+     *
+     * Logs the authentication error and responds with the appropriate HTTP status and error code.
+     *
+     * @param ex the authentication exception to handle
+     * @return a response entity containing the failure response and corresponding HTTP status
+     */
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<Response<Void>> handleAuthException(AuthException ex) {
         ErrorCode errorCode = ex.getErrorCode();

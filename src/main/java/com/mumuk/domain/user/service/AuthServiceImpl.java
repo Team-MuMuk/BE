@@ -21,12 +21,21 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
+    /**
+     * Constructs an AuthServiceImpl with the specified user repository, password encoder, and JWT token provider.
+     */
     public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
+    /**
+     * Registers a new user after validating the sign-up request and ensuring email uniqueness.
+     *
+     * Throws an {@link AuthException} with {@link ErrorCode#EMAIL_ALREADY_EXISTS} if the email is already registered.
+     * The password is securely encoded before saving the user.
+     */
     @Transactional
     public void signUp(AuthRequest.SingUpReq request) {
 
@@ -47,6 +56,14 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
     }
 
+    /**
+     * Authenticates a user with the provided login credentials, generates JWT access and refresh tokens, updates the user's refresh token, and sets the tokens in the HTTP response headers.
+     *
+     * @param request the login request containing user credentials
+     * @param response the HTTP response to which authentication tokens are added as headers
+     * @return a TokenResponse containing the generated access and refresh tokens
+     * @throws AuthException if the user is not found or the password does not match
+     */
     @Transactional
     public TokenResponse logIn(AuthRequest.LogInReq request, HttpServletResponse response) {
 
@@ -70,6 +87,12 @@ public class AuthServiceImpl implements AuthService {
         return new TokenResponse("Bearer " + accessToken, refreshToken);
     }
 
+    /**
+     * Logs out the user associated with the provided access token by removing their refresh token.
+     *
+     * @param accessToken the JWT access token used to identify the user
+     * @throws AuthException if the user corresponding to the token is not found
+     */
     @Transactional
     public void logout(String accessToken) {
         // 토큰에서 이메일 추출
@@ -83,6 +106,12 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
     }
 
+    /**
+     * Deletes the user account associated with the provided access token.
+     *
+     * @param accessToken the JWT access token prefixed with "Bearer "
+     * @throws AuthException if the token is invalid or the user is not found
+     */
     @Transactional
     public void withdraw(String accessToken) {
         if (accessToken == null || !accessToken.startsWith("Bearer ")) {
@@ -99,6 +128,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
+    /**
+     * Validates the fields of a sign-up request, ensuring nickname, email, and password meet required formats and that passwords match.
+     *
+     * @param request the sign-up request containing user registration details
+     * @throws AuthException if any field fails validation, with an appropriate error code
+     */
     private void validateRequest(AuthRequest.SingUpReq request) {
 
         if (!isValidNickname(request.getNickname())) {
@@ -118,15 +153,35 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * Checks if the provided nickname is non-null and does not exceed 10 characters.
+     *
+     * @param nickname the nickname to validate
+     * @return true if the nickname is valid, false otherwise
+     */
     private boolean isValidNickname(String nickname) {
         return nickname != null && nickname.length() <= 10;
     }
 
+    /**
+     * Checks if the provided email string matches a standard email format.
+     *
+     * @param email the email address to validate
+     * @return true if the email is in a valid format, false otherwise
+     */
     private boolean isValidEmail(String email) {
         String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
         return Pattern.matches(regex, email);
     }
 
+    /**
+     * Checks if the provided password meets the required complexity rules.
+     *
+     * The password must be 8 to 15 characters long and include at least one letter, one digit, and one special character from the set !@#$%^&*()_+=-.
+     *
+     * @param password the password string to validate
+     * @return true if the password is valid according to the complexity rules; false otherwise
+     */
     private boolean isValidPassword(String password) {
         String regex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=-]).{8,15}$";
         return Pattern.matches(regex, password);

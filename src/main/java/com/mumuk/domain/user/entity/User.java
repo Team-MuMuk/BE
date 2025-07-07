@@ -40,15 +40,27 @@ public class User extends BaseEntity {
 
     private String refreshToken;
 
+    /**
+     * Constructs a new User with default values.
+     */
     public User() {
 
     }
 
+    /**
+     * Updates the user's refresh token with the provided value.
+     *
+     * @param refreshToken the new refresh token to set
+     */
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
     }
 
-    // Getter
+    /**
+     * Returns the unique identifier of the user.
+     *
+     * @return the user's ID
+     */
     public Long getId() {
         return id;
     }
@@ -73,14 +85,29 @@ public class User extends BaseEntity {
         return password;
     }
 
+    /**
+     * Returns the user's full name.
+     *
+     * @return the name of the user
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Returns the user's nickname.
+     *
+     * @return the nickname of the user
+     */
     public String getNickname() {
         return nickname;
     }
 
+    /**
+     * Returns the user's phone number.
+     *
+     * @return the phone number associated with the user
+     */
     public String getPhone_number() {
         return phone_number;
     }
@@ -118,12 +145,27 @@ public class User extends BaseEntity {
         this.password = password;
     }
 
+    /**
+     * Sets the user's full name.
+     *
+     * @param name the full name to assign to the user
+     */
     public void setName(String name) {
         this.name = name;
     }
 
-    public void setNickname(String nickname) {this.nickname = nickname;}
+    /**
+ * Sets the user's nickname.
+ *
+ * @param nickname the nickname to assign to the user
+ */
+public void setNickname(String nickname) {this.nickname = nickname;}
 
+    /**
+     * Sets the user's phone number.
+     *
+     * @param phone_number the phone number to assign to the user
+     */
     public void setPhone_number(String phone_number) {
         this.phone_number = phone_number;
     }
@@ -132,14 +174,39 @@ public class User extends BaseEntity {
         this.statusMessage = statusMessage;
     }
 
+    /**
+     * Sets the user's social login identifier.
+     *
+     * @param socialId the identifier associated with the user's social login account
+     */
     public void setSocialId(String socialId) {
         this.socialId = socialId;
     }
 
+    /**
+     * Creates a new User instance with the specified name, nickname, email, and password.
+     *
+     * The returned User will have a null id and default values for other fields.
+     *
+     * @param name the user's full name
+     * @param nickname the user's nickname
+     * @param email the user's email address
+     * @param password the user's password
+     * @return a new User instance with the provided details
+     */
     public static User of(String name, String nickname, String email, String password) {
         return new User(null, name, nickname, email, password);
     }
 
+    /**
+     * Constructs a User with the specified id, name, nickname, email, and password.
+     *
+     * @param id        the unique identifier for the user
+     * @param name      the user's full name
+     * @param nickname  the user's nickname
+     * @param email     the user's email address
+     * @param password  the user's password
+     */
     public User(Long id, String name, String nickname, String email, String password) {
         this.id = id;
         this.name = name;
@@ -148,10 +215,20 @@ public class User extends BaseEntity {
         this.password = password;
     }
 
+    /**
+     * Returns the refresh token associated with the user.
+     *
+     * @return the user's refresh token, or null if not set
+     */
     public String getRefreshToken() {
         return refreshToken;
     }
 
+    /**
+     * Sets the refresh token for the user.
+     *
+     * @param refreshToken the new refresh token value
+     */
     public void setRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
     }
