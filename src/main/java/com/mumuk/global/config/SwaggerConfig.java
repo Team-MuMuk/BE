@@ -22,14 +22,11 @@ public class SwaggerConfig {
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
                                 .in(SecurityScheme.In.HEADER)
-                                .name("Authorization")) // Swagger UI에서 자동 주입
-                        .addSecuritySchemes("RefreshToken", new SecurityScheme()
-                                .type(SecurityScheme.Type.APIKEY)
-                                .in(SecurityScheme.In.HEADER)
-                                .name("X-Refresh-Token")))
+                                .name("Authorization"))) // Swagger UI에서 자동 주입
                 .addSecurityItem(new SecurityRequirement().addList("BearerAuth"))
                 .info(apiInfo());
     }
+
 
     private Info apiInfo() {
         return new Info()
