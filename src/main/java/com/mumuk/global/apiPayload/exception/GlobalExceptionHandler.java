@@ -18,12 +18,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.jpa.JpaSystemException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -114,5 +116,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Response.fail(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<Response<Void>> handleAuthException(AuthException ex) {
+        ErrorCode errorCode = ex.getErrorCode();
+
+        log.warn("[AuthException] code: {}, message: {}", errorCode.getCode(), errorCode.getMessage());
+
+        Response<Void> response = Response.fail(errorCode);
+        return new ResponseEntity<>(response, errorCode.getStatus());
     }
 }
