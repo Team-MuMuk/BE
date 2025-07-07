@@ -100,6 +100,11 @@ public class AuthServiceImpl implements AuthService {
 
 
     private void validateRequest(AuthRequest.SingUpReq request) {
+
+        if (!isValidNickname(request.getNickname())) {
+            throw new AuthException(ErrorCode.INVALID_NICKNAME_FORMAT);
+        }
+
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
@@ -113,13 +118,17 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    private boolean isValidNickname(String nickname) {
+        return nickname != null && nickname.length() <= 10;
+    }
+
     private boolean isValidEmail(String email) {
         String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
         return Pattern.matches(regex, email);
     }
 
     private boolean isValidPassword(String password) {
-        String regex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=-]).{8,}$";
+        String regex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=-]).{8,15}$";
         return Pattern.matches(regex, password);
     }
 }
