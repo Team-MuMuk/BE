@@ -50,9 +50,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = extractToken(request);
 
             if (token != null && jwtTokenProvider.validateToken(token)) {
-                String email = jwtTokenProvider.getEmailFromToken(token);
+                String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(token);
 
-                User user = userRepository.findByEmail(email)
+                User user = userRepository.findByLoginId(phoneNumber)
                         .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
