@@ -18,7 +18,8 @@ public enum ResultCode implements BaseCode {
     USER_LOGOUT_OK(HttpStatus.OK, "USER_200", "유저 로그아웃 성공"),
     USER_WITHDRAW_OK(HttpStatus.OK, "USER_204", "유저 탈퇴 성공"),
     USER_LOGIN_OK(HttpStatus.OK, "USER_200", "유저 로그인 성공"),
-    USER_SIGNUP_OK(HttpStatus.CREATED, "USER_201", "유저 회원가입 성공");
+    USER_SIGNUP_OK(HttpStatus.CREATED, "USER_201", "유저 회원가입 성공"),
+    SEND_ID_BY_SMS_OK(HttpStatus.OK, "USER_204", "SMS 인증 발송 설공");
 
 
     private final HttpStatus status;

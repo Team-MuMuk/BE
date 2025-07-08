@@ -61,11 +61,11 @@ public class AuthController {
         return Response.ok(ResultCode.TOKEN_REISSUE_OK, tokenResponse);
     }
 
-//    @Operation(summary = "Id 찾기", description = "")
-//    @PatchMapping("/id")
-//    public Response<TokenResponse> findId(@RequestHeader("X-Refresh-Token") String refreshToken) {
-//        TokenResponse tokenResponse = authService.findId(refreshToken);
-//        return Response.ok(ResultCode.TOKEN_REISSUE_OK, tokenResponse);
-//    }
+    @Operation(summary = "Id 찾기", description = "이름과 휴대폰 번호 입력하여 SMS 메시지를 통해 아이디의 일부를 찾습니다.")
+    @PatchMapping("/recover-id")
+    public Response<String> findId(@Valid @RequestBody AuthRequest.FindIdReq request) {
+        authService.findUserIdAndSendSms(request);
+        return Response.ok(ResultCode.SEND_ID_BY_SMS_OK, "SMS 메시지로 ID의 일부를 확인하실 수 있습니다.");
+    }
 
 }

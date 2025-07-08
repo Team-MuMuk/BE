@@ -7,8 +7,10 @@ import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.exception.AuthException;
 import com.mumuk.global.security.jwt.JwtTokenProvider;
+import com.mumuk.global.util.SmsUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.mumuk.global.apiPayload.code.ErrorCode;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.regex.Pattern;
 
+@Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
 
@@ -23,12 +26,14 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenResponseConverter tokenResponseConverter;
+    private final SmsUtil smsUtil;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, TokenResponseConverter tokenResponseConverter) {
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, TokenResponseConverter tokenResponseConverter, SmsUtil smsUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.tokenResponseConverter = tokenResponseConverter;
+        this.smsUtil = smsUtil;
     }
 
     @Transactional
@@ -49,8 +54,8 @@ public class AuthServiceImpl implements AuthService {
         User user = User.of(
                 request.getName(),
                 request.getNickname(),
-                request.getLoginId(),
                 request.getPhoneNumber(),
+                request.getLoginId(),
                 encodedPassword
         );
         userRepository.save(user);
@@ -66,9 +71,8 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getLoginId());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getLoginId());
-
+        String accessToken = jwtTokenProvider.createAccessToken(user.getPhoneNumber());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getPhoneNumber());
 
         user.updateRefreshToken(refreshToken);
         userRepository.save(user);          // 명시적 저장
@@ -111,7 +115,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(refreshToken);
-        User user = userRepository.findByLoginId(phoneNumber)
+        User user = userRepository.findByPhoneNumber(phoneNumber)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
         // 저장된 refreshToken이 없으면 재발급 불가
@@ -128,6 +132,17 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         return tokenResponseConverter.toResponse(newAccessToken, newRefreshToken);
+    }
+
+    public void findUserIdAndSendSms(AuthRequest.FindIdReq request) {
+
+        User user = userRepository.findByNameAndPhoneNumber(request.getName(), request.getPhoneNumber())
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        String maskedId = maskUserId(user.getLoginId());
+        String message = "[MuMuk] 요청하신 회원 id는 다음과 같습니다 : " + maskedId;
+
+        smsUtil.sendOne(request.getPhoneNumber(), message);
     }
 
     private void validateRequest(AuthRequest.SignUpReq request) {
@@ -159,6 +174,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String phoneNumber = claims.getSubject();
+        log.info("📱 phoneNumber from token: {}", phoneNumber);
 
         return userRepository.findByPhoneNumber(phoneNumber)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
@@ -176,5 +192,11 @@ public class AuthServiceImpl implements AuthService {
     private boolean isValidPassword(String password) {
         String regex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=-]).{8,15}$";
         return Pattern.matches(regex, password);
+    }
+
+    // id 다 안보여주고, * * 로 마스킹 처리되어 사용자에 반환
+    private String maskUserId(String userId) {
+        int visibleLength = userId.length() - 3;
+        return userId.substring(0, visibleLength) + "***";
     }
 }

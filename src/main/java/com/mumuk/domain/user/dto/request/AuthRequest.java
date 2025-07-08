@@ -17,10 +17,10 @@ public class AuthRequest {
         private String nickname;
 
         @NotBlank
-        private String loginId;
+        private String phoneNumber;
 
         @NotBlank
-        private String phoneNumber;
+        private String loginId;
 
         @NotBlank
         private String password;
@@ -40,4 +40,14 @@ public class AuthRequest {
         private String password;
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class FindIdReq{
+        @NotBlank
+        private String name;
+
+        @NotBlank
+        private String phoneNumber;
+    }
 }
