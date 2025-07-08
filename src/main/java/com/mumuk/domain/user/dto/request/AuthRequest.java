@@ -17,7 +17,10 @@ public class AuthRequest {
         private String nickname;
 
         @NotBlank
-        private String email;
+        private String phoneNumber;
+
+        @NotBlank
+        private String loginId;
 
         @NotBlank
         private String password;
@@ -31,10 +34,45 @@ public class AuthRequest {
     @NoArgsConstructor
     public static class LogInReq{
         @NotBlank
-        private String email;
+        private String loginId;
 
         @NotBlank
         private String password;
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class FindIdReq{
+        @NotBlank
+        private String name;
+
+        @NotBlank
+        private String phoneNumber;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class FindPassWordReq{
+        @NotBlank
+        private String loginId;
+
+        @NotBlank
+        private String name;
+
+        @NotBlank
+        private String phoneNumber;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class RecoverPassWordReq {
+        @NotBlank
+        private String passWord;
+
+        @NotBlank
+        private String confirmPassWord;
+    }
 }

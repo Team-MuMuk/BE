@@ -41,28 +41,28 @@ public class JwtTokenProvider {
     }
 
     // email 기반의 JWT 생성
-    public String createAccessToken(String email) {
+    public String createAccessToken(String phoneNumber) {
         try {
-            return generateToken(email, accessTokenValidity,"access");
+            return generateToken(phoneNumber, accessTokenValidity,"access");
         } catch (JwtException e) {
             throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
         }
     }
 
-    public String createRefreshToken(String email) {
+    public String createRefreshToken(String phoneNumber) {
         try {
-            return generateToken(email, refreshTokenValidity, "refresh");
+            return generateToken(phoneNumber, refreshTokenValidity, "refresh");
         } catch (JwtException e) {
             throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
         }
     }
 
-    private String generateToken(String email, long validity, String category) {
+    private String generateToken(String phoneNumber, long validity, String category) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + validity);
 
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(phoneNumber)
                 .claim("category", category)      // "access" 또는 "refresh"
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
@@ -86,14 +86,34 @@ public class JwtTokenProvider {
         return jwtParser.parseClaimsJws(token).getBody();
     }
 
-    public String getEmailFromToken(String token) {
+    public String getPhoneNumberFromToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7).trim();
         }
 
-        Claims claims = Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
 
-        return claims.getSubject();
+        return claims.getSubject(); // subject 에 phoneNumber 가 들어 있음
+    }
+
+    public Claims getClaimsFromToken(String token) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7).trim();
+        }
+
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (JwtException e) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
     }
 
     // JWT 발급 시 필요한 시크릿 키를 Key 객체로 변환 (서명 검증)
@@ -101,21 +121,4 @@ public class JwtTokenProvider {
         return this.secretKey;
     }
 
-    public boolean isExpired(String token) {
-        try {
-            Claims claims = parseClaims(token);
-            return claims.getExpiration().before(new Date());
-        } catch (ExpiredJwtException e) {
-            return true;
-        }
-    }
-
-    public boolean isValid(String token) {
-        try {
-            validateToken(token); // 내부적으로 예외 던짐
-            return true;
-        } catch (AuthException e) {
-            return false;
-        }
-    }
 }

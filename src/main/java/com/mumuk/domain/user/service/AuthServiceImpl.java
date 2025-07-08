@@ -1,39 +1,56 @@
 package com.mumuk.domain.user.service;
 
+import com.mumuk.domain.user.converter.TokenResponseConverter;
 import com.mumuk.domain.user.dto.request.AuthRequest;
 import com.mumuk.domain.user.dto.response.TokenResponse;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.exception.AuthException;
 import com.mumuk.global.security.jwt.JwtTokenProvider;
+import com.mumuk.global.util.SmsUtil;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+@Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenResponseConverter tokenResponseConverter;
+    private final SmsUtil smsUtil;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, TokenResponseConverter tokenResponseConverter, SmsUtil smsUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.tokenResponseConverter = tokenResponseConverter;
+        this.smsUtil = smsUtil;
     }
 
+    @Override
     @Transactional
     public void signUp(AuthRequest.SignUpReq request) {
 
         validateRequest(request);
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new AuthException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        if (userRepository.existsByLoginId(request.getLoginId())) {
+            throw new AuthException(ErrorCode.LOGIN_ID_ALREADY_EXISTS);
+        }
+
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new AuthException(ErrorCode.PHONE_NUMBER_ALREADY_EXISTS);
         }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
@@ -41,65 +58,141 @@ public class AuthServiceImpl implements AuthService {
         User user = User.of(
                 request.getName(),
                 request.getNickname(),
-                request.getEmail(),
+                request.getPhoneNumber(),
+                request.getLoginId(),
                 encodedPassword
         );
         userRepository.save(user);
     }
 
+    @Override
     @Transactional
     public TokenResponse logIn(AuthRequest.LogInReq request, HttpServletResponse response) {
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByLoginId(request.getLoginId())
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getEmail());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
-
+        String accessToken = jwtTokenProvider.createAccessToken(user.getPhoneNumber());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getPhoneNumber());
 
         user.updateRefreshToken(refreshToken);
-        userRepository.save(user);
+        userRepository.save(user);          // 명시적 저장
 
         response.setHeader("Authorization", "Bearer " + accessToken);
         response.setHeader("X-Refresh-Token", refreshToken);
 
-        return new TokenResponse(accessToken, refreshToken);
+        return tokenResponseConverter.toResponse(accessToken, refreshToken);
     }
 
+    @Override
     @Transactional
-    public void logout(String accessToken) {
-        if (accessToken == null || !accessToken.startsWith("Bearer ")) {
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
-
-        String email = jwtTokenProvider.getEmailFromToken(accessToken);
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        User user = getUserFromToken(refreshToken);
 
         user.updateRefreshToken(null);
         userRepository.save(user);
     }
 
+    @Override
     @Transactional
     public void withdraw(String accessToken) {
         if (accessToken == null || !accessToken.startsWith("Bearer ")) {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
-
-        String token = accessToken.substring(7).trim();   // "Bearer " 제거
-        String email = jwtTokenProvider.getEmailFromToken(token);
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        User user = getUserFromToken(accessToken);
 
         userRepository.delete(user);
     }
 
+    @Override
+    @Transactional
+    public TokenResponse reissue(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
+        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(refreshToken);
+        User user = userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        // 저장된 refreshToken이 없으면 재발급 불가
+        String storedRefreshToken = user.getRefreshToken();
+        if (storedRefreshToken == null || !jwtTokenProvider.validateToken(storedRefreshToken)) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
+        String newAccessToken = jwtTokenProvider.createAccessToken(phoneNumber);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(phoneNumber);
+
+        // refreshToken 갱신
+        user.updateRefreshToken(newRefreshToken);
+        userRepository.save(user);
+
+        return tokenResponseConverter.toResponse(newAccessToken, newRefreshToken);
+    }
+
+    @Override
+    @Transactional
+    public void findUserIdAndSendSms(AuthRequest.FindIdReq request) {
+        User user = userRepository.findByNameAndPhoneNumber(request.getName(), request.getPhoneNumber())
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        String maskedId = maskUserId(user.getLoginId());
+        String message = "[오늘 뭐 해먹지?] 요청하신 회원 아이디는 다음과 같습니다 : " + maskedId;
+
+        smsUtil.sendOne(request.getPhoneNumber(), message);
+    }
+
+    @Override
+    @Transactional
+    public void findUserPassWordAndSendSms(AuthRequest.FindPassWordReq request) {
+        User user = userRepository.findByLoginIdAndNameAndPhoneNumber(request.getLoginId(), request.getName(), request.getPhoneNumber())
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        String tempPassword = generateTempPassword();
+
+        user.setPassword(passwordEncoder.encode(tempPassword));
+        userRepository.save(user);
+
+        String message = "[오늘 뭐 해먹지?] 임시 비밀번호는 " + tempPassword + " 입니다. 로그인 후, 꼭 비밀번호를 변경해주세요.";
+
+        smsUtil.sendOne(request.getPhoneNumber(), message);
+    }
+
+    @Override
+    @Transactional
+    public void reissueUserPassword(AuthRequest.RecoverPassWordReq request, String accessToken) {
+        String newPassword = request.getPassWord();
+        String confirmPassword = request.getConfirmPassWord();
+
+        if (!newPassword.equals(confirmPassword)) {
+            throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+        }
+
+        // 비밀번호 제약 조건 검사
+        if (!isValidPassword(newPassword)) {
+            throw new AuthException(ErrorCode.INVALID_PASSWORD_FORMAT);
+        }
+
+        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
+        User user = userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 
     private void validateRequest(AuthRequest.SignUpReq request) {
 
@@ -107,12 +200,12 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.INVALID_NICKNAME_FORMAT);
         }
 
-        if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+        if(!isValidLoginId(request.getLoginId())) {
+            throw new AuthException(ErrorCode.INVALID_LOGIN_ID_FORMAT);
         }
 
-        if (!isValidEmail(request.getEmail())) {
-            throw new AuthException(ErrorCode.INVALID_EMAIL_FORMAT);
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
 
         if (!isValidPassword(request.getPassword())) {
@@ -120,17 +213,47 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    // token -> Claim 객체 -> Subject 을 이용한 사용자 phoneNumber 추출
+    private User getUserFromToken(String token) {
+        Claims claims = jwtTokenProvider.getClaimsFromToken(token);
+
+        String category = claims.get("category", String.class);
+        if (!"access".equals(category) && !"refresh".equals(category)) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
+        String phoneNumber = claims.getSubject();
+        log.info("📱 phoneNumber from token: {}", phoneNumber);
+
+        return userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+    }
+
     private boolean isValidNickname(String nickname) {
         return nickname != null && nickname.length() <= 10;
     }
 
-    private boolean isValidEmail(String email) {
-        String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
-        return Pattern.matches(regex, email);
+    private boolean isValidLoginId(String loginId) {
+        String regex = "^(?=.*[A-Za-z])[A-Za-z\\d]{5,15}$";
+        return Pattern.matches(regex, loginId);
     }
 
     private boolean isValidPassword(String password) {
         String regex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=-]).{8,15}$";
         return Pattern.matches(regex, password);
+    }
+
+    // id 다 안보여주고, * * 로 마스킹 처리되어 사용자에 반환
+    private String maskUserId(String userId) {
+        int visibleLength = userId.length() - 3;
+        return userId.substring(0, visibleLength) + "***";
+    }
+
+    private String generateTempPassword() {
+        SecureRandom random = new SecureRandom();
+        return IntStream.range(0, 8)
+                .map(i -> random.nextInt(10))  // 0 ~ 9
+                .mapToObj(String::valueOf)
+                .collect(Collectors.joining());
     }
 }

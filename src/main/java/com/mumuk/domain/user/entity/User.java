@@ -3,7 +3,6 @@ package com.mumuk.domain.user.entity;
 
 import com.mumuk.global.common.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Builder;
 
 
 @Entity
@@ -22,16 +21,18 @@ public class User extends BaseEntity {
 
     private String profileImage;
 
-    @Column(nullable = false, unique = true)
     private String email;     // 자체&소셜 Id
 
-    private String password;
+    @Column(unique = true)
+    private String loginId;   // 자체 로그인 id
+
+    private String password;  // 자체 로그인 pw
 
     private String name;
 
     private String nickname;
 
-    private String phone_number;
+    private String phoneNumber;
 
     private String statusMessage;
 
@@ -43,6 +44,19 @@ public class User extends BaseEntity {
     public User() {
 
     }
+
+    public User(String name, String nickname, String loginId, String password, String phoneNumber) {
+        this.name = name;
+        this.nickname = nickname;
+        this.loginId = loginId;
+        this.password = password;
+        this.phoneNumber = phoneNumber;
+    }
+
+    public static User of(String name, String nickname, String loginId, String encodedPassword, String phoneNumber) {
+        return new User(name, nickname, loginId, encodedPassword, phoneNumber);
+    }
+
 
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
@@ -79,10 +93,6 @@ public class User extends BaseEntity {
 
     public String getNickname() {
         return nickname;
-    }
-
-    public String getPhone_number() {
-        return phone_number;
     }
 
     public String getStatusMessage() {
@@ -124,9 +134,6 @@ public class User extends BaseEntity {
 
     public void setNickname(String nickname) {this.nickname = nickname;}
 
-    public void setPhone_number(String phone_number) {
-        this.phone_number = phone_number;
-    }
 
     public void setStatusMessage(String statusMessage) {
         this.statusMessage = statusMessage;
@@ -136,23 +143,27 @@ public class User extends BaseEntity {
         this.socialId = socialId;
     }
 
-    public static User of(String name, String nickname, String email, String password) {
-        return new User(null, name, nickname, email, password);
-    }
-
-    public User(Long id, String name, String nickname, String email, String password) {
-        this.id = id;
-        this.name = name;
-        this.nickname = nickname;
-        this.email = email;
-        this.password = password;
-    }
-
     public String getRefreshToken() {
         return refreshToken;
     }
 
     public void setRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
+    }
+
+    public String getLoginId() {
+        return loginId;
+    }
+
+    public void setLoginId(String loginId) {
+        this.loginId = loginId;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 }

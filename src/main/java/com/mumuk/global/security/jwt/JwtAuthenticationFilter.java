@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
-import com.mumuk.global.apiPayload.response.BaseResponse;
 import com.mumuk.global.apiPayload.exception.AuthException;
 import com.mumuk.global.apiPayload.response.Response;
 import jakarta.servlet.FilterChain;
@@ -32,7 +31,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private static final List<String> EXCLUDED_URLS = List.of(
-            "/swagger-ui", "/v3/api-docs", "/api/auth/sign-up", "/api/auth/login"
+            "/swagger-ui/**", "/v3/api-docs/**", "/api/auth/sign-up", "/api/auth/login", "/api/auth/reissue",
+            "/api/auth/find-id", "/api/auth/find-pw"
     );
 
     @Override
@@ -50,15 +50,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = extractToken(request);
 
             if (token != null && jwtTokenProvider.validateToken(token)) {
-                String email = jwtTokenProvider.getEmailFromToken(token);
+                String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(token);
 
-                User user = userRepository.findByEmail(email)
+                userRepository.findByPhoneNumber(phoneNumber)
                         .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
 
                 JwtAuthenticationToken authentication =
-                        new JwtAuthenticationToken(user.getEmail(), authorities);
+                        new JwtAuthenticationToken(phoneNumber, authorities);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }else {

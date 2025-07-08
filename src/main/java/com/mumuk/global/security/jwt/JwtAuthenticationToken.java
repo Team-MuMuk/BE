@@ -10,21 +10,21 @@ import java.util.Collection;
  */
 public class JwtAuthenticationToken extends AbstractAuthenticationToken {
 
-    private final String email;
+    private final String phoneNumber;
     private final String token;
 
 
     // 인증 후(인증 완료) 토큰용 생성자
-    public JwtAuthenticationToken(String email, Collection<? extends GrantedAuthority> authorities) {
+    public JwtAuthenticationToken(String phoneNumber, Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
         this.token = null;
-        this.email = email;
+        this.phoneNumber = phoneNumber;
         super.setAuthenticated(true);
     }
 
     @Override
     public Object getPrincipal() {
-        return email; // email이 principal
+        return phoneNumber;
     }
 
     @Override
