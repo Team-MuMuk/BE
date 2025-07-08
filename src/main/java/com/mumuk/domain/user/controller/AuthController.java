@@ -39,7 +39,7 @@ public class AuthController {
         return Response.ok(ResultCode.USER_LOGIN_OK, tokenResponse);
     }
 
-    @Operation(summary = "로그아웃", description = "Access Token 을 통해 검증 후 로그아웃")
+    @Operation(summary = "로그아웃", description = "Access Token 을 통해 검증 후 로그아웃이 진행됩니다.")
     @PatchMapping("/logout")
     public Response<String> logout(HttpServletRequest request) {
         String accessToken = request.getHeader("Authorization");
@@ -47,7 +47,7 @@ public class AuthController {
         return Response.ok(ResultCode.USER_LOGOUT_OK, "로그아웃이 완료되었습니다.");
     }
 
-    @Operation(summary = "회원 탈퇴", description = "Access Token 을 통해 검증 후 회원 탈퇴")
+    @Operation(summary = "회원 탈퇴", description = "Access Token 을 통해 검증 후 회원 탈퇴가 진행됩니다.")
     @DeleteMapping("/withdraw")
     public Response<String> withdraw(HttpServletRequest request) {
         String accessToken = request.getHeader("Authorization");
@@ -61,5 +61,12 @@ public class AuthController {
         TokenResponse tokenResponse = authService.reissue(refreshToken);
         return Response.ok(ResultCode.TOKEN_REISSUE_OK, tokenResponse);
     }
+
+//    @Operation(summary = "Id 찾기", description = "")
+//    @PatchMapping("/id")
+//    public Response<TokenResponse> findId(@RequestHeader("X-Refresh-Token") String refreshToken) {
+//        TokenResponse tokenResponse = authService.findId(refreshToken);
+//        return Response.ok(ResultCode.TOKEN_REISSUE_OK, tokenResponse);
+//    }
 
 }

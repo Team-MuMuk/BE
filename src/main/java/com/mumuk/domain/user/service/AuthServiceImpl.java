@@ -1,5 +1,6 @@
 package com.mumuk.domain.user.service;
 
+import com.mumuk.domain.user.converter.TokenResponseConverter;
 import com.mumuk.domain.user.dto.request.AuthRequest;
 import com.mumuk.domain.user.dto.response.TokenResponse;
 import com.mumuk.domain.user.entity.User;
@@ -20,11 +21,13 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenResponseConverter tokenResponseConverter;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, TokenResponseConverter tokenResponseConverter) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.tokenResponseConverter = tokenResponseConverter;
     }
 
     @Transactional
@@ -62,12 +65,12 @@ public class AuthServiceImpl implements AuthService {
 
 
         user.updateRefreshToken(refreshToken);
-        userRepository.save(user);
+        userRepository.save(user);          // 명시적 저장
 
         response.setHeader("Authorization", "Bearer " + accessToken);
         response.setHeader("X-Refresh-Token", refreshToken);
 
-        return new TokenResponse(accessToken, refreshToken);
+        return tokenResponseConverter.toResponse(accessToken, refreshToken);
     }
 
     @Transactional
@@ -128,7 +131,7 @@ public class AuthServiceImpl implements AuthService {
         user.updateRefreshToken(newRefreshToken);
         userRepository.save(user);
 
-        return new TokenResponse(newAccessToken, newRefreshToken);
+        return tokenResponseConverter.toResponse(newAccessToken, newRefreshToken);
     }
 
     private void validateRequest(AuthRequest.SignUpReq request) {
