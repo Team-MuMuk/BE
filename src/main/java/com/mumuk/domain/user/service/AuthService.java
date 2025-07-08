@@ -8,7 +8,7 @@ public interface AuthService {
 
     void signUp(AuthRequest.SignUpReq request);
     TokenResponse logIn(AuthRequest.LogInReq request, HttpServletResponse response);
-    void logout(String accessToken);
+    void logout(String refreshToken);
     void withdraw(String accessToken);
     TokenResponse reissue(String refreshToken);
 }

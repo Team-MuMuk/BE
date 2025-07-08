@@ -7,6 +7,7 @@ import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.exception.AuthException;
 import com.mumuk.global.security.jwt.JwtTokenProvider;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,8 +36,12 @@ public class AuthServiceImpl implements AuthService {
 
         validateRequest(request);
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new AuthException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        if (userRepository.existsByLoginId(request.getLoginId())) {
+            throw new AuthException(ErrorCode.LOGIN_ID_ALREADY_EXISTS);
+        }
+
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new AuthException(ErrorCode.PHONE_NUMBER_ALREADY_EXISTS);
         }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
@@ -44,7 +49,8 @@ public class AuthServiceImpl implements AuthService {
         User user = User.of(
                 request.getName(),
                 request.getNickname(),
-                request.getEmail(),
+                request.getLoginId(),
+                request.getPhoneNumber(),
                 encodedPassword
         );
         userRepository.save(user);
@@ -53,15 +59,15 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public TokenResponse logIn(AuthRequest.LogInReq request, HttpServletResponse response) {
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByLoginId(request.getLoginId())
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getEmail());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
+        String accessToken = jwtTokenProvider.createAccessToken(user.getLoginId());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getLoginId());
 
 
         user.updateRefreshToken(refreshToken);
@@ -74,15 +80,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Transactional
-    public void logout(String accessToken) {
-        if (accessToken == null || !accessToken.startsWith("Bearer ")) {
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
-
-        String email = jwtTokenProvider.getEmailFromToken(accessToken);
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        User user = getUserFromToken(refreshToken);
 
         user.updateRefreshToken(null);
         userRepository.save(user);
@@ -93,12 +95,7 @@ public class AuthServiceImpl implements AuthService {
         if (accessToken == null || !accessToken.startsWith("Bearer ")) {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
-
-        String token = accessToken.substring(7).trim();   // "Bearer " 제거
-        String email = jwtTokenProvider.getEmailFromToken(token);
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        User user = getUserFromToken(accessToken);
 
         userRepository.delete(user);
     }
@@ -113,9 +110,8 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
 
-        String email = jwtTokenProvider.getEmailFromToken(refreshToken);
-
-        User user = userRepository.findByEmail(email)
+        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(refreshToken);
+        User user = userRepository.findByLoginId(phoneNumber)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
         // 저장된 refreshToken이 없으면 재발급 불가
@@ -124,8 +120,8 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
 
-        String newAccessToken = jwtTokenProvider.createAccessToken(email);
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(email);
+        String newAccessToken = jwtTokenProvider.createAccessToken(phoneNumber);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(phoneNumber);
 
         // refreshToken 갱신
         user.updateRefreshToken(newRefreshToken);
@@ -144,22 +140,28 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
 
-        if (!isValidEmail(request.getEmail())) {
-            throw new AuthException(ErrorCode.INVALID_EMAIL_FORMAT);
-        }
-
         if (!isValidPassword(request.getPassword())) {
             throw new AuthException(ErrorCode.INVALID_PASSWORD_FORMAT);
         }
     }
 
-    private boolean isValidNickname(String nickname) {
-        return nickname != null && nickname.length() <= 10;
+    // token -> Claim 객체 -> Subject 을 이용한 사용자 phoneNumber 추출
+    private User getUserFromToken(String token) {
+        Claims claims = jwtTokenProvider.getClaimsFromToken(token);
+
+        String category = claims.get("category", String.class);
+        if (!"access".equals(category) && !"refresh".equals(category)) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
+        String phoneNumber = claims.getSubject();
+
+        return userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
     }
 
-    private boolean isValidEmail(String email) {
-        String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
-        return Pattern.matches(regex, email);
+    private boolean isValidNickname(String nickname) {
+        return nickname != null && nickname.length() <= 10;
     }
 
     private boolean isValidPassword(String password) {

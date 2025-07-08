@@ -17,7 +17,10 @@ public class AuthRequest {
         private String nickname;
 
         @NotBlank
-        private String email;
+        private String loginId;
+
+        @NotBlank
+        private String phoneNumber;
 
         @NotBlank
         private String password;
@@ -31,7 +34,7 @@ public class AuthRequest {
     @NoArgsConstructor
     public static class LogInReq{
         @NotBlank
-        private String email;
+        private String loginId;
 
         @NotBlank
         private String password;

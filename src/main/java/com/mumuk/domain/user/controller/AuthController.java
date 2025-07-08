@@ -39,15 +39,14 @@ public class AuthController {
         return Response.ok(ResultCode.USER_LOGIN_OK, tokenResponse);
     }
 
-    @Operation(summary = "로그아웃", description = "Access Token 을 통해 검증 후 로그아웃이 진행됩니다.")
+    @Operation(summary = "로그아웃", description = "Refresh Token 을 통해 검증 후 로그아웃이 진행됩니다.")
     @PatchMapping("/logout")
-    public Response<String> logout(HttpServletRequest request) {
-        String accessToken = request.getHeader("Authorization");
-        authService.logout(accessToken);
+    public Response<String> logout(@RequestHeader("X-Refresh-Token") String refreshToken) {
+        authService.logout(refreshToken);
         return Response.ok(ResultCode.USER_LOGOUT_OK, "로그아웃이 완료되었습니다.");
     }
 
-    @Operation(summary = "회원 탈퇴", description = "Access Token 을 통해 검증 후 회원 탈퇴가 진행됩니다.")
+    @Operation(summary = "회원 탈퇴", description = "Access Token 을 통해 사용자 인증을 검증 후 회원 탈퇴가 진행됩니다.")
     @DeleteMapping("/withdraw")
     public Response<String> withdraw(HttpServletRequest request) {
         String accessToken = request.getHeader("Authorization");
