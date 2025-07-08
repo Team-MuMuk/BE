@@ -23,6 +23,7 @@ public class User extends BaseEntity {
 
     private String email;     // 자체&소셜 Id
 
+    @Column(unique = true)
     private String loginId;   // 자체 로그인 id
 
     private String password;  // 자체 로그인 pw
@@ -44,12 +45,12 @@ public class User extends BaseEntity {
 
     }
 
-    public User(String name, String nickname, String phoneNumber, String loginId, String password) {
+    public User(String name, String nickname, String loginId, String password, String phoneNumber) {
         this.name = name;
         this.nickname = nickname;
-        this.phoneNumber = phoneNumber;
         this.loginId = loginId;
         this.password = password;
+        this.phoneNumber = phoneNumber;
     }
 
     public static User of(String name, String nickname, String loginId, String encodedPassword, String phoneNumber) {

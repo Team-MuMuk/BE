@@ -24,7 +24,7 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken {
 
     @Override
     public Object getPrincipal() {
-        return phoneNumber; // email이 principal
+        return phoneNumber;
     }
 
     @Override

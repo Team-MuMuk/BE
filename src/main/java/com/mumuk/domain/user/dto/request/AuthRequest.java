@@ -73,6 +73,6 @@ public class AuthRequest {
         private String passWord;
 
         @NotBlank
-        private String confirmPassword;
+        private String confirmPassWord;
     }
 }

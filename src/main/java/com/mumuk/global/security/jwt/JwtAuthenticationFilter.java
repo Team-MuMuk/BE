@@ -32,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final List<String> EXCLUDED_URLS = List.of(
             "/swagger-ui/**", "/v3/api-docs/**", "/api/auth/sign-up", "/api/auth/login", "/api/auth/reissue",
-            "/api/auth/recover-id", "/api/auth/recover-pw"
+            "/api/auth/find-id", "/api/auth/find-pw"
     );
 
     @Override

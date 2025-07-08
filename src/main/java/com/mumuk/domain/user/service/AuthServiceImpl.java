@@ -174,7 +174,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void reissueUserPassword(AuthRequest.RecoverPassWordReq request, String accessToken) {
         String newPassword = request.getPassWord();
-        String confirmPassword = request.getConfirmPassword();
+        String confirmPassword = request.getConfirmPassWord();
 
         if (!newPassword.equals(confirmPassword)) {
             throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
@@ -200,7 +200,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.INVALID_NICKNAME_FORMAT);
         }
 
-        if(!isValidloginId(request.getLoginId())) {
+        if(!isValidLoginId(request.getLoginId())) {
             throw new AuthException(ErrorCode.INVALID_LOGIN_ID_FORMAT);
         }
 
@@ -233,7 +233,7 @@ public class AuthServiceImpl implements AuthService {
         return nickname != null && nickname.length() <= 10;
     }
 
-    private boolean isValidloginId(String loginId) {
+    private boolean isValidLoginId(String loginId) {
         String regex = "^(?=.*[A-Za-z])[A-Za-z\\d]{5,15}$";
         return Pattern.matches(regex, loginId);
     }
