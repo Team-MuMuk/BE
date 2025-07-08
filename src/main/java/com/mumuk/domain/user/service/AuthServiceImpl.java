@@ -136,6 +136,10 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.INVALID_NICKNAME_FORMAT);
         }
 
+        if(!isValidloginId(request.getLoginId())) {
+            throw new AuthException(ErrorCode.INVALID_LOGIN_ID_FORMAT);
+        }
+
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
@@ -162,6 +166,11 @@ public class AuthServiceImpl implements AuthService {
 
     private boolean isValidNickname(String nickname) {
         return nickname != null && nickname.length() <= 10;
+    }
+
+    private boolean isValidloginId(String loginId) {
+        String regex = "^(?=.*[A-Za-z])[A-Za-z\\d]{5,15}$";
+        return Pattern.matches(regex, loginId);
     }
 
     private boolean isValidPassword(String password) {
