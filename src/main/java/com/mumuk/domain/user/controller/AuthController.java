@@ -62,10 +62,24 @@ public class AuthController {
     }
 
     @Operation(summary = "Id 찾기", description = "이름과 휴대폰 번호 입력하여 SMS 메시지를 통해 아이디의 일부를 찾습니다.")
-    @PatchMapping("/recover-id")
+    @PatchMapping("/find-id")
     public Response<String> findId(@Valid @RequestBody AuthRequest.FindIdReq request) {
         authService.findUserIdAndSendSms(request);
         return Response.ok(ResultCode.SEND_ID_BY_SMS_OK, "SMS 메시지로 ID의 일부를 확인하실 수 있습니다.");
     }
 
+    @Operation(summary = "비밀번호 찾기", description = "id와 이름, 휴대폰 번호를 입력하여 SMS 메시지로 초기화 비밀번호를 발급 받습니다.")
+    @PatchMapping("/find-pw")
+    public Response<String> findPassWord(@Valid @RequestBody AuthRequest.FindPassWordReq request) {
+        authService.findUserPassWordAndSendSms(request);
+        return Response.ok(ResultCode.SEND_PW_BY_SMS_OK, "SMS 메시지로 PW의 일부를 확인하실 수 있습니다.");
+    }
+
+    @Operation(summary = "비밀번호 재설성", description = "비밀번호를 재설정합니다.")
+    @PatchMapping("/reissue-pw")
+    public Response<String> reissuePassWord(@Valid @RequestBody AuthRequest.RecoverPassWordReq req, HttpServletRequest request ) {
+        String accessToken = request.getHeader("Authorization");
+        authService.reissueUserPassword(req, accessToken);
+        return Response.ok(ResultCode.PW_REISSUE_OK, "성공적으로 비밀번호가 변경되었습니다.");
+    }
 }

@@ -26,3 +26,9 @@ jwt:
   secret: ${JWT_SECRET_KEY}
   access-token-validity: ${JWT_ACCESS_TOKEN_VALIDITY}    # 1시간
   refresh-token-validity: ${JWT_REFRESH_TOKEN_VALIDITY}  # 2주
+
+colsms:
+  api:
+    key: ${SMS_API_KEY}
+    secret: ${SMS_API_SECRET}
+    sender: 01087164428

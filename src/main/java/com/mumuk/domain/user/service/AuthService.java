@@ -12,4 +12,6 @@ public interface AuthService {
     void withdraw(String accessToken);
     TokenResponse reissue(String refreshToken);
     void findUserIdAndSendSms(AuthRequest.FindIdReq request);
+    void findUserPassWordAndSendSms(AuthRequest.FindPassWordReq request);
+    void reissueUserPassword(AuthRequest.RecoverPassWordReq request, String accessToken);
 }

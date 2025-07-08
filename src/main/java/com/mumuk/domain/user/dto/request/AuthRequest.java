@@ -50,4 +50,29 @@ public class AuthRequest {
         @NotBlank
         private String phoneNumber;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class FindPassWordReq{
+        @NotBlank
+        private String loginId;
+
+        @NotBlank
+        private String name;
+
+        @NotBlank
+        private String phoneNumber;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class RecoverPassWordReq {
+        @NotBlank
+        private String passWord;
+
+        @NotBlank
+        private String confirmPassword;
+    }
 }

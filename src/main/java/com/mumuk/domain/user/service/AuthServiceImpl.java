@@ -16,7 +16,10 @@ import org.springframework.stereotype.Service;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Slf4j
 @Service
@@ -36,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
         this.smsUtil = smsUtil;
     }
 
+    @Override
     @Transactional
     public void signUp(AuthRequest.SignUpReq request) {
 
@@ -61,6 +65,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
     }
 
+    @Override
     @Transactional
     public TokenResponse logIn(AuthRequest.LogInReq request, HttpServletResponse response) {
 
@@ -83,6 +88,7 @@ public class AuthServiceImpl implements AuthService {
         return tokenResponseConverter.toResponse(accessToken, refreshToken);
     }
 
+    @Override
     @Transactional
     public void logout(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -94,6 +100,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
     }
 
+    @Override
     @Transactional
     public void withdraw(String accessToken) {
         if (accessToken == null || !accessToken.startsWith("Bearer ")) {
@@ -104,6 +111,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.delete(user);
     }
 
+    @Override
     @Transactional
     public TokenResponse reissue(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -134,15 +142,56 @@ public class AuthServiceImpl implements AuthService {
         return tokenResponseConverter.toResponse(newAccessToken, newRefreshToken);
     }
 
+    @Override
+    @Transactional
     public void findUserIdAndSendSms(AuthRequest.FindIdReq request) {
-
         User user = userRepository.findByNameAndPhoneNumber(request.getName(), request.getPhoneNumber())
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
         String maskedId = maskUserId(user.getLoginId());
-        String message = "[MuMuk] 요청하신 회원 id는 다음과 같습니다 : " + maskedId;
+        String message = "[오늘 뭐 해먹지?] 요청하신 회원 아이디는 다음과 같습니다 : " + maskedId;
 
         smsUtil.sendOne(request.getPhoneNumber(), message);
+    }
+
+    @Override
+    @Transactional
+    public void findUserPassWordAndSendSms(AuthRequest.FindPassWordReq request) {
+        User user = userRepository.findByLoginIdAndNameAndPhoneNumber(request.getLoginId(), request.getName(), request.getPhoneNumber())
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        String tempPassword = generateTempPassword();
+
+        user.setPassword(passwordEncoder.encode(tempPassword));
+        userRepository.save(user);
+
+        String message = "[오늘 뭐 해먹지?] 임시 비밀번호는 " + tempPassword + " 입니다. 로그인 후, 꼭 비밀번호를 변경해주세요.";
+
+        smsUtil.sendOne(request.getPhoneNumber(), message);
+    }
+
+    @Override
+    @Transactional
+    public void reissueUserPassword(AuthRequest.RecoverPassWordReq request, String accessToken) {
+        String newPassword = request.getPassWord();
+        String confirmPassword = request.getConfirmPassword();
+
+        if (!newPassword.equals(confirmPassword)) {
+            throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+        }
+
+        // 비밀번호 제약 조건 검사
+        if (!isValidPassword(newPassword)) {
+            throw new AuthException(ErrorCode.INVALID_PASSWORD_FORMAT);
+        }
+
+        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
+        User user = userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 
     private void validateRequest(AuthRequest.SignUpReq request) {
@@ -198,5 +247,13 @@ public class AuthServiceImpl implements AuthService {
     private String maskUserId(String userId) {
         int visibleLength = userId.length() - 3;
         return userId.substring(0, visibleLength) + "***";
+    }
+
+    private String generateTempPassword() {
+        SecureRandom random = new SecureRandom();
+        return IntStream.range(0, 8)
+                .map(i -> random.nextInt(10))  // 0 ~ 9
+                .mapToObj(String::valueOf)
+                .collect(Collectors.joining());
     }
 }

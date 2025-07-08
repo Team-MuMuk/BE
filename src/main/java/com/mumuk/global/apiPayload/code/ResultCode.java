@@ -15,12 +15,13 @@ public enum ResultCode implements BaseCode {
     // User Success
     USER_FETCH_OK(HttpStatus.OK, "USER_200", "유저 정보 조회 성공"),
     TOKEN_REISSUE_OK(HttpStatus.OK, "TOKEN_200", "토큰 재발급 성공"),
+    PW_REISSUE_OK(HttpStatus.OK, "USER_200", "유저 비밀번호 변경 성공"),
     USER_LOGOUT_OK(HttpStatus.OK, "USER_200", "유저 로그아웃 성공"),
-    USER_WITHDRAW_OK(HttpStatus.OK, "USER_204", "유저 탈퇴 성공"),
+    USER_WITHDRAW_OK(HttpStatus.NO_CONTENT, "USER_204", "유저 탈퇴 성공"),
     USER_LOGIN_OK(HttpStatus.OK, "USER_200", "유저 로그인 성공"),
     USER_SIGNUP_OK(HttpStatus.CREATED, "USER_201", "유저 회원가입 성공"),
-    SEND_ID_BY_SMS_OK(HttpStatus.OK, "USER_204", "SMS 인증 발송 설공");
-
+    SEND_ID_BY_SMS_OK(HttpStatus.NO_CONTENT, "USER_204", "아이디 변경을 위한 SMS 인증 발송 성공"),
+    SEND_PW_BY_SMS_OK(HttpStatus.NO_CONTENT, "USER_204", "비밀번호 변경을 위한 SMS 인증 발송 성공");
 
     private final HttpStatus status;
     private final String code;
