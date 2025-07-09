@@ -1,7 +1,6 @@
-package com.mumuk.global.apiPayload.exception;
+package com.mumuk.global.security.exception;
 
 import com.mumuk.global.apiPayload.code.ErrorCode;
-import com.mumuk.global.apiPayload.response.BaseResponse;
 import com.mumuk.global.apiPayload.response.Response;
 import lombok.Getter;
 
