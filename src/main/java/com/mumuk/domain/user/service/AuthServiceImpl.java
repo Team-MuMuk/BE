@@ -1,11 +1,12 @@
 package com.mumuk.domain.user.service;
 
+import com.mumuk.domain.user.converter.AuthConverter;
 import com.mumuk.domain.user.converter.TokenResponseConverter;
 import com.mumuk.domain.user.dto.request.AuthRequest;
 import com.mumuk.domain.user.dto.response.TokenResponse;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
-import com.mumuk.global.apiPayload.exception.AuthException;
+import com.mumuk.global.security.exception.AuthException;
 import com.mumuk.global.security.jwt.JwtTokenProvider;
 import com.mumuk.global.util.SmsUtil;
 import io.jsonwebtoken.Claims;
@@ -54,14 +55,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
+        User user = AuthConverter.toUser(request.getName(), request.getNickname(), request.getPhoneNumber(), request.getLoginId(), encodedPassword);
 
-        User user = User.of(
-                request.getName(),
-                request.getNickname(),
-                request.getPhoneNumber(),
-                request.getLoginId(),
-                encodedPassword
-        );
         userRepository.save(user);
     }
 
