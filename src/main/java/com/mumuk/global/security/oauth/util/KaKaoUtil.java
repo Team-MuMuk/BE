@@ -64,8 +64,6 @@ public class KaKaoUtil {
 
         HttpEntity<MultiValueMap<String, String>> kakaoTokenRequest = new HttpEntity<>(params, headers);
 
-        log.info("[DEBUG] 카카오 토큰 요청 시작, redirect_uri: {}, client_id: {}, accessCode: {}", redirectUri, clientId, accessCode);
-
         try {
             // 카카오 토큰 엔드포인트에 POST 요청
             ResponseEntity<String> response = restTemplate.exchange(
@@ -101,6 +99,10 @@ public class KaKaoUtil {
      *  access token 을 사용해 카카오 사용자 정보 요청
      */
     public KaKaoResponse.KakaoProfile requestProfile(KaKaoResponse.OAuthToken oAuthToken) {
+
+        if (oAuthToken == null || oAuthToken.getAccess_token() == null) {
+                throw new AuthFailureHandler(ErrorCode.KAKAO_AUTH_FAILED);
+        }
 
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();

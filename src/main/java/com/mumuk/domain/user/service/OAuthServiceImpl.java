@@ -48,12 +48,12 @@ public class OAuthServiceImpl implements OAuthService {
         String profileImage = kakaoProfile.getKakao_account().getProfile().getProfile_image_url();
 
         User user = userRepository.findByEmail(email)
-//                .map(existingUser -> {
-//                    if (existingUser.getLoginType() != LoginType.KAKAO) {
-//                        throw new AuthException(ErrorCode.ALREADY_REGISTERED_WITH_OTHER_LOGIN);
-//                    }
-//                    return existingUser;
-//                })
+                .map(existingUser -> {
+                    if (existingUser.getLoginType() != LoginType.KAKAO) {
+                        throw new AuthException(ErrorCode.ALREADY_REGISTERED_WITH_OTHER_LOGIN);
+                    }
+                    return existingUser;
+                })
                 .orElseGet(() -> createNewUser(email, nickname, profileImage, LoginType.KAKAO, socialId));
 
         String accessToken = jwtTokenProvider.createAccessTokenByEmail(user.getEmail(), LoginType.KAKAO);
