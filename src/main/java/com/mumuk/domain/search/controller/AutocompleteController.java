@@ -21,9 +21,14 @@ public class AutocompleteController {
 
     @GetMapping("/autocomplete")
     public Response<List<String>> getAutocompleteSuggestions(@RequestParam String userInput) {
+
+        if (userInput == null || userInput.trim().isEmpty()) {
+            return Response.fail(ErrorCode.INVALID_INPUT,List.of());
+        }
+
         List<String> suggestions = autocompleteService.getAutocompleteSuggestions(userInput);
         if (suggestions.isEmpty()) {
-            return Response.fail(ErrorCode.KEWORD_NOT_FOUND, suggestions);
+            return Response.fail(ErrorCode.KEYWORD_NOT_FOUND, suggestions);
         } else {
             return Response.ok(ResultCode.SEARCH_AUTOCOMPLETE_OK, suggestions);
 

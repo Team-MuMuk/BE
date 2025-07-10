@@ -42,7 +42,9 @@ public enum ErrorCode implements BaseCode {
     INVALID_NICKNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_NICKNAME", "닉네임은 10자 이내만 가능합니다."),
 
     // Search Error
-    KEWORD_NOT_FOUND(HttpStatus.BAD_REQUEST, "SEARCH_401", "검색하려는 단어가 존재하지 않습니다.");
+    KEYWORD_NOT_FOUND(HttpStatus.BAD_REQUEST, "SEARCH_400", "검색하려는 단어가 존재하지 않습니다."),
+    INVALID_INPUT(HttpStatus.BAD_REQUEST, "SEARCH400", "단어를 한 글자 이상 입력해야 합니다.");
+
 
 
     private final HttpStatus status;
