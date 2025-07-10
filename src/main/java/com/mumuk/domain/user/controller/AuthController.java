@@ -3,6 +3,7 @@ package com.mumuk.domain.user.controller;
 
 import com.mumuk.domain.user.dto.request.AuthRequest;
 import com.mumuk.domain.user.dto.response.TokenResponse;
+import com.mumuk.domain.user.entity.LoginType;
 import com.mumuk.domain.user.service.AuthService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
@@ -41,23 +42,23 @@ public class AuthController {
 
     @Operation(summary = "로그아웃", description = "Refresh Token 을 통해 검증 후 로그아웃이 진행됩니다.")
     @PatchMapping("/logout")
-    public Response<String> logout(@RequestHeader("X-Refresh-Token") String refreshToken) {
-        authService.logout(refreshToken);
+    public Response<String> logout(@RequestHeader("X-Refresh-Token") String refreshToken, @RequestHeader("X-Login-Type") LoginType loginType) {
+        authService.logout(refreshToken, loginType);
         return Response.ok(ResultCode.USER_LOGOUT_OK, "로그아웃이 완료되었습니다.");
     }
 
     @Operation(summary = "회원 탈퇴", description = "Access Token 을 통해 사용자 인증을 검증 후 회원 탈퇴가 진행됩니다.")
     @DeleteMapping("/withdraw")
-    public Response<String> withdraw(HttpServletRequest request) {
+    public Response<String> withdraw(HttpServletRequest request, @RequestHeader("X-Login-Type") LoginType loginType) {
         String accessToken = request.getHeader("Authorization");
-        authService.withdraw(accessToken);
+        authService.withdraw(accessToken, loginType);
         return Response.ok(ResultCode.USER_WITHDRAW_OK, "회원 탈퇴가 완료되었습니다.");
     }
 
     @Operation(summary = "토큰 재발급", description = "Refresh Token 을 통해 새로운 Access Token 과 Refresh Token 을 발급합니다.")
     @PostMapping("/reissue")
-    public Response<TokenResponse> reissue(@RequestHeader("X-Refresh-Token") String refreshToken) {
-        TokenResponse tokenResponse = authService.reissue(refreshToken);
+    public Response<TokenResponse> reissue(@RequestHeader("X-Refresh-Token") String refreshToken, @RequestHeader("X-Login-Type") LoginType loginType ) {
+        TokenResponse tokenResponse = authService.reissue(refreshToken, loginType);
         return Response.ok(ResultCode.TOKEN_REISSUE_OK, tokenResponse);
     }
 

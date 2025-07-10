@@ -30,7 +30,7 @@ public class User extends BaseEntity {
 
     private String name;
 
-    private String nickname;
+    private String nickName;
 
     private String phoneNumber;
 
@@ -45,9 +45,9 @@ public class User extends BaseEntity {
 
     }
 
-    public User(String name, String nickname, String loginId, String password, String phoneNumber) {
+    public User(String name, String nickName, String loginId, String password, String phoneNumber) {
         this.name = name;
-        this.nickname = nickname;
+        this.nickName = nickName;
         this.loginId = loginId;
         this.password = password;
         this.phoneNumber = phoneNumber;
@@ -57,6 +57,15 @@ public class User extends BaseEntity {
         return new User(name, nickname, loginId, encodedPassword, phoneNumber);
     }
 
+    public static User of(String email, String nickName, String profileImage, LoginType loginType, String socialId) {
+        User user = new User();
+        user.email = email;
+        user.nickName = nickName;
+        user.profileImage = profileImage;
+        user.loginType = loginType;
+        user.socialId = socialId;
+        return user;
+    }
 
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
@@ -67,7 +76,7 @@ public class User extends BaseEntity {
         return id;
     }
 
-    public LoginType LoginType() {
+    public LoginType getLoginType() {
         return loginType;
     }
 
@@ -91,8 +100,8 @@ public class User extends BaseEntity {
         return name;
     }
 
-    public String getNickname() {
-        return nickname;
+    public String getNickName() {
+        return nickName;
     }
 
     public String getStatusMessage() {
@@ -132,7 +141,7 @@ public class User extends BaseEntity {
         this.name = name;
     }
 
-    public void setNickname(String nickname) {this.nickname = nickname;}
+    public void setNickName(String nickName) {this.nickName = nickName;}
 
 
     public void setStatusMessage(String statusMessage) {

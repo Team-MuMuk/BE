@@ -11,14 +11,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-jwt:
-  secret: ${JWT_SECRET_KEY}
-  access-token-validity: ${JWT_ACCESS_TOKEN_VALIDITY}    # 1시간
-  refresh-token-validity: ${JWT_REFRESH_TOKEN_VALIDITY}  # 2주
+app:
+  env: prod
 
-
-colsms:
-  api:
-    key: ${SMS_API_KEY}
-    secret: ${SMS_API_SECRET}
-    sender: 01087164428
+kakao:
+  native-app-key: ${KAKAO_SECRET_KEY}
+  redirect-uri: https://api.mumuk.site/login/oauth2/code/kakao
+  token-uri: https://kauth.kakao.com/oauth/token
+  user-info-uri: https://kapi.kakao.com/v2/user/me

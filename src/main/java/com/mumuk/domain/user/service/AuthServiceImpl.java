@@ -1,11 +1,13 @@
 package com.mumuk.domain.user.service;
 
+import com.mumuk.domain.user.converter.AuthConverter;
 import com.mumuk.domain.user.converter.TokenResponseConverter;
 import com.mumuk.domain.user.dto.request.AuthRequest;
 import com.mumuk.domain.user.dto.response.TokenResponse;
+import com.mumuk.domain.user.entity.LoginType;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
-import com.mumuk.global.apiPayload.exception.AuthException;
+import com.mumuk.global.security.exception.AuthException;
 import com.mumuk.global.security.jwt.JwtTokenProvider;
 import com.mumuk.global.util.SmsUtil;
 import io.jsonwebtoken.Claims;
@@ -54,14 +56,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
+        User user = AuthConverter.toUser(request.getName(), request.getNickname(), request.getPhoneNumber(), request.getLoginId(), encodedPassword);
 
-        User user = User.of(
-                request.getName(),
-                request.getNickname(),
-                request.getPhoneNumber(),
-                request.getLoginId(),
-                encodedPassword
-        );
         userRepository.save(user);
     }
 
@@ -90,30 +86,30 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void logout(String refreshToken) {
+    public void logout(String refreshToken, LoginType loginType) {
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
-        User user = getUserFromToken(refreshToken);
-
+        User user = getUserFromToken(refreshToken, loginType);
         user.updateRefreshToken(null);
+
         userRepository.save(user);
     }
 
     @Override
     @Transactional
-    public void withdraw(String accessToken) {
+    public void withdraw(String accessToken, LoginType loginType) {
         if (accessToken == null || !accessToken.startsWith("Bearer ")) {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
-        User user = getUserFromToken(accessToken);
+        User user = getUserFromToken(accessToken, loginType);
 
         userRepository.delete(user);
     }
 
     @Override
     @Transactional
-    public TokenResponse reissue(String refreshToken) {
+    public TokenResponse reissue(String refreshToken, LoginType loginType) {
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
@@ -122,9 +118,15 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
 
-        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(refreshToken);
-        User user = userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        Claims claims = jwtTokenProvider.getClaimsFromToken(refreshToken);
+        String subject = claims.getSubject(); // email or phoneNumber
+
+        User user = switch (loginType) {
+            case LOCAL -> userRepository.findByPhoneNumber(subject)
+                    .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+            case KAKAO, NAVER -> userRepository.findByEmail(subject)
+                    .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        };
 
         // 저장된 refreshToken이 없으면 재발급 불가
         String storedRefreshToken = user.getRefreshToken();
@@ -132,8 +134,16 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
 
-        String newAccessToken = jwtTokenProvider.createAccessToken(phoneNumber);
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(phoneNumber);
+        String newAccessToken;
+        String newRefreshToken;
+
+        if (loginType == LoginType.LOCAL) {
+            newAccessToken = jwtTokenProvider.createAccessToken(subject);       // phoneNumber
+            newRefreshToken = jwtTokenProvider.createRefreshToken(subject);     // phoneNumber
+        }else{
+            newAccessToken = jwtTokenProvider.createAccessTokenByEmail(subject, loginType);       // email
+            newRefreshToken = jwtTokenProvider.createRefreshTokenByEmail(subject, loginType);     // email
+        }
 
         // refreshToken 갱신
         user.updateRefreshToken(newRefreshToken);
@@ -213,8 +223,8 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    // token -> Claim 객체 -> Subject 을 이용한 사용자 phoneNumber 추출
-    private User getUserFromToken(String token) {
+    // token -> Claim 객체 -> Subject 을 이용한 사용자 정보 추출
+    private User getUserFromToken(String token, LoginType loginType) {
         Claims claims = jwtTokenProvider.getClaimsFromToken(token);
 
         String category = claims.get("category", String.class);
@@ -222,11 +232,14 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
         }
 
-        String phoneNumber = claims.getSubject();
-        log.info("📱 phoneNumber from token: {}", phoneNumber);
+        String subject = claims.getSubject();   // 이메일 or 전화번호
 
-        return userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        return switch (loginType) {
+            case LOCAL -> userRepository.findByPhoneNumber(subject)
+                    .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+            case KAKAO, NAVER -> userRepository.findByEmail(subject)
+                    .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        };
     }
 
     private boolean isValidNickname(String nickname) {
