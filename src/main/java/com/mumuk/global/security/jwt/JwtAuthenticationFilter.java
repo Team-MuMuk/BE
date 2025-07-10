@@ -1,10 +1,9 @@
 package com.mumuk.global.security.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
-import com.mumuk.global.apiPayload.exception.AuthException;
+import com.mumuk.global.security.exception.AuthException;
 import com.mumuk.global.apiPayload.response.Response;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -32,7 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final List<String> EXCLUDED_URLS = List.of(
             "/swagger-ui/**", "/v3/api-docs/**", "/api/auth/sign-up", "/api/auth/login", "/api/auth/reissue",
-            "/api/auth/find-id", "/api/auth/find-pw"
+            "/api/auth/find-id", "/api/auth/find-pw", "/api/auth/kakao-login"
     );
 
     @Override

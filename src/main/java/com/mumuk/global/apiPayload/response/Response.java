@@ -21,6 +21,13 @@ public class Response<T> {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final T data;
 
+    public Response(boolean success, String code, String message) {
+        this.status = success ? HttpStatus.OK : HttpStatus.UNAUTHORIZED; // 또는 프로젝트 기준에 맞게 설정
+        this.code = code;
+        this.message = message;
+        this.data = null;
+    }
+
     public static Response<Void> ok() {
 
         return new Response<>(ResultCode.OK.getStatus(), ResultCode.OK.getCode(), ResultCode.OK.getMessage(), null);

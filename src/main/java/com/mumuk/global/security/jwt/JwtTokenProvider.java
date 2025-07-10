@@ -1,7 +1,8 @@
 package com.mumuk.global.security.jwt;
 
+import com.mumuk.domain.user.entity.LoginType;
 import com.mumuk.global.apiPayload.code.ErrorCode;
-import com.mumuk.global.apiPayload.exception.AuthException;
+import com.mumuk.global.security.exception.AuthException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -64,6 +65,37 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setSubject(phoneNumber)
                 .claim("category", category)      // "access" 또는 "refresh"
+                .claim("loginType", "LOCAL")
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+    public String createAccessTokenByEmail(String email, LoginType loginType) {
+        try {
+            return generateTokenByEmail(email, accessTokenValidity, "access", loginType);
+        } catch (JwtException e) {
+            throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
+        }
+    }
+
+    public String createRefreshTokenByEmail(String email, LoginType loginType) {
+        try {
+            return generateTokenByEmail(email, refreshTokenValidity, "refresh", loginType);
+        } catch (JwtException e) {
+            throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
+        }
+    }
+
+    private String generateTokenByEmail(String email, long validity, String category, LoginType loginType) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + validity);
+
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("category", category)
+                .claim("loginType", loginType.name())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
