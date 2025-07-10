@@ -74,7 +74,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_PASSWORD }}"
-            docker pull $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/mumuk-backend:latest            
 
             cd /home/ubuntu/BE
 
