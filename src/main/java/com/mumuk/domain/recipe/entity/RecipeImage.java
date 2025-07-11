@@ -15,14 +15,31 @@ public class RecipeImage extends BaseEntity {
 
     // getter도 필요하면 추가
     // --- setter 추가 ---
-    @Getter
-    @Setter
     private String imageUrl;
 
-    @Getter
-    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recipe_id")
     private Recipe recipe;
 
+    // Getter 메서드들
+    public Long getId() {
+        return id;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public Recipe getRecipe() {
+        return recipe;
+    }
+
+    // Setter 메서드들 (필요한 경우에만)
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public void setRecipe(Recipe recipe) {
+        this.recipe = recipe;
+    }
 }
