@@ -51,12 +51,12 @@ jobs:
           echo "${{ secrets.APPLICATION }}" > docker-context/application-prod.yml
         shell: bash
 
+      - name: Build JAR
+        run: ./gradlew clean bootJar -x test
+
       - name: Copy JAR to Docker context
         run: |
           cp build/libs/*.jar docker-context/app.jar
-
-      - name: Build JAR
-        run: ./gradlew clean bootJar -x test
 
       - name: Check built JAR
         run: |
