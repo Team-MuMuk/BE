@@ -58,19 +58,10 @@ jobs:
         run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build Docker image with SHA tag
-        run: docker build -t $DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG .
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG .
 
       - name: Push Docker image
-        run: docker push $DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG
-
-      - name: Create .env with IMAGE_TAG
-        run: echo "IMAGE_TAG=${IMAGE_TAG}" > ${{ github.workspace }}/.env
-
-      - name: Upload .env file as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: env-file
-          path: ${{ github.workspace }}/.env
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG
 
   CD:
     needs: CI
@@ -90,11 +81,9 @@ jobs:
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/mumuk-backend:$IMAGE_TAG
             
             cd /home/ubuntu/BE
-            
-            sed -i "/^IMAGE_TAG=/d" .env
-            echo "IMAGE_TAG=${IMAGE_TAG}" >> .env
 
-            docker-compose down
-            docker-compose rm -f backend
-            docker-compose up -d --force-recreate
+            docker compose down
+            docker compose rm -f backend
+            IMAGE_TAG=$IMAGE_TAG docker compose up -d --force-recreate
+
             docker image prune -f
