@@ -64,18 +64,14 @@ jobs:
         run: docker push $DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG
 
       - name: Create .env with IMAGE_TAG
-        run: echo "IMAGE_TAG=${IMAGE_TAG}" > .env
-
-      - name: Update .env with IMAGE_TAG
-        run: |
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> .env
-        shell: bash
+        run: echo "IMAGE_TAG=${IMAGE_TAG}" > ${{ github.workspace }}/.env
 
       - name: Upload .env file as artifact
         uses: actions/upload-artifact@v4
         with:
           name: env-file
-          path: .env
+          path: ${{ github.workspace }}/.env
+
   CD:
     needs: CI
     runs-on: ubuntu-latest
