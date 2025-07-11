@@ -54,10 +54,23 @@ jobs:
       - name: Build JAR
         run: ./gradlew clean bootJar -x test
 
+      - name: Check built JAR
+        run: |
+          echo "Listing built JARs:"
+          ls -lh build/libs
+          echo "Checking file type:"
+          file build/libs/*.jar
+
       - name: Copy JAR to Docker context
         run: |
           mkdir -p docker-context
           cp build/libs/*.jar docker-context/app.jar
+
+      - name: Check copied app.jar
+        run: |
+          echo "Checking copied app.jar:"
+          ls -lh docker-context
+          file docker-context/app.jar
 
       - name: Verify copied JAR version
         run: |
