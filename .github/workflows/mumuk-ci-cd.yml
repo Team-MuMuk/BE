@@ -54,11 +54,16 @@ jobs:
       - name: Build JAR
         run: ./gradlew clean bootJar -x test
 
+      - name: Rename JAR to fixed name for Docker
+        run: |
+          mkdir -p docker-context
+          cp build/libs/*.jar docker-context/app.jar
+
       - name: Log in to DockerHub
         run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build Docker image with SHA tag
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG .
+        run: docker build --no-cache -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG .
 
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG
