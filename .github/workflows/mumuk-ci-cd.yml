@@ -97,15 +97,15 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            IMAGE_TAG=${{ github.sha }}
+            cd /home/ubuntu/BE
+
+            echo "IMAGE_TAG=${{ github.sha }}" > .env
 
             docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_PASSWORD }}"
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/mumuk-backend:$IMAGE_TAG
             
-            cd /home/ubuntu/BE
-
             docker compose down
             docker compose rm -f backend
-            IMAGE_TAG=$IMAGE_TAG docker compose up -d --force-recreate
+            docker compose up -d --force-recreate
 
             docker image prune -f
