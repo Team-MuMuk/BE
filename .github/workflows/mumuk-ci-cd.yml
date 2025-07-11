@@ -61,7 +61,7 @@ jobs:
 
       - name: Verify copied JAR version
         run: |
-          strings docker-context/app.jar | grep "version" || echo "no version string"
+          strings docker-context/app.jar | grep -iE "version|build|timestamp|MuMuk"
 
       - name: Log in to DockerHub
         run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
