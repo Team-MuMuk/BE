@@ -15,4 +15,27 @@ public class UserResponse {
         private String profileImage;
         private String refreshToken;
     }
+
+    @Getter
+    @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class ProfileResultDTO {     // 프로필 수정 후 반환할 정보
+        private String nickName;
+        private String profileImage;
+
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class ProfileInfoDTO { //프로필 조회 후 반환할 정보
+
+        private String name;
+        private String nickName;
+        private String profileImage;
+        private String statusMessage;
+
+    }
+
+
 }
