@@ -45,16 +45,16 @@ public class User extends BaseEntity {
 
     }
 
-    public User(String name, String nickName, String loginId, String password, String phoneNumber) {
+    public User(String name, String nickName, String phoneNumber, String loginId, String password) {
         this.name = name;
         this.nickName = nickName;
+        this.phoneNumber = phoneNumber;
         this.loginId = loginId;
         this.password = password;
-        this.phoneNumber = phoneNumber;
     }
 
-    public static User of(String name, String nickname, String loginId, String encodedPassword, String phoneNumber) {
-        return new User(name, nickname, loginId, encodedPassword, phoneNumber);
+    public static User of(String name, String nickname, String phoneNumber, String loginId, String encodedPassword) {
+        return new User(name, nickname, phoneNumber, loginId, encodedPassword);
     }
 
     public static User of(String email, String nickName, String profileImage, LoginType loginType, String socialId) {
