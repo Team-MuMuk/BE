@@ -156,6 +156,10 @@ public class JwtTokenProvider {
     }
 
     public Long getUserIdFromToken(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new AuthException(ErrorCode.JWT_TOKEN_NOT_FOUND);
+        }
+
         if (token.startsWith("Bearer ")) {
             token = token.substring(7).trim();
         }
