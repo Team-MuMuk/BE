@@ -10,6 +10,6 @@ import org.springframework.stereotype.Service;
 public interface MypageService {
 
 
-    UserResponse.ProfileInfoDTO profileInfo(String accessToken);
+    UserResponse.ProfileInfoDTO profileInfo(Long userId);
     void editProfile(MypageRequest.EditProfileReq request, String accessToken);
 }
