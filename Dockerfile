@@ -1,6 +1,6 @@
 FROM openjdk:17
 
-COPY build/libs/mumuk-0.0.1-SNAPSHOT.jar app.jar
+COPY app.jar app.jar
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime && echo "Asia/Seoul" > /etc/timezone
 
