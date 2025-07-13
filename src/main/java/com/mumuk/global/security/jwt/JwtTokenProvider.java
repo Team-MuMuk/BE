@@ -1,6 +1,7 @@
 package com.mumuk.global.security.jwt;
 
 import com.mumuk.domain.user.entity.LoginType;
+import com.mumuk.domain.user.entity.User;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.security.exception.AuthException;
 import io.jsonwebtoken.*;
@@ -41,29 +42,29 @@ public class JwtTokenProvider {
                 .build();
     }
 
-    // email 기반의 JWT 생성
-    public String createAccessToken(String phoneNumber) {
+    public String createAccessToken(User user, String phoneNumber) {
         try {
-            return generateToken(phoneNumber, accessTokenValidity,"access");
+            return generateToken(user, phoneNumber, accessTokenValidity,"access");
         } catch (JwtException e) {
             throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
         }
     }
 
-    public String createRefreshToken(String phoneNumber) {
+    public String createRefreshToken(User user, String phoneNumber) {
         try {
-            return generateToken(phoneNumber, refreshTokenValidity, "refresh");
+            return generateToken(user, phoneNumber, refreshTokenValidity, "refresh");
         } catch (JwtException e) {
             throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
         }
     }
 
-    private String generateToken(String phoneNumber, long validity, String category) {
+    private String generateToken(User user, String phoneNumber, long validity, String category) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + validity);
 
         return Jwts.builder()
                 .setSubject(phoneNumber)
+                .claim("user_id", user.getId())
                 .claim("category", category)      // "access" 또는 "refresh"
                 .claim("loginType", "LOCAL")
                 .setIssuedAt(now)
@@ -72,28 +73,29 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String createAccessTokenByEmail(String email, LoginType loginType) {
+    public String createAccessTokenByEmail(User user, String email, LoginType loginType) {
         try {
-            return generateTokenByEmail(email, accessTokenValidity, "access", loginType);
+            return generateTokenByEmail(user, email, accessTokenValidity, "access", loginType);
         } catch (JwtException e) {
             throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
         }
     }
 
-    public String createRefreshTokenByEmail(String email, LoginType loginType) {
+    public String createRefreshTokenByEmail(User user, String email, LoginType loginType) {
         try {
-            return generateTokenByEmail(email, refreshTokenValidity, "refresh", loginType);
+            return generateTokenByEmail(user, email, refreshTokenValidity, "refresh", loginType);
         } catch (JwtException e) {
             throw new AuthException(ErrorCode.JWT_GENERATION_FAILED);
         }
     }
 
-    private String generateTokenByEmail(String email, long validity, String category, LoginType loginType) {
+    private String generateTokenByEmail(User user, String email, long validity, String category, LoginType loginType) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + validity);
 
         return Jwts.builder()
                 .setSubject(email)
+                .claim("user_id", user.getId())
                 .claim("category", category)
                 .claim("loginType", loginType.name())
                 .setIssuedAt(now)
@@ -153,4 +155,10 @@ public class JwtTokenProvider {
         return this.secretKey;
     }
 
+    public Long getUserIdFromToken(String token) {
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7).trim();
+        }
+        return jwtParser.parseClaimsJws(token).getBody().get("user_id", Long.class);
+    }
 }

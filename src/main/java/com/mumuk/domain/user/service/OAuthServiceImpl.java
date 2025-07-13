@@ -56,8 +56,8 @@ public class OAuthServiceImpl implements OAuthService {
                 })
                 .orElseGet(() -> createNewUser(email, nickname, profileImage, LoginType.KAKAO, socialId));
 
-        String accessToken = jwtTokenProvider.createAccessTokenByEmail(user.getEmail(), LoginType.KAKAO);
-        String refreshToken = jwtTokenProvider.createRefreshTokenByEmail(user.getEmail(), LoginType.KAKAO);
+        String accessToken = jwtTokenProvider.createAccessTokenByEmail(user, user.getEmail(), LoginType.KAKAO);
+        String refreshToken = jwtTokenProvider.createRefreshTokenByEmail(user, user.getEmail(), LoginType.KAKAO);
 
         user.setRefreshToken(refreshToken);
         user.setProfileImage(profileImage);

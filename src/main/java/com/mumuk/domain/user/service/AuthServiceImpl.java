@@ -72,8 +72,8 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getPhoneNumber());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getPhoneNumber());
+        String accessToken = jwtTokenProvider.createAccessToken(user, user.getPhoneNumber());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user, user.getPhoneNumber());
 
         user.updateRefreshToken(refreshToken);
         userRepository.save(user);          // 명시적 저장
@@ -138,11 +138,11 @@ public class AuthServiceImpl implements AuthService {
         String newRefreshToken;
 
         if (loginType == LoginType.LOCAL) {
-            newAccessToken = jwtTokenProvider.createAccessToken(subject);       // phoneNumber
-            newRefreshToken = jwtTokenProvider.createRefreshToken(subject);     // phoneNumber
+            newAccessToken = jwtTokenProvider.createAccessToken(user, subject);       // phoneNumber
+            newRefreshToken = jwtTokenProvider.createRefreshToken(user, subject);     // phoneNumber
         }else{
-            newAccessToken = jwtTokenProvider.createAccessTokenByEmail(subject, loginType);       // email
-            newRefreshToken = jwtTokenProvider.createRefreshTokenByEmail(subject, loginType);     // email
+            newAccessToken = jwtTokenProvider.createAccessTokenByEmail(user, subject, loginType);       // email
+            newRefreshToken = jwtTokenProvider.createRefreshTokenByEmail(user, subject, loginType);     // email
         }
 
         // refreshToken 갱신
