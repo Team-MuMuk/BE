@@ -3,12 +3,9 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    url: jdbc:postgresql://mumuk-rds.cvg4ai0yyl17.ap-northeast-2.rds.amazonaws.com:5432/mumuk
-    username: mumuk
-    password: park9368!
-#    url: ${POSTGRESQL_URL}
-#    username: ${POSTGRESQL_USER}
-#    password: ${POSTGRESQL_PASSWORD}
+    url: ${POSTGRESQL_URL}
+    username: ${POSTGRESQL_USER}
+    password: ${POSTGRESQL_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
