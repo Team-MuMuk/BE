@@ -9,6 +9,7 @@ import com.mumuk.domain.user.service.AuthService;
 import com.mumuk.domain.user.service.MypageService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
+import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -32,9 +33,8 @@ public class MypageController {
     // 프로필 정보 조회
     @Operation(summary = "프로필 조회", description = "사용자의 프로필 정보를 조회합니다.")
     @GetMapping
-    public Response<UserResponse.ProfileInfoDTO> profileInfo (HttpServletRequest request) {
-        String accessToken = request.getHeader("Authorization");
-        return Response.ok(mypageService.profileInfo(accessToken));
+    public Response<UserResponse.ProfileInfoDTO> profileInfo(@AuthUser Long userId) {
+        return Response.ok(mypageService.profileInfo(userId));
     }
 
     // 프로필 정보 수정
