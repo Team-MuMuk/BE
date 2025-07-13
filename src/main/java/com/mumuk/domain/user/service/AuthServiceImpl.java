@@ -98,12 +98,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void withdraw(String accessToken, LoginType loginType) {
-        if (accessToken == null || !accessToken.startsWith("Bearer ")) {
-            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
-        }
-        User user = getUserFromToken(accessToken, loginType);
-
+    public void withdraw(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
         userRepository.delete(user);
     }
 
@@ -182,7 +179,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void reissueUserPassword(AuthRequest.RecoverPassWordReq request, String accessToken) {
+    public void reissueUserPassword(AuthRequest.RecoverPassWordReq request, Long userId) {
         String newPassword = request.getPassWord();
         String confirmPassword = request.getConfirmPassWord();
 
@@ -195,8 +192,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.INVALID_PASSWORD_FORMAT);
         }
 
-        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
-        User user = userRepository.findByPhoneNumber(phoneNumber)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
 
