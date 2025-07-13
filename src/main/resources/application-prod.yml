@@ -14,9 +14,12 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     defer-datasource-initialization: true
+  config:
+    activate:
+      on-profile: prod
 
-app:
-  env: prod
+#app:
+#  env: prod
 
 kakao:
   native-app-key: ${KAKAO_SECRET_KEY}
