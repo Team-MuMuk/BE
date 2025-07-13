@@ -5,7 +5,6 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    image: parkmineum/mumuk-backend:v1.0.0
     env_file:
       - .env
     expose:
