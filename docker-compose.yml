@@ -11,8 +11,6 @@ services:
       - POSTGRESQL_USER=${PROD_DB_USERNAME}
       - POSTGRESQL_PASSWORD=${PROD_DB_PASSWORD}
       - POSTGRESQL_URL=jdbc:postgresql://${PROD_DB_ENDPOINT}:5432/${PROD_DB_NAME}
-    networks:
-      - mumuk_network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost" ]
       interval: 30s
