@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+env:
+  IMAGE_NAME: mumuk-backend
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
 jobs:
   CI:
     runs-on: ubuntu-latest
@@ -46,17 +50,20 @@ jobs:
           echo "${{ secrets.APPLICATION }}" > ./application-prod.yml
         shell: bash
 
-      - name: Build with Gradle without tests
+      - name: Build JAR
         run: ./gradlew clean bootJar -x test
 
-      - name: Copy JAR to EC2
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "build/libs/*.jar"
-          target: "/home/ubuntu/BE/build/libs/"
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Set Docker image tag using Git SHA
+        run: echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        run: docker build -t $DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG .
+
+      - name: Push Docker image
+        run: docker push $DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG
 
   CD:
     needs: CI
@@ -65,6 +72,9 @@ jobs:
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
@@ -72,23 +82,10 @@ jobs:
           script: |
             cd /home/ubuntu/BE
 
-            sudo chmod -R u+w ./nginx
+            echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
-            sudo docker-compose down
+            sed -i "s|image: .*/$IMAGE_NAME:.*|image: $DOCKERHUB_USERNAME/$IMAGE_NAME:${IMAGE_TAG:0:7}|" docker-compose.yml
 
-            git fetch origin
-            git reset --hard origin/main
-
-            ./gradlew clean bootjar
-
-            if [ "$(sudo docker ps -qa)" ]; then
-              sudo docker ps -qa | xargs -r sudo docker rm -f
-            fi
-            
-            IMAGES=$(sudo docker images -q)
-            if [ -n "$IMAGES" ]; then
-            sudo docker rmi $IMAGES
-            fi
-            
-            sudo docker-compose up --build -d
-            sudo docker image prune -f
+            docker-compose pull backend
+            docker-compose up -d --no-build
+            docker image prune -f
