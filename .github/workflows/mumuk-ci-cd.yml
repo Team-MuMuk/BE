@@ -77,7 +77,9 @@ jobs:
             cd /home/ubuntu/BE
           
             sudo docker-compose down
-          
+            
+            mv build/libs/mumuk-0.0.1-SNAPSHOT.jar ./app.jar            
+            
             sudo docker-compose build --no-cache
             sudo docker-compose up -d
           
