@@ -3,10 +3,9 @@ services:
   backend:
     container_name: backend
     image: parkmineum/mumuk-backend:v1.0.0
+    network_mode: host
     env_file:
       - .env
-    expose:
-      - "8080"
     environment:
       - APP_ENV=prod
       - POSTGRESQL_USER=${PROD_DB_USERNAME}
