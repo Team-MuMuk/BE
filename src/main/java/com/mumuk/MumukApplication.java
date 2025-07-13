@@ -1,6 +1,5 @@
 package com.mumuk;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -14,8 +13,11 @@ public class MumukApplication {
 	}
 
 	@Bean
-	public CommandLineRunner checkDbUrl(@Value("${spring.datasource.url}") String url) {
-		return args -> System.out.println("✅ 실제 DB URL: " + url);
+	public CommandLineRunner logRawEnv() {
+		return args -> {
+			System.out.println("🔍 POSTGRESQL_URL (env): " + System.getenv("POSTGRESQL_URL"));
+			System.out.println("🔍 SPRING_PROFILES_ACTIVE (env): " + System.getenv("SPRING_PROFILES_ACTIVE"));
+		};
 	}
 
 }
