@@ -8,6 +8,7 @@ services:
     expose:
       - "8080"
     environment:
+      - SPRING_PROFILES_ACTIVE=prod
       - POSTGRESQL_USER=mumuk
       - POSTGRESQL_PASSWORD=park9368!
       - POSTGRESQL_URL=jdbc:postgresql://mumuk-rds.cvg4ai0yyl17.ap-northeast-2.rds.amazonaws.com:5432/mumuk
