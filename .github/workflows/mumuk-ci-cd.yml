@@ -75,12 +75,9 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /home/ubuntu/BE
-
+          
             sudo docker-compose down
-
-            git fetch origin
-            git reset --hard origin/main
-
+          
             sudo docker-compose up --build -d
-
+          
             sudo docker image prune -f
