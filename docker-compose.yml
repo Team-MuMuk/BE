@@ -12,9 +12,9 @@ services:
       - "8080"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
-      - POSTGRESQL_USER=mumuk
-      - POSTGRESQL_PASSWORD=park9368!
-      - POSTGRESQL_URL=jdbc:postgresql://mumuk-rds.cvg4ai0yyl17.ap-northeast-2.rds.amazonaws.com:5432/mumuk
+      - POSTGRESQL_USER=${PROD_DB_USERNAME}
+      - POSTGRESQL_PASSWORD=${PROD_DB_PASSWORD}
+      - POSTGRESQL_URL=jdbc:postgresql://${PROD_DB_ENDPOINT}:5432/${PROD_DB_NAME}
     networks:
       - mumuk_network
     healthcheck:
@@ -24,6 +24,13 @@ services:
       retries: 5
       start_period: 60s
 
+  redis:
+    image: redis:7.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - mumuk_network
 
   nginx:
     container_name: nginx
