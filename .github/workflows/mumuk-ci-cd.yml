@@ -53,9 +53,12 @@ jobs:
       - name: Build JAR
         run: ./gradlew clean bootJar -x test
 
-      - name: Rename and Copy JAR to EC2
+      - name: Rename JAR to fixed name (only if needed)
         run: |
-          mv build/libs/*.jar build/libs/mumuk-0.0.1-SNAPSHOT.jar
+          FILE=$(ls build/libs/*.jar | grep -v plain || true)
+          if [ "$FILE" != "build/libs/mumuk-0.0.1-SNAPSHOT.jar" ]; then
+            mv "$FILE" build/libs/mumuk-0.0.1-SNAPSHOT.jar
+          fi
 
       - name: Copy JAR to EC2
         uses: appleboy/scp-action@master
