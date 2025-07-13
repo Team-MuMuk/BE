@@ -2,7 +2,7 @@ services:
 
   backend:
     container_name: backend
-    image: parkmineum/mumuk-backend:${IMAGE_TAG}
+    image: parkmineum/mumuk-backend:v1.0.0
     env_file:
       - .env
     expose:

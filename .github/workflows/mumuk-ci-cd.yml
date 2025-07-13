@@ -12,11 +12,6 @@ on:
 permissions:
   contents: read
 
-env:
-  IMAGE_NAME: mumuk-backend
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  IMAGE_TAG: ${{ github.sha }}
-
 jobs:
   CI:
     runs-on: ubuntu-latest
@@ -47,47 +42,21 @@ jobs:
 
       - name: Create application.yml
         run: |
-          mkdir -p docker-context
-          echo "${{ secrets.APPLICATION }}" > docker-context/application-prod.yml
+          cd ./src/main/resources
+          echo "${{ secrets.APPLICATION }}" > ./application-prod.yml
         shell: bash
 
-      - name: Build JAR
+      - name: Build with Gradle without tests
         run: ./gradlew clean bootJar -x test
 
-      - name: Copy JAR to Docker context
-        run: |
-          cp build/libs/*.jar docker-context/app.jar
-
-      - name: Check built JAR
-        run: |
-          echo "Listing built JARs:"
-          ls -lh build/libs
-          echo "Checking file type:"
-          file build/libs/*.jar
-
-      - name: Copy JAR to Docker context
-        run: |
-          mkdir -p docker-context
-          cp build/libs/*.jar docker-context/app.jar
-
-      - name: Check copied app.jar
-        run: |
-          echo "Checking copied app.jar:"
-          ls -lh docker-context
-          file docker-context/app.jar
-
-      - name: Verify copied JAR version
-        run: |
-          strings docker-context/app.jar | grep -iE "version|build|timestamp|MuMuk"
-
-      - name: Log in to DockerHub
-        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Build Docker image with SHA tag
-        run: docker build --no-cache -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG .
-
-      - name: Push Docker image
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG
+      - name: Copy JAR to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "build/libs/*.jar"
+          target: "/home/ubuntu/BE/build/libs/"
 
   CD:
     needs: CI
@@ -103,14 +72,23 @@ jobs:
           script: |
             cd /home/ubuntu/BE
 
-            sed -i '/^IMAGE_TAG=/d' .env
-            echo "IMAGE_TAG=${{ github.sha }}" >> .env
+            sudo chmod -R u+w ./nginx
 
-            docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_PASSWORD }}"
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/mumuk-backend:$IMAGE_TAG
+            sudo docker-compose down
+
+            git fetch origin
+            git reset --hard origin/main
+
+            ./gradlew clean bootjar
+
+            if [ "$(sudo docker ps -qa)" ]; then
+              sudo docker ps -qa | xargs -r sudo docker rm -f
+            fi
             
-            docker compose down
-            docker compose rm -f backend
-            docker compose up -d --force-recreate
-
-            docker image prune -f
+            IMAGES=$(sudo docker images -q)
+            if [ -n "$IMAGES" ]; then
+            sudo docker rmi $IMAGES
+            fi
+            
+            sudo docker-compose up --build -d
+            sudo docker image prune -f
