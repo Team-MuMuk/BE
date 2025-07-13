@@ -1,4 +1,7 @@
 spring:
+  config:
+    activate:
+      on-profile: prod
   datasource:
     url: jdbc:postgresql://mumuk-rds.cvg4ai0yyl17.ap-northeast-2.rds.amazonaws.com:5432/mumuk
     username: mumuk
@@ -13,10 +16,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-    defer-datasource-initialization: true
-  config:
-    activate:
-      on-profile: prod
+
 
 #app:
 #  env: prod

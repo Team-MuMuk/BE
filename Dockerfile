@@ -8,4 +8,4 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime && echo "Asia/Seoul" > 
 
 ENV SPRING_PROFILES_ACTIVE=prod
 
-ENTRYPOINT sh -c "java -Duser.timezone=Asia/Seoul -Dspring.profiles.active=$SPRING_PROFILES_ACTIVE -Dspring.config.additional-location=classpath:/ -jar app.jar"
+ENTRYPOINT sh -c "java -jar -Dspring.profiles.active=$SPRING_PROFILES_ACTIVE -Duser.timezone=Asia/Seoul app.jar"
