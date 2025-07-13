@@ -7,6 +7,7 @@ import com.mumuk.domain.user.entity.LoginType;
 import com.mumuk.domain.user.service.AuthService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
+import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -49,9 +50,8 @@ public class AuthController {
 
     @Operation(summary = "회원 탈퇴", description = "Access Token 을 통해 사용자 인증을 검증 후 회원 탈퇴가 진행됩니다.")
     @DeleteMapping("/withdraw")
-    public Response<String> withdraw(HttpServletRequest request, @RequestHeader("X-Login-Type") LoginType loginType) {
-        String accessToken = request.getHeader("Authorization");
-        authService.withdraw(accessToken, loginType);
+    public Response<String> withdraw(@AuthUser Long userId) {
+        authService.withdraw(userId);
         return Response.ok(ResultCode.USER_WITHDRAW_OK, "회원 탈퇴가 완료되었습니다.");
     }
 
@@ -78,9 +78,8 @@ public class AuthController {
 
     @Operation(summary = "비밀번호 재설성", description = "비밀번호를 재설정합니다.")
     @PatchMapping("/reissue-pw")
-    public Response<String> reissuePassWord(@Valid @RequestBody AuthRequest.RecoverPassWordReq req, HttpServletRequest request ) {
-        String accessToken = request.getHeader("Authorization");
-        authService.reissueUserPassword(req, accessToken);
+    public Response<String> reissuePassWord(@AuthUser Long userId, @Valid @RequestBody AuthRequest.RecoverPassWordReq req, HttpServletRequest request ) {
+        authService.reissueUserPassword(req, userId);
         return Response.ok(ResultCode.PW_REISSUE_OK, "성공적으로 비밀번호가 변경되었습니다.");
     }
 }
