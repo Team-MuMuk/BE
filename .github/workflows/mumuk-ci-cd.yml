@@ -67,7 +67,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "build/libs/mumuk-0.0.1-SNAPSHOT.jar"
-          target: "/home/ubuntu/BE/app.jar"
+          target: "/home/ubuntu/BE/"
   CD:
     needs: CI
     runs-on: ubuntu-latest
