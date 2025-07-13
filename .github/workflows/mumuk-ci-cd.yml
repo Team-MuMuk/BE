@@ -12,10 +12,6 @@ on:
 permissions:
   contents: read
 
-env:
-  IMAGE_NAME: mumuk-backend
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-
 jobs:
   CI:
     runs-on: ubuntu-latest
@@ -50,15 +46,8 @@ jobs:
           echo "${{ secrets.APPLICATION }}" > ./application-prod.yml
         shell: bash
 
-      - name: Build JAR
+      - name: Build with Gradle without tests
         run: ./gradlew clean bootJar -x test
-
-      - name: Rename JAR to fixed name
-        run: |
-          FILE=$(ls build/libs/*.jar | grep -v plain || true)
-          if [ "$FILE" != "build/libs/mumuk-0.0.1-SNAPSHOT.jar" ]; then
-            mv "$FILE" build/libs/mumuk-0.0.1-SNAPSHOT.jar
-          fi
 
       - name: Copy JAR to EC2
         uses: appleboy/scp-action@master
@@ -66,8 +55,8 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "build/libs/mumuk-0.0.1-SNAPSHOT.jar"
-          target: "/home/ubuntu/BE/"
+          source: "build/libs/*.jar"
+          target: "/home/ubuntu/BE/build/libs/"
   CD:
     needs: CI
     runs-on: ubuntu-latest
@@ -81,10 +70,24 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /home/ubuntu/BE
-          
+
+            sudo chmod -R u+w ./nginx
+
             sudo docker-compose down
+
+            git fetch origin
+            git reset --hard origin/main
+
+            ./gradlew clean bootjar
+
+            if [ "$(sudo docker ps -qa)" ]; then
+              sudo docker ps -qa | xargs -r sudo docker rm -f
+            fi
             
-            sudo docker-compose build --no-cache
-            sudo docker-compose up -d
-          
+            IMAGES=$(sudo docker images -q)
+            if [ -n "$IMAGES" ]; then
+            sudo docker rmi $IMAGES
+            fi
+            
+            sudo docker-compose up --build -d
             sudo docker image prune -f
