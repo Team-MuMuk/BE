@@ -43,9 +43,10 @@ public enum ErrorCode implements BaseCode {
 
     // Search Error
     KEYWORD_NOT_FOUND(HttpStatus.BAD_REQUEST, "SEARCH_400", "검색하려는 단어가 존재하지 않습니다."),
-    INVALID_INPUT(HttpStatus.BAD_REQUEST, "SEARCH_400", "단어를 한 글자 이상 입력해야 합니다.");
+    INVALID_INPUT(HttpStatus.BAD_REQUEST, "SEARCH_400", "단어를 한 글자 이상 입력해야 합니다."),
 
-
+    //Ingredient Error
+    INVALID_EXPIREDATE(HttpStatus.BAD_REQUEST, "EXPIREDATE_400","해당 날짜는 이미 지난 날짜입니다");
 
     private final HttpStatus status;
     private final String code;

@@ -26,7 +26,10 @@ public enum ResultCode implements BaseCode {
 
 
     // Search Success
-    SEARCH_AUTOCOMPLETE_OK(HttpStatus.OK, "SEARCH_200","자동완성 성공");
+    SEARCH_AUTOCOMPLETE_OK(HttpStatus.OK, "SEARCH_200","자동완성 성공"),
+
+    //Ingredient Success
+    INGREDIENT_REGISTER_OK(HttpStatus.OK, "INGREDIENT_200","재료등록 성공");
 
 
     private final HttpStatus status;
