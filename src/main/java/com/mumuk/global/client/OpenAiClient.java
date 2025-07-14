@@ -5,8 +5,7 @@ import com.mumuk.global.apiPayload.exception.BusinessException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 
 import java.util.ArrayList;
@@ -18,31 +17,27 @@ import java.util.Map;
 @Component
 public class OpenAiClient {
 
-    private final String baseUrl;
+    private final WebClient webClient;
     private final String model;
 
-    public OpenAiClient(@Value("${openai.url}") String baseUrl, @Value("${openai.model}") String model) {
-        this.baseUrl = baseUrl;
+    // WebClient를 주입받고, 모델을 초기화
+    public OpenAiClient(WebClient webClient, @Value("${openai.api.model}") String model) {
+        this.webClient = webClient;
         this.model = model;
     }
 
     public String chat(String prompt) {
-        RestTemplate restTemplate = new RestTemplate();
-
         Map<String, Object> body = createRequestBody(prompt);
 
-        try {
-            // POST 요청 보내기
-            ResponseEntity<Map> response = restTemplate.postForEntity(baseUrl + "/chat/completions", body, Map.class);
-            return extractContent(response.getBody());
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode().is4xxClientError()) {
-                throw new BusinessException(ErrorCode.OPENAI_INVALID_API_KEY);
-            } else if (e.getStatusCode().is5xxServerError()) {
-                throw new BusinessException(ErrorCode.OPENAI_SERVICE_UNAVAILABLE);
-            }
-            throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
-        }
+        // 동기적으로 WebClient 를 사용하여 요청 보내기
+        ResponseEntity<Map> response = webClient.post()
+                .uri("/chat/completions")
+                .bodyValue(body)
+                .retrieve()
+                .toEntity(Map.class)
+                .block();             // block()을 사용하여 동기적으로 응답을 기다림
+
+        return extractContent(response.getBody());  // 응답 내용 처리
     }
 
     private Map<String, Object> createRequestBody(String prompt) {
