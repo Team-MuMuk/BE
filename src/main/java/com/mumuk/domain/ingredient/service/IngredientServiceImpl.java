@@ -23,6 +23,7 @@ public class IngredientServiceImpl implements IngredientService {
     private final IngredientConverter ingredientConverter;
     private final UserRepository userRepository;
 
+
     public void registerIngredient(IngredientRegisterRequest dto) {
         //유통기한 날짜 과거날짜 입력시 예외처리
         LocalDate now = LocalDate.now();
@@ -31,7 +32,8 @@ public class IngredientServiceImpl implements IngredientService {
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
-        Ingredient ingredient = ingredientConverter.toRegister(dto);
+
+        Ingredient ingredient = ingredientConverter.toRegister(dto, user);
         ingredientRepository.save(ingredient);
     }
 }
