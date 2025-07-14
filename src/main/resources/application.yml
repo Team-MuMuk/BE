@@ -26,7 +26,6 @@ spring:
       port: 6379
 
 
-
 jwt:
   secret: ${JWT_SECRET_KEY}
   access-token-validity: ${JWT_ACCESS_TOKEN_VALIDITY}    # 1시간
