@@ -48,6 +48,15 @@ public enum ErrorCode implements BaseCode {
     INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_PW", "비밀번호는 8-15자이며 영문, 숫자, 특수문자를 포함해야 합니다."),
     INVALID_NICKNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_NICKNAME", "닉네임은 10자 이내만 가능합니다."),
 
+    // Open AI
+    OPENAI_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "OPENAI_500", "OpenAI API에서 오류가 발생했습니다."),
+    OPENAI_INVALID_RESPONSE(HttpStatus.BAD_REQUEST, "OPENAI_400_INVALID_RESPONSE", "OpenAI API의 응답 포맷이 잘못되었습니다."),
+    OPENAI_NO_CHOICES(HttpStatus.BAD_REQUEST, "OPENAI_400_NO_CHOICES", "OpenAI API 응답에서 선택지가 없습니다."),
+    OPENAI_MISSING_CONTENT(HttpStatus.BAD_REQUEST, "OPENAI_400_MISSING_CONTENT", "OpenAI API 응답 메시지에 내용이 없습니다."),
+    OPENAI_API_TIMEOUT(HttpStatus.REQUEST_TIMEOUT, "OPENAI_408_TIMEOUT", "OpenAI API 호출 시간이 초과되었습니다."),
+    OPENAI_INVALID_API_KEY(HttpStatus.UNAUTHORIZED, "OPENAI_401_INVALID_API_KEY", "유효하지 않은 OpenAI API 키입니다."),
+    OPENAI_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "OPENAI_503_SERVICE_UNAVAILABLE", "OpenAI 서비스가 일시적으로 사용 불가능합니다."),
+
     // Search Error
     KEYWORD_NOT_FOUND(HttpStatus.BAD_REQUEST, "SEARCH_400", "검색하려는 단어가 존재하지 않습니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "SEARCH_400", "단어를 한 글자 이상 입력해야 합니다.");

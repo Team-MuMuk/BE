@@ -47,3 +47,9 @@ colsms:
     key: ${SMS_API_KEY}
     secret: ${SMS_API_SECRET}
     sender: 01087164428
+
+openai:
+  api:
+    key: ${OPEN_AI_KEY}
+    url: https://api.openai.com/v1
+    model: gpt-3.5-turbo
