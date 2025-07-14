@@ -21,8 +21,6 @@ public class IngredientController {
 
     @PostMapping
     public Response<String> registerIngredient(@Valid @RequestBody IngredientRegisterRequest dto) {
-        System.out.println("✅ expireDate: " + dto.getExpireDate()); // null 여부 확인
-        System.out.println("✅ Name: " + dto.getName()); // null 여부 확인
 
         ingredientService.registerIngredient(dto);
         return Response.ok(ResultCode.INGREDIENT_REGISTER_OK, "재료 등록 성공");

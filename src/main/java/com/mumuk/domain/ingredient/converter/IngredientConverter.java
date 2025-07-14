@@ -14,9 +14,6 @@ import java.time.LocalDateTime;
 public class IngredientConverter {
 
     public Ingredient toRegister(IngredientRegisterRequest dto, User user) {
-        System.out.println("✅ expireDate: " + dto.getExpireDate()); // null 여부 확인
-        System.out.println("✅ Name: " + dto.getName()); // null 여부 확인
-
 
         return Ingredient.builder()
                 .name(dto.getName())

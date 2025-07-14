@@ -24,12 +24,13 @@ public class IngredientServiceImpl implements IngredientService {
     private final UserRepository userRepository;
 
 
-    public void registerIngredient(IngredientRegisterRequest dto) {
+    public void registerIngredient(IngredientRegisterRequest dto, ) {
         //유통기한 날짜 과거날짜 입력시 예외처리
         LocalDate now = LocalDate.now();
         if (dto.getExpireDate().isBefore(now)) {
            throw new GlobalException(ErrorCode.INVALID_EXPIREDATE);
         }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
