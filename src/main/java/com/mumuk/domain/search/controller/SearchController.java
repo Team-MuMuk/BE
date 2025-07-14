@@ -26,7 +26,7 @@ public class SearchController {
     }
 
     @GetMapping("/autocomplete")
-    public Response<List<String>> getAutocompleteSuggestions(@RequestParam @Valid String userInput) {
+    public Response<List<String>> getAutocompleteSuggestions(@RequestParam  String userInput) {
 
         List<String> suggestions = autocompleteService.getAutocompleteSuggestions(userInput);
         return Response.ok(ResultCode.SEARCH_AUTOCOMPLETE_OK, suggestions);
@@ -34,7 +34,7 @@ public class SearchController {
 
 
     @PostMapping("/recentsearches/save")
-    public Response<Object> saveRecentSearch(@RequestParam String accessToken, @RequestParam @Valid String keyword){
+    public Response<Object> saveRecentSearch(@RequestParam String accessToken, @RequestParam String keyword){
 
         recentSearchService.saveRecentSearch(accessToken, keyword);
         return Response.ok(ResultCode.SEARCH_SAVE_RECENTSEARCHES_OK);

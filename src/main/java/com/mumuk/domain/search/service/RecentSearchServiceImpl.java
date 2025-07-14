@@ -64,9 +64,6 @@ public class RecentSearchServiceImpl implements RecentSearchService {
 
         Long logSize = redisTemplate.opsForList().size(key);
         // 해당 key가 존재하지 않는 경우 발생하는 nullPointerException 방지
-        if (logSize==null) {
-            throw new GlobalException(ErrorCode.SEARCH_LOG_USER_NOT_FOUND);
-        }
 
         if (logSize==10) {
             redisTemplate.opsForList().rightPop(key);
