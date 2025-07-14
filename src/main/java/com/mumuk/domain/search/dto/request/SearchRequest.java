@@ -3,6 +3,8 @@ package com.mumuk.domain.search.dto.request;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 public class SearchRequest {
 
     @Getter
@@ -15,7 +17,7 @@ public class SearchRequest {
         @NotNull
         private String title;
         @NotNull
-        private String createdAt;
+        private String createdAt; // 이거 localdatetime으로 설정하면 직렬화 할 때 복잡해짐
     }
 
 

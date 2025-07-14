@@ -5,6 +5,7 @@ import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.GlobalException;
+import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.exception.AuthException;
 import com.mumuk.global.security.jwt.JwtTokenProvider;
 import lombok.AllArgsConstructor;
@@ -15,20 +16,37 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@AllArgsConstructor
+
 public class RecentSearchServiceImpl implements RecentSearchService {
 
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
 
+    public RecentSearchServiceImpl(UserRepository userRepository, JwtTokenProvider jwtTokenProvider, RedisTemplate<String, Object> redisTemplate) {
+        this.userRepository = userRepository;
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.redisTemplate = redisTemplate;
+    }
+
+    // 사용자 조회 로직이 중복되므로 별도 메서드로 분리하여 사용
+    private User getUserFromToken(String accessToken) {
+        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
+        User user = userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        return user;
+    }
+
     @Override
     public void saveRecentSearch(String accessToken, String title) {
 
         // 사용자가 존재하는지 확인
-        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
-        User user = userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        User user = getUserFromToken(accessToken);
+
+        // 입력값이 존재하는지 확인
+        if (title == null || title.trim().isEmpty()) {
+            throw new GlobalException(ErrorCode.INVALID_INPUT);
+        }
 
         //redis에 저장할 키
         String key="SearchLog_User:"+user.getId();
@@ -37,13 +55,18 @@ public class RecentSearchServiceImpl implements RecentSearchService {
         // 레디스에 저장할 밸류
         SearchRequest.SavedRecentSearchReq value=new SearchRequest.SavedRecentSearchReq(title,now);
 
-        if (redisTemplate.opsForList().size(key)==10) {
+        Long logSize = redisTemplate.opsForList().size(key);
+        // 해당 key가 존재하지 않는 경우 발생하는 nullPointerException 방지
+        if (logSize==null) {
+            throw new GlobalException(ErrorCode.SEARCH_LOG_USER_NOT_FOUND);
+        }
+
+        if (logSize==10) {
             redisTemplate.opsForList().rightPop(key);
         } // 최근 검색어는 10개까지! 그 이상은 내보냄
 
         // 검색어 저장
         redisTemplate.opsForList().leftPush(key,value);
-
 
     }
 
@@ -51,9 +74,11 @@ public class RecentSearchServiceImpl implements RecentSearchService {
     public void deleteRecentSearch(String accessToken, SearchRequest.SavedRecentSearchReq request) {
 
         // 사용자가 존재하는지 확인
-        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
-        User user = userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        User user = getUserFromToken(accessToken);
+
+        if (request==null) {
+            throw new GlobalException(ErrorCode.INVALID_INPUT);
+        }
 
         //redis에서 조회할 key
         String key="SearchLog_User:"+user.getId();
@@ -65,8 +90,13 @@ public class RecentSearchServiceImpl implements RecentSearchService {
         // redis에서 비교할 value
         SearchRequest.SavedRecentSearchReq value=new SearchRequest.SavedRecentSearchReq(title, createdAt);
 
+        Long logSize= redisTemplate.opsForList().size(key);
+
+        if (logSize==null) {
+            throw new GlobalException(ErrorCode.SEARCH_LOG_USER_NOT_FOUND);
+        }
         // 최근 검색 키워드가 존재하지 않는다면,
-        if (redisTemplate.opsForList().size(key)==0) {
+        else if (logSize==0) {
             throw new GlobalException(ErrorCode.SEARCH_LOG_NOT_FOUND);
         }
 
@@ -81,20 +111,19 @@ public class RecentSearchServiceImpl implements RecentSearchService {
 
     @Override
     public List<Object> getRecentSearch(String accessToken) {
-        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
-        User user = userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
-
-        // 최근 검색어가 없을 때 오류도 만들 것
+        User user = getUserFromToken(accessToken);
 
         String key="SearchLog_User:"+user.getId();
 
-        if (redisTemplate.opsForList().size(key)==0) {
+        Long logSize= redisTemplate.opsForList().size(key);
+
+        if (logSize==null) {
+            throw new GlobalException(ErrorCode.SEARCH_LOG_USER_NOT_FOUND);
+        }
+        else if (logSize==0) {
             throw new GlobalException(ErrorCode.SEARCH_LOG_NOT_FOUND);
         }
 
-        List<Object> recentSearchLogs=redisTemplate.opsForList().range(key,0,9);
-
-        return recentSearchLogs;
+        return redisTemplate.opsForList().range(key,0,9);
     }
 }

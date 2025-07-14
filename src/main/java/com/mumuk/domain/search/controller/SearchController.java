@@ -6,6 +6,7 @@ import com.mumuk.domain.search.service.RecentSearchService;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import retrofit2.http.DELETE;
@@ -14,58 +15,42 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/search")
-@RequiredArgsConstructor
 public class SearchController {
 
     private final AutocompleteService autocompleteService;
     private final RecentSearchService recentSearchService;
 
-    @GetMapping("/autocomplete")
-    public Response<List<String>> getAutocompleteSuggestions(@RequestParam String userInput) {
-
-        if (userInput == null || userInput.trim().isEmpty()) {
-            return Response.fail(ErrorCode.INVALID_INPUT,List.of());
-        }
-
-        List<String> suggestions = autocompleteService.getAutocompleteSuggestions(userInput);
-        if (suggestions.isEmpty()) {
-            return Response.fail(ErrorCode.KEYWORD_NOT_FOUND, suggestions);
-        } else {
-            return Response.ok(ResultCode.SEARCH_AUTOCOMPLETE_OK, suggestions);
-
-        }
+    public SearchController(AutocompleteService autocompleteService, RecentSearchService recentSearchService) {
+        this.autocompleteService = autocompleteService;
+        this.recentSearchService = recentSearchService;
     }
 
-    @PostMapping("recentsearches/save")
-    public Response<Object> saveRecentSearch(String accessToken, String keyword){
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return Response.fail(ErrorCode.INVALID_INPUT);
-        }
+    @GetMapping("/autocomplete")
+    public Response<List<String>> getAutocompleteSuggestions(@RequestParam @Valid String userInput) {
+
+        List<String> suggestions = autocompleteService.getAutocompleteSuggestions(userInput);
+        return Response.ok(ResultCode.SEARCH_AUTOCOMPLETE_OK, suggestions);
+    }
+
+
+    @PostMapping("/recentsearches/save")
+    public Response<Object> saveRecentSearch(@RequestParam @Valid String accessToken, @RequestParam @Valid String keyword){
 
         recentSearchService.saveRecentSearch(accessToken, keyword);
-
         return Response.ok(ResultCode.SEARCH_SAVE_RECENTSEARCHES_OK);
     }
 
-    @DeleteMapping("recentsearches/delete")
-    public Response<Object> deleteRecentSearch(String accessToken, SearchRequest.SavedRecentSearchReq request){
-        if (request==null) {
-            return Response.fail(ErrorCode.INVALID_INPUT);
-        }
-        recentSearchService.deleteRecentSearch(accessToken, request);
+    @DeleteMapping("/recentsearches/delete")
+    public Response<Object> deleteRecentSearch(@RequestParam @Valid String accessToken, @ModelAttribute @Valid SearchRequest.SavedRecentSearchReq request){
 
+        recentSearchService.deleteRecentSearch(accessToken, request);
         return Response.ok(ResultCode.SEARCH_DELETE_RECENTSEARCHES_OK);
     }
 
-    @GetMapping("recentsearches/get")
-    public Response<List<Object>> getRecentSearch(String accessToken){
+    @GetMapping("/recentsearches/get")
+    public Response<List<Object>> getRecentSearch(@RequestParam @Valid String accessToken){
 
-        recentSearchService.getRecentSearch(accessToken);
-
-        return Response.ok(ResultCode.SEARCH_GET_RECENTSEARCHES_OK, recentSearchService.getRecentSearch(accessToken));
+        List<Object> recentSearches= recentSearchService.getRecentSearch(accessToken);
+        return Response.ok(ResultCode.SEARCH_GET_RECENTSEARCHES_OK, recentSearches);
     }
-
-
-
-
 }

@@ -20,12 +20,12 @@ public class RedisConfig {
     // 직렬화: 객체의 상태를 Json 등의 바이트 스트림으로 변환하는 것. 역직렬화는 그 반대
 
 
-/*  redis를 ec2 서버에서 구동할 경우 사용할 ConnectionFactory 설정
+  // redis를 ec2 서버에서 구동할 경우 사용할 ConnectionFactory 설정
 
-    @Value("${REDIS_PORT}")
+/*    @Value("${spring.data.redis.port}")
     private int port;
 
-    @Value("${REDIS_HOST}")
+    @Value("${spring.data.redis.host}")
     private String host;
 
     public LettuceConnectionFactory redisConnectionFactory() {
