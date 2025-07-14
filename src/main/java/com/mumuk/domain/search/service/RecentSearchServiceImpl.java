@@ -31,6 +31,13 @@ public class RecentSearchServiceImpl implements RecentSearchService {
 
     // 사용자 조회 로직이 중복되므로 별도 메서드로 분리하여 사용
     private User getUserFromToken(String accessToken) {
+
+        // jwt 토큰이 유효한 토큰인지 확인!
+        if (!jwtTokenProvider.validateToken(accessToken)) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
+        // 전화번호로 유효한 사용자인지 확인!
         String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
         User user = userRepository.findByPhoneNumber(phoneNumber)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
@@ -111,6 +118,11 @@ public class RecentSearchServiceImpl implements RecentSearchService {
 
     @Override
     public List<Object> getRecentSearch(String accessToken) {
+
+        if (!jwtTokenProvider.validateToken(accessToken)) {
+            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
+        }
+
         User user = getUserFromToken(accessToken);
 
         String key="SearchLog_User:"+user.getId();

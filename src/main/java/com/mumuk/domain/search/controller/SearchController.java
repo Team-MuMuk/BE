@@ -34,21 +34,21 @@ public class SearchController {
 
 
     @PostMapping("/recentsearches/save")
-    public Response<Object> saveRecentSearch(@RequestParam @Valid String accessToken, @RequestParam @Valid String keyword){
+    public Response<Object> saveRecentSearch(@RequestParam String accessToken, @RequestParam @Valid String keyword){
 
         recentSearchService.saveRecentSearch(accessToken, keyword);
         return Response.ok(ResultCode.SEARCH_SAVE_RECENTSEARCHES_OK);
     }
 
     @DeleteMapping("/recentsearches/delete")
-    public Response<Object> deleteRecentSearch(@RequestParam @Valid String accessToken, @ModelAttribute @Valid SearchRequest.SavedRecentSearchReq request){
+    public Response<Object> deleteRecentSearch(@RequestParam String accessToken, @RequestBody @Valid SearchRequest.SavedRecentSearchReq request){
 
         recentSearchService.deleteRecentSearch(accessToken, request);
         return Response.ok(ResultCode.SEARCH_DELETE_RECENTSEARCHES_OK);
     }
 
     @GetMapping("/recentsearches/get")
-    public Response<List<Object>> getRecentSearch(@RequestParam @Valid String accessToken){
+    public Response<List<Object>> getRecentSearch(@RequestParam String accessToken){
 
         List<Object> recentSearches= recentSearchService.getRecentSearch(accessToken);
         return Response.ok(ResultCode.SEARCH_GET_RECENTSEARCHES_OK, recentSearches);

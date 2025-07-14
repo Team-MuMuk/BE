@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -45,7 +46,7 @@ public class AutocompleteServiceImpl implements AutocompleteService {
         Set<String> results=zSetOperations.rangeByLex(ZSET_KEY, range, Limit.limit().count(5));
 
         if (results.isEmpty()) {
-            throw new GlobalException(ErrorCode.KEYWORD_NOT_FOUND);
+            return Collections.emptyList();
         }
 
         return new ArrayList<>(results);
