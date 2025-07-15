@@ -3,17 +3,17 @@ package com.mumuk.domain.ingredient.controller;
 import com.mumuk.domain.ingredient.dto.request.IngredientRegisterRequest;
 import com.mumuk.domain.ingredient.service.IngredientService;
 import com.mumuk.domain.ingredient.service.IngredientServiceImpl;
+import com.mumuk.domain.user.dto.response.UserResponse;
+import com.mumuk.domain.user.service.MypageService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
+import com.mumuk.global.security.annotation.AuthUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/ingredient")
+@RequestMapping("/ingredient/register")
 @RequiredArgsConstructor
 public class IngredientController {
 
