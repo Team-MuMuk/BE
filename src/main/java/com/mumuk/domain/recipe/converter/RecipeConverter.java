@@ -4,11 +4,6 @@ import com.mumuk.domain.recipe.dto.request.RecipeRequest;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.entity.RecipeCategory;
-import com.mumuk.domain.recipe.entity.RecipeImage;
-import com.mumuk.domain.recipe.entity.RecipeIngredient;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class RecipeConverter {
 

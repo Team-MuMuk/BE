@@ -149,8 +149,8 @@ public class Recipe extends BaseEntity {
         this.category = category;
     }
 
-    public void setSourceUrl(String sourseUrl) {
-        this.sourceUrl = sourseUrl;
+    public void setSourceUrl(String sourceUrl) {
+        this.sourceUrl = sourceUrl;
     }
 
     public void setIngredients(String ingredients) {
