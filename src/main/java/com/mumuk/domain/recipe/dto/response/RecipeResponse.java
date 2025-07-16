@@ -14,10 +14,10 @@ public class RecipeResponse {
         private String recipeImage;
         private String description;
         private Long cookingTime;
+        private Long calories;
         private Long protein;
         private Long carbohydrate;
         private Long fat;
-        private Long totalCalories;
         private String category;
         private String sourceUrl;
         private String ingredients;

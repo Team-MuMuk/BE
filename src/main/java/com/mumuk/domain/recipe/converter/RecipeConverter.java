@@ -18,7 +18,6 @@ public class RecipeConverter {
         recipe.setProtein(req.getProtein());
         recipe.setCarbohydrate(req.getCarbohydrate());
         recipe.setFat(req.getFat());
-        recipe.setTotalCalories(req.getTotalCalories());
         recipe.setCategory(RecipeCategory.valueOf(req.getCategory()));
         recipe.setSourceUrl(req.getSourceUrl());
         recipe.setIngredients(req.getIngredients());
@@ -37,7 +36,6 @@ public class RecipeConverter {
                 recipe.getProtein(),
                 recipe.getCarbohydrate(),
                 recipe.getFat(),
-                recipe.getTotalCalories(),
                 recipe.getCategory().name(),
                 recipe.getSourceUrl(),
                 recipe.getIngredients()

@@ -17,7 +17,6 @@ public class RecipeRequest {
         private Long protein;
         private Long carbohydrate;
         private Long fat;
-        private Long totalCalories;
         private String category; // enum 이름(예: "EXAMPLE")
         private String sourceUrl;
         private String ingredients;
