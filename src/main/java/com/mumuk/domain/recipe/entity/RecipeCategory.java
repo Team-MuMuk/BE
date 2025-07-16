@@ -1,5 +1,5 @@
 package com.mumuk.domain.recipe.entity;
 
 public enum RecipeCategory {
-    EXAMPLE
+    KOREAN,ASIAN,WESTERN,CHINESE,JAPANESE,DESERT,VEGAN
 }
