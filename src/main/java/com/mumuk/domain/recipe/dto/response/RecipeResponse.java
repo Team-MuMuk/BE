@@ -14,7 +14,6 @@ public class RecipeResponse {
         private String recipeImage;
         private String description;
         private Long cookingTime;
-        private Long calories;
         private Long protein;
         private Long carbohydrate;
         private Long fat;
