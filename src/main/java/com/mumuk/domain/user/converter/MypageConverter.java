@@ -11,7 +11,6 @@ public class MypageConverter {
                 user.getNickName(),
                 user.getProfileImage(),
                 user.getStatusMessage()
-
         );
     }
 }

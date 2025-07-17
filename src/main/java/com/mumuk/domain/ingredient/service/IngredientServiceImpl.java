@@ -13,9 +13,11 @@ import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.GlobalException;
 import com.mumuk.global.security.exception.AuthException;
 import com.mumuk.global.security.jwt.JwtTokenProvider;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 
@@ -41,7 +43,7 @@ public class IngredientServiceImpl implements IngredientService {
         //유통기한 날짜 과거날짜 입력시 예외처리
         LocalDate now = LocalDate.now();
         if (dto.getExpireDate().isBefore(now)) {
-            throw new GlobalException(ErrorCode.INVALID_EXPIREDATE);
+           throw new GlobalException(ErrorCode.INVALID_EXPIREDATE);
         }
 
         Long userId = jwtTokenProvider.getUserIdFromToken(accessToken); // userId 추출

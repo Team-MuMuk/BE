@@ -9,17 +9,16 @@ public class RecipeRequest {
     @Getter
     @NoArgsConstructor
     public static class CreateReq {
-        private String title;
-        private String recipeImage;
+        private String name;
         private String description;
-        private Long cookingTime;
-        private Long calories;
+        private Long cookingMinutes;
         private Long protein;
         private Long carbohydrate;
         private Long fat;
+        private Long calories;
         private String category; // enum 이름(예: "EXAMPLE")
-        private String sourceUrl;
-        private String ingredients;
+        private List<String> imageUrls; // 이미지 URL 리스트
+        private List<IngredientReq> ingredients; // 재료 리스트
 
         @Getter
         @NoArgsConstructor

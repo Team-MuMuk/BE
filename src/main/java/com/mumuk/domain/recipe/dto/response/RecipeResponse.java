@@ -10,17 +10,16 @@ public class RecipeResponse {
     @AllArgsConstructor
     public static class DetailRes {
         private Long id;
-        private String title;
-        private String recipeImage;
+        private String name;
         private String description;
-        private Long cookingTime;
-        private Long calories;
+        private Long cookingMinutes;
         private Long protein;
         private Long carbohydrate;
         private Long fat;
+        private Long calories;
         private String category;
-        private String sourceUrl;
-        private String ingredients;
+        private List<String> imageUrls;
+        private List<IngredientRes> ingredients;
 
         @Getter
         @AllArgsConstructor
