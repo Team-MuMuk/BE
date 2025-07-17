@@ -50,13 +50,13 @@ public class RecipeServiceImpl implements RecipeService {
     @Transactional(readOnly = true)
     public List<String> findNamesByCategory(String category) {
         if (category == null || category.isBlank()) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT); // 적절한 에러코드 사용
+            throw new BusinessException(ErrorCode.RECIPE_CATEGORY_NOT_FOUND);
         }
         RecipeCategory recipeCategory;
         try {
             recipeCategory = RecipeCategory.valueOf(category.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT); // 적절한 에러코드 사용
+            throw new BusinessException(ErrorCode.RECIPE_CATEGORY_NOT_FOUND);
         }
         return recipeRepository.findNamesByCategory(recipeCategory);
     }
