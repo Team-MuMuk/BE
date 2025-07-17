@@ -48,8 +48,17 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<String> findNamesByCategory(RecipeCategory category) {
-        return recipeRepository.findNamesByCategory(category);
+    public List<String> findNamesByCategory(String category) {
+        if (category == null || category.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT); // 적절한 에러코드 사용
+        }
+        RecipeCategory recipeCategory;
+        try {
+            recipeCategory = RecipeCategory.valueOf(category.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT); // 적절한 에러코드 사용
+        }
+        return recipeRepository.findNamesByCategory(recipeCategory);
     }
 
     @Override

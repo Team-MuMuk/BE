@@ -5,7 +5,6 @@ import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.service.RecipeService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
-import com.mumuk.domain.recipe.entity.RecipeCategory;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
@@ -44,8 +43,7 @@ public class RecipeController {
     @Operation(summary = "카테고리별 레시피 이름 조회")
     @GetMapping("/category/{category}/names")
     public Response<List<String>> getRecipeNamesByCategory(@PathVariable String category) {
-        RecipeCategory recipeCategory = RecipeCategory.valueOf(category.toUpperCase());
-        List<String> names = recipeService.findNamesByCategory(recipeCategory);
+        List<String> names = recipeService.findNamesByCategory(category);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
 
