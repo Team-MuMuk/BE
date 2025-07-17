@@ -52,4 +52,4 @@ openai:
   api:
     key: ${OPEN_AI_KEY}
     url: https://api.openai.com/v1
-    model: gpt-3.5-turbo
+  model: gpt-3.5-turbo
