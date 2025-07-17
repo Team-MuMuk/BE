@@ -12,9 +12,12 @@ import com.mumuk.domain.user.service.MypageService;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.GlobalException;
 import com.mumuk.global.security.exception.AuthException;
+import com.mumuk.global.security.jwt.JwtTokenProvider;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 
@@ -26,7 +29,7 @@ public class IngredientServiceImpl implements IngredientService {
     private final IngredientConverter ingredientConverter;
     private final UserRepository userRepository;
     private final MypageService mypageService;
-
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Transactional
     @Override
@@ -36,17 +39,19 @@ public class IngredientServiceImpl implements IngredientService {
         return MypageConverter.toProfileInfoDTO(user);
     }
 
-    public void registerIngredient(IngredientRegisterRequest dto) {
+    public void registerIngredient(IngredientRegisterRequest dto,String accessToken) {
         //유통기한 날짜 과거날짜 입력시 예외처리
         LocalDate now = LocalDate.now();
         if (dto.getExpireDate().isBefore(now)) {
            throw new GlobalException(ErrorCode.INVALID_EXPIREDATE);
         }
-        //TODO 사용자 정보 받아오기
+
+        Long userId = jwtTokenProvider.getUserIdFromToken(accessToken); // userId 추출
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
-        Ingredient ingredient = ingredientConverter.toRegister(dto);
+        Ingredient ingredient = ingredientConverter.toRegister(dto,user);
         ingredientRepository.save(ingredient);
     }
 }

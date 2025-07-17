@@ -2,12 +2,10 @@ package com.mumuk.domain.ingredient.controller;
 
 import com.mumuk.domain.ingredient.dto.request.IngredientRegisterRequest;
 import com.mumuk.domain.ingredient.service.IngredientService;
-import com.mumuk.domain.ingredient.service.IngredientServiceImpl;
-import com.mumuk.domain.user.dto.response.UserResponse;
-import com.mumuk.domain.user.service.MypageService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
-import com.mumuk.global.security.annotation.AuthUser;
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +16,12 @@ import org.springframework.web.bind.annotation.*;
 public class IngredientController {
 
     private final IngredientService ingredientService;
-
+    @Operation(summary = "재료 등록", description = "입력하신 재료를 등록합니다. ")
     @PostMapping
-    public Response<String> registerIngredient(@Valid @RequestBody IngredientRegisterRequest dto) {
+    public Response<String> registerIngredient(@Valid @RequestBody IngredientRegisterRequest dto, HttpServletRequest request) {
 
-        ingredientService.registerIngredient(dto);
+        String accessToken = request.getHeader("Authorization");
+        ingredientService.registerIngredient(dto,accessToken);
         return Response.ok(ResultCode.INGREDIENT_REGISTER_OK, "재료 등록 성공");
     }
 }

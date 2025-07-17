@@ -10,5 +10,5 @@ public interface IngredientService {
     @Transactional
     UserResponse.ProfileInfoDTO profileInfo(Long userId);
 
-    void registerIngredient(IngredientRegisterRequest dto);
+    void registerIngredient(IngredientRegisterRequest dto,String accessToken);
 }
