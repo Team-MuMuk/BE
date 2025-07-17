@@ -9,6 +9,9 @@ import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+import com.mumuk.domain.recipe.entity.RecipeCategory;
+import java.util.stream.Collectors;
 
 @Service
 public class RecipeServiceImpl implements RecipeService {
@@ -41,5 +44,29 @@ public class RecipeServiceImpl implements RecipeService {
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECIPE_NOT_FOUND));
         return RecipeConverter.toDetailRes(recipe);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> findNamesByCategory(String category) {
+        if (category == null || category.isBlank()) {
+            throw new BusinessException(ErrorCode.RECIPE_CATEGORY_NOT_FOUND);
+        }
+        RecipeCategory recipeCategory;
+        try {
+            recipeCategory = RecipeCategory.valueOf(category.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.RECIPE_CATEGORY_NOT_FOUND);
+        }
+        return recipeRepository.findNamesByCategory(recipeCategory);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecipeResponse.DetailRes> getAllRecipes() {
+        List<Recipe> recipes = recipeRepository.findAll();
+        return recipes.stream()
+                .map(RecipeConverter::toDetailRes)
+                .collect(Collectors.toList());
     }
 }
