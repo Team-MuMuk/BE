@@ -5,15 +5,14 @@ package com.mumuk.domain.ingredient.entity;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.global.common.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
+
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
 @Entity
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "ingredient")
 public class Ingredient extends BaseEntity {
 
@@ -27,10 +26,6 @@ public class Ingredient extends BaseEntity {
     @Column(name = "유통기한", nullable = false)
     private LocalDate expireDate;
 
-    //@Column(name = "재료 이미지")
-    //private String imageUrl;
-
-
     @Enumerated(EnumType.STRING)
     @Column(name = "디데이 알림 설정")
     private DdayFcmSetting daySetting;
@@ -39,6 +34,15 @@ public class Ingredient extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    //builder
+    @Builder
+    public Ingredient(String name, LocalDate expireDate, DdayFcmSetting daySetting, User user) {
+        this.name = name;
+        this.expireDate = expireDate;
+        this.daySetting = daySetting;
+        this.user = user;
+    }
 
     // Getter
     public Long getId() {
@@ -52,10 +56,6 @@ public class Ingredient extends BaseEntity {
     public LocalDate getExpireDate() {
         return expireDate;
     }
-
-    //public String getImageUrl() {
-    //    return imageUrl;
-    //}
 
     public DdayFcmSetting getDaySetting() {
         return daySetting;
@@ -77,10 +77,6 @@ public class Ingredient extends BaseEntity {
     public void setExpireDate(LocalDate expireDate) {
         this.expireDate = expireDate;
     }
-
-    //public void setImageUrl(String imageUrl) {
-    //    this.imageUrl = imageUrl;
-    //}
 
     public void setDaySetting(DdayFcmSetting daySetting) {
         this.daySetting = daySetting;
