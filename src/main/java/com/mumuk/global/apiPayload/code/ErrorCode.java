@@ -20,6 +20,8 @@ public enum ErrorCode implements BaseCode {
     RECIPE_NOT_FOUND(HttpStatus.NOT_FOUND, "RECIPE_404", "레시피를 찾을 수 없습니다."),
     RECIPE_ALREADY_EXISTS(HttpStatus.CONFLICT, "RECIPE_409", "이미 존재하는 레시피입니다."),
     RECIPE_INVALID_DATA(HttpStatus.BAD_REQUEST, "RECIPE_400", "잘못된 레시피 데이터입니다."),
+    RECIPE_CATEGORY_NOT_FOUND(HttpStatus.BAD_REQUEST, "RECIPE_400_CATEGORY_NOT_FOUND", "카테고리를 찾을 수 없습니다."),
+
 
     // User Error
     USER_NOT_FOUND(HttpStatus.UNAUTHORIZED, "USER_401", "로그인 정보가 없습니다."),

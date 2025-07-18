@@ -26,7 +26,7 @@ public class Recipe extends BaseEntity {
     @Column(name = "조리 소요 시간(n분)", nullable = false)
     private Long cookingTime;
 
-    @Column(name = "소모 칼로리", nullable = false)
+    @Column(name = "칼로리", nullable = false)
     private Long calories;
 
     @Column(name = "단백질", nullable = false)
@@ -37,9 +37,6 @@ public class Recipe extends BaseEntity {
 
     @Column(name = "지방", nullable = false)
     private Long fat;
-
-    @Column(name = "열량", nullable = false)
-    private Long totalCalories;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "카테고리", nullable = false)
@@ -86,10 +83,6 @@ public class Recipe extends BaseEntity {
 
     public Long getFat() {
         return fat;
-    }
-
-    public Long getTotalCalories() {
-        return totalCalories;
     }
 
     public RecipeCategory getCategory() {
@@ -141,16 +134,12 @@ public class Recipe extends BaseEntity {
         this.fat = fat;
     }
 
-    public void setTotalCalories(Long totalCalories) {
-        this.totalCalories = totalCalories;
-    }
-
     public void setCategory(RecipeCategory category) {
         this.category = category;
     }
 
-    public void setSourceUrl(String sourseUrl) {
-        this.sourceUrl = sourseUrl;
+    public void setSourceUrl(String sourceUrl) {
+        this.sourceUrl = sourceUrl;
     }
 
     public void setIngredients(String ingredients) {

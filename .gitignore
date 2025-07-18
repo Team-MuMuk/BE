@@ -63,4 +63,5 @@ dist/
 
 
 nginx/nginx.conf
-.gradle
+./gradle
+./bin

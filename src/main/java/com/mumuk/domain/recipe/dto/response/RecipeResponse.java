@@ -18,7 +18,6 @@ public class RecipeResponse {
         private Long protein;
         private Long carbohydrate;
         private Long fat;
-        private Long totalCalories;
         private String category;
         private String sourceUrl;
         private String ingredients;
