@@ -14,6 +14,8 @@ public class DataInitializer implements CommandLineRunner {
     private final RedisTemplate<String, String> redisTemplate;
     private static final String ZSET_KEY="autocomplete";
 
+
+
     /*
     DB에 있는 데이터를 redis에 추가하는 코드는 추후에 작성하겠습니다..
 
