@@ -25,7 +25,7 @@ public class OpenAiClientConfig {
     }
 
     @Bean
-    public OpenAiClient openAiClient(WebClient webClient, @Value("${openai.model}") String model) {
+    public OpenAiClient openAiClient(WebClient webClient, @Value("${openai.api.model}") String model) {
         return new OpenAiClient(webClient, model);
     }
 }

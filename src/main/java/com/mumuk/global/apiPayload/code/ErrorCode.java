@@ -65,8 +65,14 @@ public enum ErrorCode implements BaseCode {
     SEARCH_LOG_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH_404", "사용자의 검색 기록이 존재하지 않습니다." ),
     SEARCH_LOG_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH_404", "해당 사용자가 존재하지 않습니다." ),
 
+
     //Ingredient Error
-    INVALID_EXPIREDATE(HttpStatus.BAD_REQUEST, "INGREDIENT_400", "유통기한이 유효하지 않습니다.");
+    INVALID_EXPIREDATE(HttpStatus.BAD_REQUEST, "INGREDIENT_400", "유통기한이 유효하지 않습니다."),
+
+    //Allergy Error
+    ALLERGY_NOT_FOUND(HttpStatus.BAD_REQUEST,"ALLERGY_404", "해당 알러지 타입은 존재하지 않습니다,"),
+    ALLERGY_NONE_WITH_OTHERS(HttpStatus.BAD_REQUEST, "ALLERGY_400", "알러지 없음과 다른 알러지를 동시에 선택할 수 없습니다");
+
 
 
     private final HttpStatus status;

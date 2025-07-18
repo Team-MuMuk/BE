@@ -33,8 +33,19 @@ public enum ResultCode implements BaseCode {
     // Search Success
     SEARCH_AUTOCOMPLETE_OK(HttpStatus.OK, "SEARCH_200","자동완성 성공"),
 
+
     //Ingredient Success
-    INGREDIENT_REGISTER_OK(HttpStatus.OK, "INGREDIENT_200","재료등록 성공");
+    INGREDIENT_REGISTER_OK(HttpStatus.OK, "INGREDIENT_200","재료등록 성공"),
+
+    SEARCH_SAVE_RECENTSEARCHES_OK(HttpStatus.CREATED,"SEARCH_201", "최근 검색어 저장 성공"),
+    SEARCH_DELETE_RECENTSEARCHES_OK(HttpStatus.NO_CONTENT,"SEARCH_204", "최근 검색어 삭제 성공"),
+    SEARCH_GET_RECENTSEARCHES_OK(HttpStatus.OK,"SEARCH_200", "최근 검색어 조회 성공"),
+
+    //Allergy Success
+    ALLERGY_PATCH_OK(HttpStatus.OK, "ALLERGY_200","알러지 정보 변경 성공"),
+    ALLERGY_DELETE_OK(HttpStatus.NO_CONTENT, "ALLERGY_204","알러지 정보 삭제 성공"),
+    ALLERGY_GET_OK(HttpStatus.OK, "ALLERGY_200","알러지 정보 조회 성공");
+
 
 
     private final HttpStatus status;
