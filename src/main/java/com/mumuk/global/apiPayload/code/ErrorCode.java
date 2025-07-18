@@ -22,6 +22,7 @@ public enum ErrorCode implements BaseCode {
     RECIPE_INVALID_DATA(HttpStatus.BAD_REQUEST, "RECIPE_400", "잘못된 레시피 데이터입니다."),
     RECIPE_CATEGORY_NOT_FOUND(HttpStatus.BAD_REQUEST, "RECIPE_400_CATEGORY_NOT_FOUND", "카테고리를 찾을 수 없습니다."),
 
+
     // User Error
     USER_NOT_FOUND(HttpStatus.UNAUTHORIZED, "USER_401", "로그인 정보가 없습니다."),
     USER_NOT_AUTHENTICATED(HttpStatus.UNAUTHORIZED, "USER_401", "로그인 하지 않았습니다."),
@@ -59,16 +60,20 @@ public enum ErrorCode implements BaseCode {
     OPENAI_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "OPENAI_503_SERVICE_UNAVAILABLE", "OpenAI 서비스가 일시적으로 사용 불가능합니다."),
 
     // Search Error
-    KEYWORD_NOT_FOUND(HttpStatus.BAD_REQUEST, "SEARCH_400", "해당 단어가 존재하지 않습니다."),
-
+    KEYWORD_NOT_FOUND(HttpStatus.BAD_REQUEST, "SEARCH_400", "검색하려는 단어가 존재하지 않습니다."),
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "SEARCH_400", "단어를 한 글자 이상 입력해야 합니다."),
+
     SEARCH_LOG_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH_404", "사용자의 검색 기록이 존재하지 않습니다." ),
     SEARCH_LOG_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH_404", "해당 사용자가 존재하지 않습니다." ),
 
+
+    //Ingredient Error
+    INVALID_EXPIREDATE(HttpStatus.BAD_REQUEST, "INGREDIENT_400", "유통기한이 유효하지 않습니다."),
+
     //Allergy Error
     ALLERGY_NOT_FOUND(HttpStatus.BAD_REQUEST,"ALLERGY_404", "해당 알러지 타입은 존재하지 않습니다,"),
-    ALLERGY_NONE_WITH_OTHERS(HttpStatus.BAD_REQUEST, "ALLERGY_400", "알러지 없음과 다른 알러지를 동시에 선택할 수 없습니다")
-    ;
+    ALLERGY_NONE_WITH_OTHERS(HttpStatus.BAD_REQUEST, "ALLERGY_400", "알러지 없음과 다른 알러지를 동시에 선택할 수 없습니다");
+
 
 
     private final HttpStatus status;
