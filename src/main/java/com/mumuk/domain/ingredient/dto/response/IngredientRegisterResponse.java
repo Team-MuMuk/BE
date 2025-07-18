@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Setter
 @Builder
 public class IngredientRegisterResponse {
-    private Long ingredintId;
+    private Long ingredientId;
     private String name;
     private LocalDate expireDate;
     private LocalDateTime createdAt;
