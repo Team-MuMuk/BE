@@ -27,21 +27,21 @@ public class AllergyController {
         this.allergyService = allergyService;
     }
 
-    @PatchMapping("/{userId}/toggle")
+    @PatchMapping("/toggle")
     public Response<AllergyResponse.ToggleResultRes> toggleAllergy(@AuthUser Long userId, @RequestBody @Valid AllergyRequest.ToggleAllergyReq request) {
         AllergyResponse.ToggleResultRes result= allergyService.toggleAllergy(userId, request.getAllergyTypeList());
         return Response.ok(ResultCode.ALLERGY_PATCH_OK,result);
 
     }
 
-    @GetMapping("/{userId}")
+    @GetMapping("/get")
     public Response<AllergyResponse.AllergyListRes> getAllergy(@AuthUser Long userId) {
         AllergyResponse.AllergyListRes allergyList=allergyService.getAllergyList(userId);
         return Response.ok(ResultCode.ALLERGY_GET_OK, allergyList);
     }
 
     @Operation(summary = "알러지 없음 선택시 다른 모든 알러지 정보 초기화")
-    @DeleteMapping("/{userId}")
+    @DeleteMapping("/deleteAll")
     public Response<String> clearAllergy(@AuthUser Long userId) {
         allergyService.clearAllAllergy(userId);
         return Response.ok(ResultCode.ALLERGY_DELETE_OK, "알러지 초기화 완료");

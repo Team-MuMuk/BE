@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-@Repository
 public interface AllergyRepository extends JpaRepository<Allergy, Long> {
     List<Allergy> findByUser(User user);
     List<Allergy> findByUserId(Long userId);

@@ -1,19 +1,23 @@
 package com.mumuk.domain.allergy.service;
 
 import com.mumuk.domain.allergy.dto.response.AllergyResponse;
+import com.mumuk.domain.allergy.entity.Action;
 import com.mumuk.domain.allergy.entity.Allergy;
 import com.mumuk.domain.allergy.entity.AllergyType;
 import com.mumuk.domain.allergy.repository.AllergyRepository;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
+import com.mumuk.global.apiPayload.exception.GlobalException;
 import com.mumuk.global.security.exception.AuthException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,29 +57,36 @@ public class AllergyServiceImpl implements AllergyService {
         User user=userRepository.findById(userId)
                 .orElseThrow(()->new AuthException(ErrorCode.USER_NOT_FOUND));
 
+        // NONE 과 다른 알러지 타입은 동시에 입력 불가
+        if (allergyTypeList.contains(AllergyType.NONE) && allergyTypeList.size()>1){
+            throw new GlobalException(ErrorCode.ALLERGY_NONE_WITH_OTHERS);
+        }
+
         List<AllergyResponse.ToggleResultRes.ToggleResult> ToggleResultList=new ArrayList<>();
+
+        // 일러지 존재 여부를 검사 후
+        List<Allergy> existingAllergyList=allergyRepository.findByUser(user);
+        // map으로 만들어 타입을 키, 객체를 밸류값으로 반환, 빠른 탐색이 가능하게 만듬
+        Map<AllergyType,Allergy> allergyMap= existingAllergyList.stream()
+                .collect(Collectors.toMap(Allergy::getAllergyType, Function.identity()));
 
         // 입력받은 여러 알러지를 한 번에 처리
         for (AllergyType allergyType:allergyTypeList) {
 
-            // 알러지가 존재하는지 판단
-            Optional<Allergy> existAllergy=allergyRepository.findByUserAndAllergyType(user,allergyType);
-
-            if (existAllergy.isPresent()) {
+            // map에 allergyType에 해당하는 키가 존재할 때
+            if ( allergyMap.containsKey(allergyType) ) {
                 // 알러지가 존재한다면, 제거
-                allergyRepository.delete(existAllergy.get());
-                ToggleResultList.add(new AllergyResponse.ToggleResultRes.ToggleResult(allergyType,"DELETE"));
+                Allergy allergyToToggle=allergyMap.get(allergyType);
+                allergyRepository.delete(allergyToToggle);
+                ToggleResultList.add(new AllergyResponse.ToggleResultRes.ToggleResult(allergyType,Action.DELETED));
             } else{
                 // "알러지 없음" 이 선택되어 있다면, 이를 먼저 삭제
-                Optional<Allergy> noneAllergy=allergyRepository.findByUserAndAllergyType(user, AllergyType.NONE);
-                if (noneAllergy.isPresent()){
-                    allergyRepository.deleteByUserAndAllergyType(user,AllergyType.NONE);
-                }
+                allergyRepository.deleteByUserAndAllergyType(user,AllergyType.NONE);
 
                 //알러지가 존재하지 않는다면 해당 알러지 추가
                 Allergy newAllergy=new Allergy(allergyType,user);
                 allergyRepository.save(newAllergy);
-                ToggleResultList.add(new AllergyResponse.ToggleResultRes.ToggleResult(allergyType,"ADD"));
+                ToggleResultList.add(new AllergyResponse.ToggleResultRes.ToggleResult(allergyType, Action.ADDED));
             }
         }
 

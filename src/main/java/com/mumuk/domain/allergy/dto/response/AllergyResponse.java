@@ -1,5 +1,6 @@
 package com.mumuk.domain.allergy.dto.response;
 
+import com.mumuk.domain.allergy.entity.Action;
 import com.mumuk.domain.allergy.entity.Allergy;
 import com.mumuk.domain.allergy.entity.AllergyType;
 import lombok.AllArgsConstructor;
@@ -33,7 +34,7 @@ public class AllergyResponse {
         @AllArgsConstructor
         public static class ToggleResult{
             private AllergyType allergyType;
-            private String action;
+            private Action action;
         }
     }
 

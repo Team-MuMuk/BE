@@ -34,7 +34,6 @@ public class Allergy extends BaseEntity {
     public AllergyType getAllergyType() {return allergyType;}
     public User getUser() {return user;};
 
-
     //setter
     public void setId(Long id) {this.id = id;};
     public void setAllergyType(AllergyType allergyType) {this.allergyType = allergyType;};
