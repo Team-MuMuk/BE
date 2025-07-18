@@ -1,3 +1,4 @@
+
 package com.mumuk.domain.recipe.service;
 
 import com.mumuk.domain.recipe.converter.RecipeConverter;
@@ -41,29 +42,5 @@ public class RecipeServiceImpl implements RecipeService {
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECIPE_NOT_FOUND));
         return RecipeConverter.toDetailRes(recipe);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<String> findNamesByCategory(String category) {
-        if (category == null || category.isBlank()) {
-            throw new BusinessException(ErrorCode.RECIPE_CATEGORY_NOT_FOUND);
-        }
-        RecipeCategory recipeCategory;
-        try {
-            recipeCategory = RecipeCategory.valueOf(category.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException(ErrorCode.RECIPE_CATEGORY_NOT_FOUND);
-        }
-        return recipeRepository.findNamesByCategory(recipeCategory);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<RecipeResponse.DetailRes> getAllRecipes() {
-        List<Recipe> recipes = recipeRepository.findAll();
-        return recipes.stream()
-                .map(RecipeConverter::toDetailRes)
-                .collect(Collectors.toList());
     }
 }

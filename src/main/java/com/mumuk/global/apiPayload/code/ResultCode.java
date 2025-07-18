@@ -28,7 +28,7 @@ public enum ResultCode implements BaseCode {
 
     SEND_ID_BY_SMS_OK(HttpStatus.NO_CONTENT, "USER_204", "아이디 변경을 위한 SMS 인증 발송 성공"),
     SEND_PW_BY_SMS_OK(HttpStatus.NO_CONTENT, "USER_204", "비밀번호 변경을 위한 SMS 인증 발송 성공"),
-
+    EDIT_PROFILE_OK(HttpStatus.OK, "USER_200", "프로필 수정 성공"),
 
     // Search Success
     SEARCH_AUTOCOMPLETE_OK(HttpStatus.OK, "SEARCH_200","자동완성 성공"),
