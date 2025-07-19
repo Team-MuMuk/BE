@@ -38,7 +38,7 @@ public class User extends BaseEntity {
 
     @Column(name = "내부 식별을 위한 소셜 id")
     private String socialId;
-
+    @Column(length = 300)
     private String refreshToken;
 
     public User() {
@@ -59,6 +59,17 @@ public class User extends BaseEntity {
 
     public static User of(String email, String nickName, String profileImage, LoginType loginType, String socialId) {
         User user = new User();
+        user.email = email;
+        user.nickName = nickName;
+        user.profileImage = profileImage;
+        user.loginType = loginType;
+        user.socialId = socialId;
+        return user;
+    }
+
+    public static User of(String name,String email, String nickName, String profileImage, LoginType loginType, String socialId) {
+        User user = new User();
+        user.name = name;
         user.email = email;
         user.nickName = nickName;
         user.profileImage = profileImage;
