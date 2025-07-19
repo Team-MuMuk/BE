@@ -26,7 +26,6 @@ spring:
       port: 6379
 
 
-
 jwt:
   secret: ${JWT_SECRET_KEY}
   access-token-validity: ${JWT_ACCESS_TOKEN_VALIDITY}    # 1시간
@@ -54,3 +53,9 @@ colsms:
     key: ${SMS_API_KEY}
     secret: ${SMS_API_SECRET}
     sender: 01087164428
+
+openai:
+  api:
+    key: ${OPEN_AI_KEY}
+    url: https://api.openai.com/v1
+    model: gpt-3.5-turbo
