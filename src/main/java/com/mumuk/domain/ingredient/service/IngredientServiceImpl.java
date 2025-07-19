@@ -3,6 +3,7 @@ package com.mumuk.domain.ingredient.service;
 
 import com.mumuk.domain.ingredient.converter.IngredientConverter;
 import com.mumuk.domain.ingredient.dto.request.IngredientRequest;
+import com.mumuk.domain.ingredient.dto.response.IngredientResponse;
 import com.mumuk.domain.ingredient.entity.Ingredient;
 import com.mumuk.domain.ingredient.repository.IngredientRepository;
 import com.mumuk.domain.user.entity.User;
@@ -13,6 +14,8 @@ import com.mumuk.global.security.exception.AuthException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class IngredientServiceImpl implements IngredientService {
@@ -41,6 +44,60 @@ public class IngredientServiceImpl implements IngredientService {
 
         Ingredient ingredient = ingredientConverter.toRegister(req,user);
         ingredientRepository.save(ingredient);
-
     }
+
+    @Transactional
+    @Override
+    public List<IngredientResponse.RetrieveRes> getAllIngredient(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        List<Ingredient> ingredient = ingredientRepository.findAllByUser(user);
+
+        return ingredient.stream()
+                .map(ingredientConverter::toRetrieve)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    @Override
+    public void updateIngredient(Long ingredientId, IngredientRequest.UpdateReq req, Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INGREDIENT_NOT_FOUND));
+
+        if (!ingredient.getUser().getId().equals(user.getId())) {
+            throw new AuthException(ErrorCode.USER_NOT_EQUAL); //사용자의 재료와 재료의 user 비교
+        }
+
+        if (req.getExpireDate().isBefore(LocalDate.now())) {
+            throw new BusinessException(ErrorCode.INVALID_EXPIREDATE);
+        }
+        ingredient.setName(req.getName());
+        ingredient.setExpireDate(req.getExpireDate());
+        ingredient.setDaySetting(req.getDaySetting());
+
+        ingredientRepository.save(ingredient);
+    }
+
+    @Transactional
+    @Override
+    public void deleteIngredient(Long ingredientId, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INGREDIENT_NOT_FOUND));
+
+        if (!ingredient.getUser().getId().equals(user.getId())) {
+            throw new AuthException(ErrorCode.USER_NOT_EQUAL); //사용자의 재료와 재료의 user 비교
+        }
+
+        ingredientRepository.delete(ingredient);
+    }
+
+
 }
