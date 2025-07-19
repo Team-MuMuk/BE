@@ -1,9 +1,6 @@
 package com.mumuk.domain.ingredient.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,4 +14,19 @@ public class IngredientResponse {
         private LocalDate expireDate;
         private LocalDateTime createdAt;
     }
+    @Getter
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    public static class ExpireDateManegeRes {
+        private String name;
+        private LocalDate expireDate;
+        private String dDay;
+
+
+        public ExpireDateManegeRes(String name, LocalDate expireDate, String dDay) {
+            this.name = name;
+            this.expireDate = expireDate;
+            this.dDay = dDay;
+        }
+    }
+
 }

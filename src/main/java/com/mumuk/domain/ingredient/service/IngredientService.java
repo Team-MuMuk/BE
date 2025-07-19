@@ -11,4 +11,6 @@ public interface IngredientService {
     List<IngredientResponse.RetrieveRes> getAllIngredient(Long userId);
     void updateIngredient(Long ingredientId, IngredientRequest.UpdateReq req, Long userId);
     void deleteIngredient(Long ingredientId, Long userId);
+    List<IngredientResponse.ExpireDateManegeRes> getCloseExpireDateIngredients(Long userId);
+
 }

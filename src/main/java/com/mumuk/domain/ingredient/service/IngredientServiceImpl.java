@@ -14,6 +14,7 @@ import com.mumuk.global.security.exception.AuthException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -98,6 +99,24 @@ public class IngredientServiceImpl implements IngredientService {
 
         ingredientRepository.delete(ingredient);
     }
+    @Transactional
+    @Override
+    public List<IngredientResponse.ExpireDateManegeRes> getCloseExpireDateIngredients(Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        LocalDate today = LocalDate.now();
+        LocalDate limitDate = today.plusDays(30);//유통기한 임박재료 기준을 30일로 잡음
+
+        List<Ingredient> ingredient = ingredientRepository
+                .findByUserAndExpireDateBetweenOrderByExpireDateAsc(user, today, limitDate);
+
+        return ingredient.stream()
+                .map(ingredientConverter::toExpireDate)
+                .collect(Collectors.toList());
+    }
+
 
 
 }

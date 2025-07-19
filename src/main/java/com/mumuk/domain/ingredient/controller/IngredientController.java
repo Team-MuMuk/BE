@@ -60,5 +60,14 @@ public class IngredientController {
         return Response.ok(ResultCode.INGREDIENT_DELETE_OK, "재료 삭제 성공");
     }
 
+    @Operation(summary = "유통기한 관리", description = "유통기한이 임박한 재료를 조회합니다.")
+    @GetMapping("/expiredateManege")
+    public Response<List<IngredientResponse.ExpireDateManegeRes>> ExpireDateManegeIngredient (@AuthUser Long userId){
+
+        List<IngredientResponse.ExpireDateManegeRes> ingredients = ingredientService.getCloseExpireDateIngredients(userId);
+
+return Response.ok(ResultCode.CLOSED_DATE_INGREDIENT_RETRIEVE_OK, ingredients);
+    }
+
 
 }
