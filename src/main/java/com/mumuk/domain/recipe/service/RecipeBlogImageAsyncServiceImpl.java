@@ -1,5 +1,6 @@
 package com.mumuk.domain.recipe.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -10,6 +11,7 @@ import org.springframework.util.DigestUtils;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
+@Slf4j
 @Service
 public class RecipeBlogImageAsyncServiceImpl implements RecipeBlogImageAsyncService {
 
@@ -35,7 +37,7 @@ public class RecipeBlogImageAsyncServiceImpl implements RecipeBlogImageAsyncServ
             }
         } catch (Exception e) {
             // 로그 정도만 찍고 실패해도 넘어감
-            System.err.println("이미지 크롤링 실패: " + blogUrl + " / " + e.getMessage());
+            log.warn("이미지 크롤링 실패: {}, 오류: {}", blogUrl, e.getMessage());
         }
     }
 
