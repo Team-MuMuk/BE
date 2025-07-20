@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.servers.Server;
 
 
 @Configuration
@@ -24,6 +25,7 @@ public class SwaggerConfig {
                                 .in(SecurityScheme.In.HEADER)
                                 .name("Authorization"))) // Swagger UI에서 자동 주입
                 .addSecurityItem(new SecurityRequirement().addList("BearerAuth"))
+                .addServersItem(new Server().url("https://api.mumuk.site"))
                 .info(apiInfo());
     }
 
