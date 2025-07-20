@@ -19,6 +19,7 @@ public class TextUtil {
             sb.append(word);
         }
 
-        return sb.append("...").toString();
+        String result = sb.toString();
+        return result.length() < input.length() ? result + "..." : result;
     }
 }

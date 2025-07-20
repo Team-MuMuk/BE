@@ -28,6 +28,10 @@ public class RecipeBlogServiceImpl implements RecipeBlogService {
 
     @Override
     public RecipeBlogResponse searchBlogByKeyword(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST);
+        }
+
         String json = naverBlogClient.searchBlog(keyword);
 
         try {
@@ -45,7 +49,9 @@ public class RecipeBlogServiceImpl implements RecipeBlogService {
 
                 // 캐시된 이미지 확인 및 비동기 크롤링 호출
                 String cachedImage = recipeBlogImageAsyncService.getCachedImage(link);
-                recipeBlogImageAsyncService.fetchAndCacheImage(link);
+                if (cachedImage==null) {
+                    recipeBlogImageAsyncService.fetchAndCacheImage(link);
+                }
 
                 blogs.add(new RecipeBlogResponse.Blog(
                         title,
