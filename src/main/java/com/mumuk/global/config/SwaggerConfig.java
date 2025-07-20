@@ -25,7 +25,7 @@ public class SwaggerConfig {
                                 .in(SecurityScheme.In.HEADER)
                                 .name("Authorization"))) // Swagger UI에서 자동 주입
                 .addSecurityItem(new SecurityRequirement().addList("BearerAuth"))
-                .addServersItem(new Server().url("https://api.mumuk.site"))
+                .addServersItem(new Server().url("/"))
                 .info(apiInfo());
     }
 
