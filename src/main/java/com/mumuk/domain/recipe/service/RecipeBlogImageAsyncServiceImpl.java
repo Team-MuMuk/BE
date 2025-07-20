@@ -5,7 +5,9 @@ import org.jsoup.nodes.Document;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 @Service
@@ -24,11 +26,11 @@ public class RecipeBlogImageAsyncServiceImpl implements RecipeBlogImageAsyncServ
     public void fetchAndCacheImage(String blogUrl) {
         try {
             String mobileUrl = blogUrl.replace("https://blog.naver.com", "https://m.blog.naver.com");
-            Document doc = Jsoup.connect(mobileUrl).get();
+            Document doc = Jsoup.connect(mobileUrl).timeout(5000).get();
             String ogImage = doc.select("meta[property=og:image]").attr("content");
 
             if (ogImage != null && !ogImage.isBlank()) {
-                String key = "blog:image:" + blogUrl;
+                String key = toRedisKey(blogUrl);
                 redisTemplate.opsForValue().set(key, ogImage, IMAGE_CACHE_TTL);
             }
         } catch (Exception e) {
@@ -39,8 +41,12 @@ public class RecipeBlogImageAsyncServiceImpl implements RecipeBlogImageAsyncServ
 
     @Override
     public String getCachedImage(String blogUrl) {
-        String key = "blog:image:" + blogUrl;
+        String key = toRedisKey(blogUrl);
         Object value = redisTemplate.opsForValue().get(key);
         return value != null ? value.toString() : null;
+    }
+
+    private static String toRedisKey(String blogUrl) {
+        return "blog:image:" + DigestUtils.md5DigestAsHex(blogUrl.getBytes(StandardCharsets.UTF_8));
     }
 }

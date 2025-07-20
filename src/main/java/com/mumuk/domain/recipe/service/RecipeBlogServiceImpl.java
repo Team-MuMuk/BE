@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class RecipeBlogServiceImpl implements RecipeBlogService {
@@ -38,7 +39,7 @@ public class RecipeBlogServiceImpl implements RecipeBlogService {
             // 파싱 결괏값 => DTO 변환
             for (JsonNode item : items) {
                 String title = TextUtil.stripTags(item.path("title").asText());
-                String rawDescription = TextUtil.stripTags(item.path("description").asText());
+                String rawDescription = Optional.ofNullable(item.path("description").asText()).orElse("");
                 String description = TextUtil.smartTruncate(rawDescription, 70);
                 String link = item.path("link").asText();
 
