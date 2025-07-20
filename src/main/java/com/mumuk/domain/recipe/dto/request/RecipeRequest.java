@@ -20,12 +20,5 @@ public class RecipeRequest {
         private String category; // enum 이름(예: "EXAMPLE")
         private String sourceUrl;
         private String ingredients;
-
-        @Getter
-        @NoArgsConstructor
-        public static class IngredientReq {
-            private String name;
-            private String amount;
-        }
     }
 }

@@ -14,38 +14,38 @@ public class Recipe extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "레시피명", nullable = false)
+    @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name = "레시피 대표 이미지", nullable = false, length = 150)
+    @Column(name = "recipe_image", nullable = false, length = 150)
     private String recipeImage;
 
-    @Column(name = "레시피 간단 소개", nullable = false, length = 100)
+    @Column(name = "description", nullable = false, length = 100)
     private String description;
 
-    @Column(name = "조리 소요 시간(n분)", nullable = false)
+    @Column(name = "cooking_time", nullable = false)
     private Long cookingTime;
-
-    @Column(name = "칼로리", nullable = false)
-    private Long calories;
-
-    @Column(name = "단백질", nullable = false)
+    
+    @Column(name = "protein", nullable = false)
     private Long protein;
 
-    @Column(name = "탄수화물", nullable = false)
+    @Column(name = "carbohydrate", nullable = false)
     private Long carbohydrate;
 
-    @Column(name = "지방", nullable = false)
+    @Column(name = "fat", nullable = false)
     private Long fat;
 
+    @Column(name = "calories", nullable = false)
+    private Long calories;
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "카테고리", nullable = false)
+    @Column(name = "category", nullable = false)
     private RecipeCategory category;
 
-    @Column(name = "출처 url", nullable = false, length = 150)
+    @Column(name = "source_url", nullable = false, length = 150)
     private String sourceUrl;
 
-    @Column(name = "재료 문자열", nullable = false, length = 200)
+    @Column(name = "ingredients", nullable = false, length = 200)
     private String ingredients;
 
     // Getter

@@ -10,4 +10,5 @@ public interface RecipeService {
     RecipeResponse.DetailRes getRecipeDetail(Long id);
     List<String> findNamesByCategory(String category);
     List<RecipeResponse.DetailRes> getAllRecipes();
+    List<RecipeResponse.SimpleRes> getSimpleRecipes();
 }
