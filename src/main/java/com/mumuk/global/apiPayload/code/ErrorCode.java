@@ -72,6 +72,7 @@ public enum ErrorCode implements BaseCode {
     SEARCH_LOG_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH_404", "사용자의 검색 기록이 존재하지 않습니다." ),
     SEARCH_LOG_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH_404", "해당 사용자가 존재하지 않습니다." ),
 
+    NAVER_API_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "NAVER_500", "네이버 API 응답을 파싱하는 도중 오류가 발생했습니다."),
 
     //Ingredient Error
     INVALID_EXPIREDATE(HttpStatus.BAD_REQUEST, "INGREDIENT_400", "유통기한이 유효하지 않습니다."),

@@ -25,9 +25,9 @@ public class NaverUtil {
     private final ObjectMapper objectMapper;
 
 
-    @Value("${naver.client-id}")
+    @Value("${naver.login.client-id}")
     private String clientId;
-    @Value("${naver.secret-key}")
+    @Value("${naver.login.secret-key}")
     private String clientSecret;
 
 
