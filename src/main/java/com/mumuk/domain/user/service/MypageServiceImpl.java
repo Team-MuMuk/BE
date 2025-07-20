@@ -32,9 +32,8 @@ public class MypageServiceImpl implements MypageService {
 
     @Override
     @Transactional
-    public UserResponse.ProfileInfoDTO profileInfo(String accessToken) {
-        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
-        User user = userRepository.findByPhoneNumber(phoneNumber)
+    public UserResponse.ProfileInfoDTO profileInfo(Long userId) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
         return MypageConverter.toProfileInfoDTO(user);
     }

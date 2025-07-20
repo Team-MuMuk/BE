@@ -10,9 +10,9 @@ public interface AuthService {
     void signUp(AuthRequest.SignUpReq request);
     TokenResponse logIn(AuthRequest.LogInReq request, HttpServletResponse response);
     void logout(String refreshToken, LoginType loginType);
-    void withdraw(String accessToken, LoginType loginType);
+    void withdraw(Long userId);
     TokenResponse reissue(String refreshToken, LoginType loginType);
     void findUserIdAndSendSms(AuthRequest.FindIdReq request);
     void findUserPassWordAndSendSms(AuthRequest.FindPassWordReq request);
-    void reissueUserPassword(AuthRequest.RecoverPassWordReq request, String accessToken);
+    void reissueUserPassword(AuthRequest.RecoverPassWordReq request, Long userId);
 }
