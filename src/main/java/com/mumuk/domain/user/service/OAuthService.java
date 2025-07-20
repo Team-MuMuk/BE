@@ -5,4 +5,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public interface OAuthService {
     User oAuthKaKaoLogin(String accessCode, HttpServletResponse response);
+
+    User oAuthNaverLogin(String accessCode, String state, HttpServletResponse httpServletResponse);
 }
