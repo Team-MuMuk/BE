@@ -10,6 +10,7 @@ public class OAuthConverter {
         return User.of(email, nickName, profileImage, loginType, socialId);
     }
 
+
     public static UserResponse.JoinResultDTO toJoinResultDTO(User user) {
         return new UserResponse.JoinResultDTO(
                 user.getEmail(),

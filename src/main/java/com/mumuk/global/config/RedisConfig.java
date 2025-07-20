@@ -1,13 +1,12 @@
 package com.mumuk.global.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class RedisConfig {
@@ -16,21 +15,6 @@ public class RedisConfig {
     가령 최근 검색어를 redis 서버에 저장시, Config가 없을 경우 바이너리 코드로 redis에 저장되기 때문에
     직렬화 방식을 선택할 수 있게 하고자 redisConfig 사용
      */
-
-    // 직렬화: 객체의 상태를 Json 등의 바이트 스트림으로 변환하는 것. 역직렬화는 그 반대
-
-
-  // redis를 ec2 서버에서 구동할 경우 사용할 ConnectionFactory 설정
-
-/*    @Value("${spring.data.redis.port}")
-    private int port;
-
-    @Value("${spring.data.redis.host}")
-    private String host;
-
-    public LettuceConnectionFactory redisConnectionFactory() {
-        return new LettuceConnectionFactory(int port,String host);
-    }*/
 
     @Bean
     // 검색어+검색시간, 검색어+검색 빈도 저장시 사용
@@ -58,5 +42,8 @@ public class RedisConfig {
 
     }
 
-
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
 }
