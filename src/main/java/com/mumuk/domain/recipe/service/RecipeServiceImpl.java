@@ -69,4 +69,13 @@ public class RecipeServiceImpl implements RecipeService {
                 .map(RecipeConverter::toDetailRes)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecipeResponse.SimpleRes> getSimpleRecipes() {
+        List<Recipe> recipes = recipeRepository.findAll();
+        return recipes.stream()
+                .map(RecipeConverter::toSimpleRes)
+                .collect(Collectors.toList());
+    }
 }

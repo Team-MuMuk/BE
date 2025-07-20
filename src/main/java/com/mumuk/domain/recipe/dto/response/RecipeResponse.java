@@ -21,12 +21,13 @@ public class RecipeResponse {
         private String category;
         private String sourceUrl;
         private String ingredients;
+    }
 
-        @Getter
-        @AllArgsConstructor
-        public static class IngredientRes {
-            private String name;
-            private String amount;
-        }
+    @Getter
+    @AllArgsConstructor
+    public static class SimpleRes {
+        private Long id;
+        private String title;
+        private String recipeImage;
     }
 }

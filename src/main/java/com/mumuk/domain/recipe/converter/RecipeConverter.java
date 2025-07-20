@@ -41,4 +41,14 @@ public class RecipeConverter {
                 recipe.getIngredients()
         );
     }
+
+    // 엔티티 → 간단한 응답 DTO
+    public static RecipeResponse.SimpleRes toSimpleRes(Recipe recipe) {
+        return new RecipeResponse.SimpleRes(
+                recipe.getId(),
+                recipe.getTitle(),
+                recipe.getRecipeImage()
+        );
+    }
+
 }
