@@ -72,8 +72,8 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getPhoneNumber());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getPhoneNumber());
+        String accessToken = jwtTokenProvider.createAccessToken(user, user.getPhoneNumber());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user, user.getPhoneNumber());
 
         user.updateRefreshToken(refreshToken);
         userRepository.save(user);          // 명시적 저장
@@ -98,12 +98,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void withdraw(String accessToken, LoginType loginType) {
-        if (accessToken == null || !accessToken.startsWith("Bearer ")) {
-            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
-        }
-        User user = getUserFromToken(accessToken, loginType);
-
+    public void withdraw(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
         userRepository.delete(user);
     }
 
@@ -138,11 +135,11 @@ public class AuthServiceImpl implements AuthService {
         String newRefreshToken;
 
         if (loginType == LoginType.LOCAL) {
-            newAccessToken = jwtTokenProvider.createAccessToken(subject);       // phoneNumber
-            newRefreshToken = jwtTokenProvider.createRefreshToken(subject);     // phoneNumber
+            newAccessToken = jwtTokenProvider.createAccessToken(user, subject);       // phoneNumber
+            newRefreshToken = jwtTokenProvider.createRefreshToken(user, subject);     // phoneNumber
         }else{
-            newAccessToken = jwtTokenProvider.createAccessTokenByEmail(subject, loginType);       // email
-            newRefreshToken = jwtTokenProvider.createRefreshTokenByEmail(subject, loginType);     // email
+            newAccessToken = jwtTokenProvider.createAccessTokenByEmail(user, subject, loginType);       // email
+            newRefreshToken = jwtTokenProvider.createRefreshTokenByEmail(user, subject, loginType);     // email
         }
 
         // refreshToken 갱신
@@ -182,7 +179,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void reissueUserPassword(AuthRequest.RecoverPassWordReq request, String accessToken) {
+    public void reissueUserPassword(AuthRequest.RecoverPassWordReq request, Long userId) {
         String newPassword = request.getPassWord();
         String confirmPassword = request.getConfirmPassWord();
 
@@ -195,8 +192,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(ErrorCode.INVALID_PASSWORD_FORMAT);
         }
 
-        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
-        User user = userRepository.findByPhoneNumber(phoneNumber)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
 

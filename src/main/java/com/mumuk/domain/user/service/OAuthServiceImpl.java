@@ -3,6 +3,7 @@ package com.mumuk.domain.user.service;
 
 import com.mumuk.domain.user.converter.OAuthConverter;
 import com.mumuk.domain.user.dto.response.KaKaoResponse;
+import com.mumuk.domain.user.dto.response.NaverResponse;
 import com.mumuk.domain.user.entity.LoginType;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
@@ -10,6 +11,7 @@ import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.security.exception.AuthException;
 import com.mumuk.global.security.jwt.JwtTokenProvider;
 import com.mumuk.global.security.oauth.util.KaKaoUtil;
+import com.mumuk.global.security.oauth.util.NaverUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,14 +24,17 @@ import org.springframework.beans.factory.annotation.Value;
 public class OAuthServiceImpl implements OAuthService {
 
     private final KaKaoUtil kakaoUtil;
+    private final NaverUtil naverUtil;
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
     @Value("${kakao.redirect-uri}")
     private String kakaoRedirectUri;
 
-    public OAuthServiceImpl(KaKaoUtil kakaoUtil, UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
+
+    public OAuthServiceImpl(KaKaoUtil kakaoUtil, NaverUtil naverUtil, UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
         this.kakaoUtil = kakaoUtil;
+        this.naverUtil = naverUtil;
         this.userRepository = userRepository;
         this.jwtTokenProvider = jwtTokenProvider;
     }
@@ -56,8 +61,8 @@ public class OAuthServiceImpl implements OAuthService {
                 })
                 .orElseGet(() -> createNewUser(email, nickname, profileImage, LoginType.KAKAO, socialId));
 
-        String accessToken = jwtTokenProvider.createAccessTokenByEmail(user.getEmail(), LoginType.KAKAO);
-        String refreshToken = jwtTokenProvider.createRefreshTokenByEmail(user.getEmail(), LoginType.KAKAO);
+        String accessToken = jwtTokenProvider.createAccessTokenByEmail(user, user.getEmail(), LoginType.KAKAO);
+        String refreshToken = jwtTokenProvider.createRefreshTokenByEmail(user, user.getEmail(), LoginType.KAKAO);
 
         user.setRefreshToken(refreshToken);
         user.setProfileImage(profileImage);
@@ -72,5 +77,42 @@ public class OAuthServiceImpl implements OAuthService {
     private User createNewUser(String email, String nickname, String profileImage, LoginType loginType, String socialId) {
         User newUser = OAuthConverter.toUser(email, nickname, profileImage, loginType, socialId);
         return userRepository.save(newUser);
+    }
+
+    @Override
+    @Transactional
+    public User oAuthNaverLogin(String accessCode, String state, HttpServletResponse response) {
+
+        NaverResponse.OAuthToken oAuthToken = naverUtil.requestToken(accessCode, state);
+        NaverResponse.NaverProfile naverProfile = naverUtil.requestProfile(oAuthToken);
+
+        String socialId = String.valueOf(naverProfile.getResponse().getId());
+        String email = naverProfile.getResponse().getEmail();
+        String nickname = naverProfile.getResponse().getNickname();
+        String profileImage = naverProfile.getResponse().getProfile_image();
+        log.info("[DEBUG] NaverProfile에서 추출한 Email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .map(existingUser -> {
+                    if (existingUser.getLoginType() != LoginType.NAVER) {
+                        throw new AuthException(ErrorCode.ALREADY_REGISTERED_WITH_OTHER_LOGIN);
+                    }
+                    return existingUser;
+                })
+                .orElseGet(() -> createNewUser(email, nickname, profileImage, LoginType.NAVER, socialId));
+
+        String accessToken = jwtTokenProvider.createAccessTokenByEmail(user, user.getEmail(), LoginType.NAVER);
+        String refreshToken = jwtTokenProvider.createRefreshTokenByEmail(user, user.getEmail(), LoginType.NAVER);
+
+        user.setRefreshToken(refreshToken);
+        user.setProfileImage(profileImage);
+
+        userRepository.save(user);
+
+        response.setHeader("Authorization", "Bearer " + accessToken);
+        response.setHeader("X-Refresh-Token", refreshToken);
+
+        return user;
+
     }
 }
