@@ -76,6 +76,9 @@ public enum ErrorCode implements BaseCode {
 
     //Ingredient Error
     INVALID_EXPIREDATE(HttpStatus.BAD_REQUEST, "INGREDIENT_400", "유통기한이 유효하지 않습니다."),
+    INGREDIENT_NOT_FOUND(HttpStatus.NOT_FOUND, "INGREDIENT_404", "해당 재료가 존재하지 않습니다."),
+    USER_NOT_EQUAL(HttpStatus.BAD_REQUEST, "INGREDIENT_403", "해당 사용자의 재료가 아닙니다."),
+
 
     //Allergy Error
     ALLERGY_NOT_FOUND(HttpStatus.BAD_REQUEST,"ALLERGY_404", "해당 알러지 타입은 존재하지 않습니다,"),

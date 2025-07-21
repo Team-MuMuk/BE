@@ -36,6 +36,11 @@ public enum ResultCode implements BaseCode {
 
     //Ingredient Success
     INGREDIENT_REGISTER_OK(HttpStatus.OK, "INGREDIENT_200","재료등록 성공"),
+    INGREDIENT_RETRIEVE_OK(HttpStatus.OK, "INGREDIENT_200","등록하신 재료조회 성공"),
+    INGREDIENT_UPDATE_OK(HttpStatus.OK, "INGREDIENT_200","재료 수정 성공"),
+    INGREDIENT_DELETE_OK(HttpStatus.OK, "INGREDIENT_200","재료 삭제 성공"),
+    CLOSED_DATE_INGREDIENT_RETRIEVE_OK(HttpStatus.OK, "INGREDIENT_200","유통기한 임박 재료 조회 성공"),
+
 
     SEARCH_SAVE_RECENTSEARCHES_OK(HttpStatus.CREATED,"SEARCH_201", "최근 검색어 저장 성공"),
     SEARCH_DELETE_RECENTSEARCHES_OK(HttpStatus.NO_CONTENT,"SEARCH_204", "최근 검색어 삭제 성공"),
