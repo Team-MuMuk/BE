@@ -22,8 +22,9 @@ public class IngredientController {
     public IngredientController(IngredientService ingredientService) {
         this.ingredientService = ingredientService;
     }
+
     @Operation(summary = "재료 등록", description = "입력하신 재료를 등록합니다.")
-    @PostMapping("/get")
+    @PostMapping("/register")
     public Response<String> registerIngredient (@Valid @RequestBody IngredientRequest.RegisterReq req, @AuthUser Long userId){
 
         ingredientService.registerIngredient(req, userId);
@@ -61,8 +62,8 @@ public class IngredientController {
     }
 
     @Operation(summary = "유통기한 관리", description = "유통기한이 임박한 재료를 조회합니다.")
-    @GetMapping("/expiredateManege")
-    public Response<List<IngredientResponse.ExpireDateManegeRes>> ExpireDateManegeIngredient (@AuthUser Long userId){
+    @GetMapping("/expireDateManege")
+    public Response<List<IngredientResponse.ExpireDateManegeRes>> getExpireDateManegeIngredient (@AuthUser Long userId){
 
         List<IngredientResponse.ExpireDateManegeRes> ingredients = ingredientService.getCloseExpireDateIngredients(userId);
 

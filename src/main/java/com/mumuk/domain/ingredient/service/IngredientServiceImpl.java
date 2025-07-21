@@ -11,8 +11,8 @@ import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
 import com.mumuk.global.security.exception.AuthException;
-import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -31,7 +31,7 @@ public class IngredientServiceImpl implements IngredientService {
         this.userRepository = userRepository;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public void registerIngredient(IngredientRequest.RegisterReq req, Long userId) {
         //유통기한 날짜 과거날짜 입력시 예외처리
@@ -46,16 +46,15 @@ public class IngredientServiceImpl implements IngredientService {
         Ingredient ingredient = ingredientConverter.toRegister(req,user);
         ingredientRepository.save(ingredient);
     }
-
-    @Transactional
     @Override
+    @Transactional(readOnly = true)
     public List<IngredientResponse.RetrieveRes> getAllIngredient(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
-        List<Ingredient> ingredient = ingredientRepository.findAllByUser(user);
+        List<Ingredient> ingredients = ingredientRepository.findAllByUser(user);
 
-        return ingredient.stream()
+        return ingredients.stream()
                 .map(ingredientConverter::toRetrieve)
                 .collect(Collectors.toList());
     }
@@ -73,8 +72,8 @@ public class IngredientServiceImpl implements IngredientService {
         if (!ingredient.getUser().getId().equals(user.getId())) {
             throw new AuthException(ErrorCode.USER_NOT_EQUAL); //사용자의 재료와 재료의 user 비교
         }
-
-        if (req.getExpireDate().isBefore(LocalDate.now())) {
+        LocalDate today = LocalDate.now();
+        if (req.getExpireDate().isBefore(today)) {
             throw new BusinessException(ErrorCode.INVALID_EXPIREDATE);
         }
         ingredient.setName(req.getName());
@@ -99,7 +98,7 @@ public class IngredientServiceImpl implements IngredientService {
 
         ingredientRepository.delete(ingredient);
     }
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public List<IngredientResponse.ExpireDateManegeRes> getCloseExpireDateIngredients(Long userId) {
 
@@ -109,10 +108,10 @@ public class IngredientServiceImpl implements IngredientService {
         LocalDate today = LocalDate.now();
         LocalDate limitDate = today.plusDays(30);//유통기한 임박재료 기준을 30일로 잡음
 
-        List<Ingredient> ingredient = ingredientRepository
+        List<Ingredient> ingredients = ingredientRepository
                 .findByUserAndExpireDateBetweenOrderByExpireDateAsc(user, today, limitDate);
 
-        return ingredient.stream()
+        return ingredients.stream()
                 .map(ingredientConverter::toExpireDate)
                 .collect(Collectors.toList());
     }
