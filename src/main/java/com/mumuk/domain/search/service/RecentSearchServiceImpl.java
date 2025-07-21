@@ -29,26 +29,13 @@ public class RecentSearchServiceImpl implements RecentSearchService {
         this.redisTemplate = redisTemplate;
     }
 
-    // 사용자 조회 로직이 중복되므로 별도 메서드로 분리하여 사용
-    private User getUserFromToken(String accessToken) {
-
-        // jwt 토큰이 유효한 토큰인지 확인!
-        if (!jwtTokenProvider.validateToken(accessToken)) {
-            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
-        }
-
-        // 전화번호로 유효한 사용자인지 확인!
-        String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(accessToken);
-        User user = userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
-        return user;
-    }
 
     @Override
-    public void saveRecentSearch(String accessToken, String title) {
+    public void saveRecentSearch(Long userId, String title) {
 
         // 사용자가 존재하는지 확인
-        User user = getUserFromToken(accessToken);
+        User user=userRepository.findById(userId)
+                .orElseThrow(()->new AuthException(ErrorCode.USER_NOT_FOUND));
 
         // 입력값이 존재하는지 확인
         if (title == null || title.trim().isEmpty()) {
@@ -75,10 +62,11 @@ public class RecentSearchServiceImpl implements RecentSearchService {
     }
 
     @Override
-    public void deleteRecentSearch(String accessToken, SearchRequest.SavedRecentSearchReq request) {
+    public void deleteRecentSearch(Long userId, SearchRequest.SavedRecentSearchReq request) {
 
         // 사용자가 존재하는지 확인
-        User user = getUserFromToken(accessToken);
+        User user=userRepository.findById(userId)
+                .orElseThrow(()->new AuthException(ErrorCode.USER_NOT_FOUND));
 
         if (request==null) {
             throw new GlobalException(ErrorCode.INVALID_INPUT);
@@ -114,13 +102,10 @@ public class RecentSearchServiceImpl implements RecentSearchService {
     }
 
     @Override
-    public List<Object> getRecentSearch(String accessToken) {
+    public List<Object> getRecentSearch(Long userId) {
 
-        if (!jwtTokenProvider.validateToken(accessToken)) {
-            throw new AuthException(ErrorCode.JWT_INVALID_TOKEN);
-        }
-
-        User user = getUserFromToken(accessToken);
+        User user=userRepository.findById(userId)
+                .orElseThrow(()->new AuthException(ErrorCode.USER_NOT_FOUND));
 
         String key="SearchLog_User:"+user.getId();
 

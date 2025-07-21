@@ -6,6 +6,7 @@ import com.mumuk.domain.search.service.RecentSearchService;
 import com.mumuk.domain.search.service.TrendSearchService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
+import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -30,34 +31,33 @@ public class SearchController {
 
     @Operation(summary = "레시피 자동완성 기능")
     @GetMapping("/autocomplete")
-    public Response<List<String>> getAutocompleteSuggestions(@RequestParam  String userInput) {
+    public Response<List<String>> getAutocompleteSuggestions(@RequestParam String userInput) {
 
         List<String> suggestions = autocompleteService.getAutocompleteSuggestions(userInput);
         return Response.ok(ResultCode.SEARCH_AUTOCOMPLETE_OK, suggestions);
     }
 
-
     @Operation(summary = "최근 검색어 저장")
     @PostMapping("/recentsearches/save")
-    public Response<Object> saveRecentSearch(@RequestParam String accessToken, @RequestParam String keyword){
+    public Response<Object> saveRecentSearch(@RequestParam @AuthUser Long userId, @RequestParam String keyword){
 
-        recentSearchService.saveRecentSearch(accessToken, keyword);
+        recentSearchService.saveRecentSearch(userId, keyword);
         return Response.ok(ResultCode.SEARCH_SAVE_RECENTSEARCHES_OK);
     }
 
     @Operation(summary = "최근 검색어 삭제")
     @DeleteMapping("/recentsearches/delete")
-    public Response<Object> deleteRecentSearch(@RequestParam String accessToken, @RequestBody @Valid SearchRequest.SavedRecentSearchReq request){
+    public Response<Object> deleteRecentSearch(@RequestParam @AuthUser Long userId, @RequestBody @Valid SearchRequest.SavedRecentSearchReq request){
 
-        recentSearchService.deleteRecentSearch(accessToken, request);
+        recentSearchService.deleteRecentSearch(userId, request);
         return Response.ok(ResultCode.SEARCH_DELETE_RECENTSEARCHES_OK);
     }
 
     @Operation(summary = "최근 검색어 조회")
     @GetMapping("/recentsearches/get")
-    public Response<List<Object>> getRecentSearch(@RequestParam String accessToken){
+    public Response<List<Object>> getRecentSearch(@RequestParam @AuthUser Long userId){
 
-        List<Object> recentSearches= recentSearchService.getRecentSearch(accessToken);
+        List<Object> recentSearches= recentSearchService.getRecentSearch(userId);
         return Response.ok(ResultCode.SEARCH_GET_RECENTSEARCHES_OK, recentSearches);
     }
 
