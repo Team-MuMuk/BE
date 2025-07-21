@@ -23,6 +23,7 @@ import java.util.Set;
 public class NaverUtil {
 
     private final ObjectMapper objectMapper;
+    private final StateUtil stateUtil;
 
 
     @Value("${naver.login.client-id}")
@@ -31,8 +32,9 @@ public class NaverUtil {
     private String clientSecret;
 
 
-    public NaverUtil(ObjectMapper objectMapper) {
+    public NaverUtil(ObjectMapper objectMapper, StateUtil stateUtil) {
         this.objectMapper = objectMapper;
+        this.stateUtil = stateUtil;
     }
 
     /**
@@ -41,6 +43,10 @@ public class NaverUtil {
      */
     public NaverResponse.OAuthToken requestToken(String accessCode, String state) {
 
+        if (!stateUtil.isValidUUID(state)) {
+            log.error("[🚨ERROR🚨] 유효하지 않은 state 값 (UUID 아님): {}", state);
+            throw new AuthFailureHandler(ErrorCode.SOCIAL_LOGIN_INVALID_STATE);
+        }
 
         // 요청 헤더 및 파라미터 구성
         RestTemplate restTemplate = new RestTemplate();
