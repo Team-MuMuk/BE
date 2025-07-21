@@ -24,13 +24,13 @@ public class TrendSearchServiceImpl implements TrendSearchService {
 
     @Override
     public void increaseKeywordCount(String keyword) {
-        redisTemplate.opsForZSet().add(KEY,keyword,1);
+        redisTemplate.opsForZSet().incrementScore(KEY,keyword,1);
     }
 
     @Override
     @Scheduled(cron = "0 0 * * * *")
     public List<String> getTrendKeyword() {
-        Set<String> trendKeywordSet = redisTemplate.opsForZSet().range(KEY,0,9);
+        Set<String> trendKeywordSet = redisTemplate.opsForZSet().reverseRange(KEY,0,9);
         return new ArrayList<>(trendKeywordSet);
     }
 }
