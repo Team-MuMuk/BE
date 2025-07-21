@@ -5,9 +5,11 @@ import com.mumuk.domain.recipe.repository.RecipeRepository;
 import com.mumuk.domain.recipe.service.RecipeService;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.GlobalException;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class SearchServiceImpl implements SearchService {
 
     private final RecipeRepository recipeRepository;
