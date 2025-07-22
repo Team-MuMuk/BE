@@ -30,10 +30,6 @@ public enum ResultCode implements BaseCode {
     SEND_PW_BY_SMS_OK(HttpStatus.NO_CONTENT, "USER_204", "비밀번호 변경을 위한 SMS 인증 발송 성공"),
     EDIT_PROFILE_OK(HttpStatus.OK, "USER_200", "프로필 수정 성공"),
 
-    // Search Success
-    SEARCH_AUTOCOMPLETE_OK(HttpStatus.OK, "SEARCH_200","자동완성 성공"),
-
-
     //Ingredient Success
     INGREDIENT_REGISTER_OK(HttpStatus.OK, "INGREDIENT_200","재료등록 성공"),
     INGREDIENT_RETRIEVE_OK(HttpStatus.OK, "INGREDIENT_200","등록하신 재료조회 성공"),
@@ -42,9 +38,14 @@ public enum ResultCode implements BaseCode {
     CLOSED_DATE_INGREDIENT_RETRIEVE_OK(HttpStatus.OK, "INGREDIENT_200","유통기한 임박 재료 조회 성공"),
 
 
+    // Search Success
+    SEARCH_RECIPE_OK(HttpStatus.OK, "SEARCH_200", "검색결과목록 조회 성공"),
+    SEARCH_DETAILRECIPE_OK(HttpStatus.OK, "SEARCH_200", "세부검색결과 조회 성공"),
+    SEARCH_AUTOCOMPLETE_OK(HttpStatus.OK, "SEARCH_200","자동완성 성공"),
     SEARCH_SAVE_RECENTSEARCHES_OK(HttpStatus.CREATED,"SEARCH_201", "최근 검색어 저장 성공"),
     SEARCH_DELETE_RECENTSEARCHES_OK(HttpStatus.NO_CONTENT,"SEARCH_204", "최근 검색어 삭제 성공"),
     SEARCH_GET_RECENTSEARCHES_OK(HttpStatus.OK,"SEARCH_200", "최근 검색어 조회 성공"),
+    TRENDKEYWORDS_OK(HttpStatus.OK, "SEARCH_400", "인기 검색어 반환 성공"),
 
     //Allergy Success
     ALLERGY_PATCH_OK(HttpStatus.OK, "ALLERGY_200","알러지 정보 변경 성공"),
