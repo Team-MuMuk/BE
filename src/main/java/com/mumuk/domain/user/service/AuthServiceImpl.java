@@ -180,8 +180,16 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void reissueUserPassword(AuthRequest.RecoverPassWordReq request, Long userId) {
-        String newPassword = request.getPassWord();
+        String currentPassword = request.getCurrentPassWord();
+        String newPassword = request.getNewPassWord();
         String confirmPassword = request.getConfirmPassWord();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new AuthException(ErrorCode.INVALID_CURRENT_PASSWORD_FORMAT);
+        }
 
         if (!newPassword.equals(confirmPassword)) {
             throw new AuthException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
@@ -191,12 +199,9 @@ public class AuthServiceImpl implements AuthService {
         if (!isValidPassword(newPassword)) {
             throw new AuthException(ErrorCode.INVALID_PASSWORD_FORMAT);
         }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
-
-
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.updateRefreshToken(null);
+
         userRepository.save(user);
     }
 

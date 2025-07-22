@@ -78,7 +78,7 @@ public class AuthController {
 
     @Operation(summary = "비밀번호 재설성", description = "비밀번호를 재설정합니다.")
     @PatchMapping("/reissue-pw")
-    public Response<String> reissuePassWord(@AuthUser Long userId, @Valid @RequestBody AuthRequest.RecoverPassWordReq req, HttpServletRequest request ) {
+    public Response<String> reissuePassWord(@AuthUser Long userId, @Valid @RequestBody AuthRequest.RecoverPassWordReq req) {
         authService.reissueUserPassword(req, userId);
         return Response.ok(ResultCode.PW_REISSUE_OK, "성공적으로 비밀번호가 변경되었습니다.");
     }

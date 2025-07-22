@@ -4,7 +4,7 @@ import com.mumuk.domain.user.entity.User;
 import jakarta.servlet.http.HttpServletResponse;
 
 public interface OAuthService {
-    User oAuthKaKaoLogin(String accessCode, HttpServletResponse response);
+    User oAuthKaKaoLogin(String accessCode, String state,  HttpServletResponse response);
 
     User oAuthNaverLogin(String accessCode, String state, HttpServletResponse httpServletResponse);
 }

@@ -40,6 +40,7 @@ public enum ErrorCode implements BaseCode {
     KAKAO_INVALID_GRANT(HttpStatus.UNAUTHORIZED, "KAKAO_401_INVALID_GRANT", "유효하지 않거나 만료된 인가 코드입니다."),
     KAKAO_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "KAKAO_401_AUTH_FAILED", "카카오 인증에 실패했습니다."),
     ALREADY_REGISTERED_WITH_OTHER_LOGIN(HttpStatus.CONFLICT, "AUTH_409_ALREADY_REGISTERED", "해당 이메일은 다른 로그인 방식으로 이미 가입되어 있습니다."),
+    SOCIAL_LOGIN_INVALID_STATE(HttpStatus.UNAUTHORIZED, "SOCIAL_401_INVALID_GRANT", "유효하지 않거나 만료된 STATE 값입니다.."),
 
     // Naver
     NAVER_JSON_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "NAVER_500_JSON", "네이버 프로필 파싱 중 오류가 발생했습니다."),
@@ -54,6 +55,7 @@ public enum ErrorCode implements BaseCode {
     PASSWORD_CONFIRM_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH_400_PW_MISMATCH", "비밀번호가 일치하지 않습니다."),
     INVALID_LOGIN_ID_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_LOGIN_ID", "아이디 형식이 올바르지 않습니다."),
     INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_PW", "비밀번호는 8-15자이며 영문, 숫자, 특수문자를 포함해야 합니다."),
+    INVALID_CURRENT_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_PW", "로그인 한 비밀번호랑 일치하지 않습니다."),
     INVALID_NICKNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_NICKNAME", "닉네임은 10자 이내만 가능합니다."),
 
     // Open AI
@@ -71,11 +73,15 @@ public enum ErrorCode implements BaseCode {
 
     SEARCH_LOG_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH_404", "사용자의 검색 기록이 존재하지 않습니다." ),
     SEARCH_LOG_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH_404", "해당 사용자가 존재하지 않습니다." ),
+    SEARCH_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, "SEARCH_404", "검색 결과가 존재하지 않습니다."),
 
     NAVER_API_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "NAVER_500", "네이버 API 응답을 파싱하는 도중 오류가 발생했습니다."),
 
     //Ingredient Error
     INVALID_EXPIREDATE(HttpStatus.BAD_REQUEST, "INGREDIENT_400", "유통기한이 유효하지 않습니다."),
+    INGREDIENT_NOT_FOUND(HttpStatus.NOT_FOUND, "INGREDIENT_404", "해당 재료가 존재하지 않습니다."),
+    USER_NOT_EQUAL(HttpStatus.BAD_REQUEST, "INGREDIENT_403", "해당 사용자의 재료가 아닙니다."),
+
 
     //Allergy Error
     ALLERGY_NOT_FOUND(HttpStatus.BAD_REQUEST,"ALLERGY_404", "해당 알러지 타입은 존재하지 않습니다,"),

@@ -1,5 +1,6 @@
 package com.mumuk.domain.recipe.repository;
 
+import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.entity.RecipeCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,7 +15,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     List<String> findNamesByCategory(@Param("category") RecipeCategory category);
 
     // 제목으로 검색
-    List<Recipe> findByTitleContainingIgnoreCase(String title);
+    List<RecipeResponse.SimpleRes> findByTitleContainingIgnoreCase(String title);
 
     // 카테고리로 검색
     List<Recipe> findByCategory(RecipeCategory category);

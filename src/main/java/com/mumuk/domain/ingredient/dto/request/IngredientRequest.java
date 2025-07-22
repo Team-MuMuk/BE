@@ -27,4 +27,20 @@ public class IngredientRequest {
         @JsonProperty("daySetting")
         private DdayFcmSetting daySetting;
     }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UpdateReq {
+
+        @NotNull
+        private String name;
+
+        @NotNull
+        @JsonFormat(pattern = "yyyy-MM-dd")
+        private LocalDate expireDate;
+
+        @NotNull
+        private DdayFcmSetting daySetting;
+    }
 }
