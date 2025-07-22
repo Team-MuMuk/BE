@@ -69,8 +69,12 @@ public class AuthRequest {
     @Setter
     @NoArgsConstructor
     public static class RecoverPassWordReq {
+
         @NotBlank
-        private String passWord;
+        private String currentPassWord;
+
+        @NotBlank
+        private String newPassWord;
 
         @NotBlank
         private String confirmPassWord;
