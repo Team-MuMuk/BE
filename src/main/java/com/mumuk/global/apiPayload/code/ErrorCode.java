@@ -55,6 +55,7 @@ public enum ErrorCode implements BaseCode {
     PASSWORD_CONFIRM_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH_400_PW_MISMATCH", "비밀번호가 일치하지 않습니다."),
     INVALID_LOGIN_ID_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_LOGIN_ID", "아이디 형식이 올바르지 않습니다."),
     INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_PW", "비밀번호는 8-15자이며 영문, 숫자, 특수문자를 포함해야 합니다."),
+    INVALID_CURRENT_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_PW", "로그인 한 비밀번호랑 일치하지 않습니다."),
     INVALID_NICKNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_NICKNAME", "닉네임은 10자 이내만 가능합니다."),
 
     // Open AI
