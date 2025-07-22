@@ -40,7 +40,7 @@ public enum ErrorCode implements BaseCode {
     KAKAO_INVALID_GRANT(HttpStatus.UNAUTHORIZED, "KAKAO_401_INVALID_GRANT", "유효하지 않거나 만료된 인가 코드입니다."),
     KAKAO_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "KAKAO_401_AUTH_FAILED", "카카오 인증에 실패했습니다."),
     ALREADY_REGISTERED_WITH_OTHER_LOGIN(HttpStatus.CONFLICT, "AUTH_409_ALREADY_REGISTERED", "해당 이메일은 다른 로그인 방식으로 이미 가입되어 있습니다."),
-    SOCIAL_LOGIN_INVALID_STATE(HttpStatus.UNAUTHORIZED, "KAKAO_401_INVALID_GRANT", "유효하지 않거나 만료된 STATE 값입니다.."),
+    SOCIAL_LOGIN_INVALID_STATE(HttpStatus.UNAUTHORIZED, "SOCIAL_401_INVALID_GRANT", "유효하지 않거나 만료된 STATE 값입니다.."),
 
     // Naver
     NAVER_JSON_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "NAVER_500_JSON", "네이버 프로필 파싱 중 오류가 발생했습니다."),
