@@ -33,7 +33,7 @@ public class SearchController {
     }
 
     @Operation(summary = "레시피 검색결과 목록 조회")
-    @GetMapping("/show-resultList")
+    @GetMapping("/recipe/search")
     public Response<List<RecipeResponse.SimpleRes>> showResultList( @AuthUser Long userId,  @RequestParam String keyword) {
 
         recentSearchService.saveRecentSearch(userId, keyword);
@@ -42,14 +42,14 @@ public class SearchController {
     }
 
     @Operation(summary = "레시피 검색결과 세부 조회")
-    @GetMapping("/show-detailResult/{recipeId}")
+    @GetMapping("/recipe/{recipeId}")
     public Response<RecipeResponse.DetailRes> showDetailResult(@RequestParam Long recipeId) {
         RecipeResponse.DetailRes detailResult= searchService.SearchDetailRecipe(recipeId);
         return Response.ok(ResultCode.SEARCH_DETAILRECIPE_OK,detailResult);
     }
 
     @Operation(summary = "레시피 자동완성 기능")
-    @GetMapping("/autocomplete")
+    @GetMapping("/recipe/autocomplete")
     public Response<List<String>> getAutocompleteSuggestions(@RequestParam String userInput) {
 
         List<String> suggestions = autocompleteService.getAutocompleteSuggestions(userInput);
@@ -57,7 +57,7 @@ public class SearchController {
     }
 
     @Operation(summary = "최근 검색어 저장")
-    @PostMapping("/recentsearches/save")
+    @PostMapping("/recent-searches")
     public Response<Object> saveRecentSearch(@AuthUser Long userId, @RequestParam String keyword){
 
         recentSearchService.saveRecentSearch(userId, keyword);
@@ -65,7 +65,7 @@ public class SearchController {
     }
 
     @Operation(summary = "최근 검색어 삭제")
-    @DeleteMapping("/recentsearches/delete")
+    @DeleteMapping("/recent-searches")
     public Response<Object> deleteRecentSearch(@AuthUser Long userId, @RequestBody @Valid SearchRequest.SavedRecentSearchReq request){
 
         recentSearchService.deleteRecentSearch(userId, request);
@@ -73,7 +73,7 @@ public class SearchController {
     }
 
     @Operation(summary = "최근 검색어 조회")
-    @GetMapping("/recentsearches/get")
+    @GetMapping("/recent-searches")
     public Response<List<Object>> getRecentSearch(@AuthUser Long userId){
 
         List<Object> recentSearches= recentSearchService.getRecentSearch(userId);
@@ -81,7 +81,7 @@ public class SearchController {
     }
 
     @Operation(summary = "인기 검색어 조회")
-    @GetMapping("/trend")
+    @GetMapping("/search-trends")
     public Response<List<String>> getTrend(){
         List<String> trendKeywords=trendSearchService.getTrendKeyword();
         return Response.ok(ResultCode.TRENDKEYWORDS_OK ,trendKeywords);
