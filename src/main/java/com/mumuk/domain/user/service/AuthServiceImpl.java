@@ -199,8 +199,9 @@ public class AuthServiceImpl implements AuthService {
         if (!isValidPassword(newPassword)) {
             throw new AuthException(ErrorCode.INVALID_PASSWORD_FORMAT);
         }
-
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.updateRefreshToken(null);
+
         userRepository.save(user);
     }
 
