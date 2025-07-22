@@ -18,7 +18,9 @@ spring:
       host: redis
       port: 6379
 
-
+naver:
+  login:
+    redirect-uri: mumukapp://naver
 
 kakao:
   native-app-key: ${KAKAO_NATIVE_APP_KEY}
