@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mumuk.domain.user.dto.response.KaKaoResponse;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.security.exception.AuthFailureHandler;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -17,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 
 
 import java.util.Set;
+import java.util.UUID;
 
 
 @Slf4j
@@ -24,31 +26,43 @@ import java.util.Set;
 public class KaKaoUtil {
 
     private final ObjectMapper objectMapper;
+    private final StateUtil stateUtil;
 
-    private final Set<String> allowedRedirectUris = Set.of(
-            "http://localhost:8080/login/oauth2/code/kakao", "https://api.mumuk.site/login/oauth2/code/kakao"
-
-    );
+    public KaKaoUtil(ObjectMapper objectMapper, StateUtil stateUtil) {
+        this.objectMapper = objectMapper;
+        this.stateUtil = stateUtil;
+    }
 
     @Value("${kakao.native-app-key}")
     private String clientId;
 
 
-    public KaKaoUtil(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    private Set<String> allowedRedirectUris;
+
+    @PostConstruct
+    public void initAllowedRedirectUris() {
+        this.allowedRedirectUris = Set.of(
+                "http://localhost:8080/login/oauth2/code/kakao",           // 개발용
+                "kakao" + clientId + "://oauth"                           // 안드로이드용
+        );
     }
 
     /**
      *  인가 코드를 이용해 카카오 서버로부터 OAuth 토큰 반환 받음.
      *  추후 OAuth Token 을 이용해, 카카오 서버로부터 사용자 정보 반환 => DB 저장 및 자체 인증/인가 로직
      */
-    public KaKaoResponse.OAuthToken requestToken(String accessCode, String redirectUri) {
+    public KaKaoResponse.OAuthToken requestToken(String accessCode, String state, String redirectUri) {
 
         redirectUri = redirectUri.trim();
 
         if (!allowedRedirectUris.contains(redirectUri)) {
             log.error("[🚨ERROR🚨] 허용되지 않은 redirect_uri 요청: {}", redirectUri);
             throw new AuthFailureHandler(ErrorCode.KAKAO_INVALID_GRANT);
+        }
+
+        if (!stateUtil.isValidUUID(state)) {
+            log.error("[🚨ERROR🚨] 유효하지 않은 state 값 (UUID 아님): {}", state);
+            throw new AuthFailureHandler(ErrorCode.SOCIAL_LOGIN_INVALID_STATE);
         }
 
         // 요청 헤더 및 파라미터 구성

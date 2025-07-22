@@ -42,9 +42,9 @@ public class OAuthServiceImpl implements OAuthService {
 
     @Override
     @Transactional
-    public User oAuthKaKaoLogin(String accessCode, HttpServletResponse response) {
+    public User oAuthKaKaoLogin(String accessCode, String state, HttpServletResponse response) {
 
-        KaKaoResponse.OAuthToken oAuthToken = kakaoUtil.requestToken(accessCode, kakaoRedirectUri);
+        KaKaoResponse.OAuthToken oAuthToken = kakaoUtil.requestToken(accessCode, state, kakaoRedirectUri);
         KaKaoResponse.KakaoProfile kakaoProfile = kakaoUtil.requestProfile(oAuthToken);
 
         String socialId = String.valueOf(kakaoProfile.getId());
@@ -74,11 +74,6 @@ public class OAuthServiceImpl implements OAuthService {
         return user;
     }
 
-    private User createNewUser(String email, String nickname, String profileImage, LoginType loginType, String socialId) {
-        User newUser = OAuthConverter.toUser(email, nickname, profileImage, loginType, socialId);
-        return userRepository.save(newUser);
-    }
-
     @Override
     @Transactional
     public User oAuthNaverLogin(String accessCode, String state, HttpServletResponse response) {
@@ -90,7 +85,6 @@ public class OAuthServiceImpl implements OAuthService {
         String email = naverProfile.getResponse().getEmail();
         String nickname = naverProfile.getResponse().getNickname();
         String profileImage = naverProfile.getResponse().getProfile_image();
-        log.info("[DEBUG] NaverProfile에서 추출한 Email: {}", email);
 
         User user = userRepository.findByEmail(email)
                 .map(existingUser -> {
@@ -106,13 +100,16 @@ public class OAuthServiceImpl implements OAuthService {
 
         user.setRefreshToken(refreshToken);
         user.setProfileImage(profileImage);
-
         userRepository.save(user);
 
         response.setHeader("Authorization", "Bearer " + accessToken);
         response.setHeader("X-Refresh-Token", refreshToken);
 
         return user;
+    }
 
+    private User createNewUser(String email, String nickname, String profileImage, LoginType loginType, String socialId) {
+        User newUser = OAuthConverter.toUser(email, nickname, profileImage, loginType, socialId);
+        return userRepository.save(newUser);
     }
 }

@@ -24,15 +24,15 @@ public class OAuthController {
 
     @Operation(summary = "카카오 로그인", description = "카카오 서버로부터 인가코드를 받아 이를 기반으로 로그인 처리")
     @PostMapping("/kakao-login")
-    public Response<UserResponse.JoinResultDTO> kakaoLogin(@RequestParam("code") String accessCode, HttpServletResponse httpServletResponse) {
-        User user = oAuthService.oAuthKaKaoLogin(accessCode, httpServletResponse);
+    public Response<UserResponse.JoinResultDTO> kakaoLogin(@RequestParam("code") String accessCode, @RequestParam("state") String state, HttpServletResponse httpServletResponse) {
+        User user = oAuthService.oAuthKaKaoLogin(accessCode, state, httpServletResponse);
         return Response.ok(OAuthConverter.toJoinResultDTO(user));
     }
 
     @Operation(summary = "네이버 로그인", description = "네이버 서버로부터 인가코드를 받아 이를 기반으로 로그인 처리")
     @PostMapping("/naver-login")
-    public Response<UserResponse.JoinResultDTO> naverLogin(@RequestParam("code") String accessCode,@RequestParam("state") String state, HttpServletResponse httpServletResponse) {
-        User user = oAuthService.oAuthNaverLogin(accessCode,state, httpServletResponse);
+    public Response<UserResponse.JoinResultDTO> naverLogin(@RequestParam("code") String accessCode, @RequestParam("state") String state, HttpServletResponse httpServletResponse) {
+        User user = oAuthService.oAuthNaverLogin(accessCode, state, httpServletResponse);
         return Response.ok(OAuthConverter.toJoinResultDTO(user));
     }
 }
