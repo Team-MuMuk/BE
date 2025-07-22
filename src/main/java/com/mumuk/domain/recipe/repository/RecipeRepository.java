@@ -20,6 +20,10 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     // 카테고리로 검색
     List<Recipe> findByCategory(RecipeCategory category);
 
+    // 입력한 레시피 id를 제외하고, 같은 카테고리의 레시피 6개를 랜덤하게 조회
+    @Query(value="SELECT * FROM recipe WHERE category= :category AND id != :recipeId ORDER BY RANDOM() LIMIT 6",nativeQuery=true)
+    List<Recipe> findRandomRecipesByCategory(String category, Long recipeId);
+
     // 칼로리 범위로 검색
     List<Recipe> findByCaloriesLessThanEqual(Long maxCalories);
 
