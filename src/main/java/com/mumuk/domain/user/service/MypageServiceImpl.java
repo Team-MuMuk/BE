@@ -70,8 +70,9 @@ public class MypageServiceImpl implements MypageService {
         //사용자 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        int pageIndex = (page != null && page > 0) ? page - 1 : 0;
         //사용자가 찜한 레시피를 조회
-        Page<UserRecipe> likedUserRecipes = userRecipeRepository.findByUser_IdAndLikedIsTrue(user.getId(),PageRequest.of(page, 6));
+        Page<UserRecipe> likedUserRecipes = userRecipeRepository.findByUser_IdAndLikedIsTrue(user.getId(),PageRequest.of(pageIndex, 6));
         //Converter: Page<UserRecipe> -> LikedRecipeListDTO
         UserResponse.LikedRecipeListDTO likedRecipeListDTO = MypageConverter.toLikedRecipeListDTO(likedUserRecipes);
         return likedRecipeListDTO;
