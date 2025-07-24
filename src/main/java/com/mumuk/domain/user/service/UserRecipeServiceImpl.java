@@ -54,27 +54,24 @@ public class UserRecipeServiceImpl implements UserRecipeService{
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECIPE_NOT_FOUND));
         //사용자와 레시피가 유효하면 redis에 데이터 저장
         recentRecipeService.addRecentRecipe(userId, recipeId);
-
-        Optional<UserRecipe> existingUserRecipe = userRecipeRepository.findByUserIdAndRecipeId(userId, recipeId);
-        UserRecipe userRecipe;
-
-        //사용자가 해당 레시피를 조회한 적이 있으면
-        if (existingUserRecipe.isPresent()) {
-        //조회 시간을 현재 시간으로 변경
-            userRecipe = existingUserRecipe.get();
-            userRecipe.setViewed(true);
-            userRecipe.setViewedAt(LocalDateTime.now());
-        //조회한 적이 없으면
-        } else {
-        //데이터를 저장
-            userRecipe = new UserRecipe();
-            userRecipe.setUser(user);
-            userRecipe.setRecipe(recipe);
-            userRecipe.setViewed(true);
-            userRecipe.setViewedAt(LocalDateTime.now());
-            userRecipe.setLiked(false);
-            userRecipeRepository.save(userRecipe);
-        }
+        UserRecipe userRecipe = userRecipeRepository.findByUserIdAndRecipeId(userId, recipeId)
+                .map(existing -> {
+                    //사용자가 해당 레시피를 조회한 적이 있으면
+                    //조회 시간을 현재 시간으로 변경
+                    existing.setViewed(true);
+                    existing.setViewedAt(LocalDateTime.now());
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    //조회한 적이 없으면 데이터를 저장
+                    UserRecipe newUserRecipe = new UserRecipe();
+                    newUserRecipe.setUser(user);
+                    newUserRecipe.setRecipe(recipe);
+                    newUserRecipe.setViewed(true);
+                    newUserRecipe.setViewedAt(LocalDateTime.now());
+                    newUserRecipe.setLiked(false);
+                    return userRecipeRepository.save(newUserRecipe);
+                });
         return UserRecipeConverter.toUserRecipeRes(recipe, userRecipe);
     }
 
