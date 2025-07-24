@@ -1,5 +1,6 @@
 package com.mumuk.domain.user.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,7 +29,8 @@ public class UserRecipeResponse {
         private String sourceUrl;
         private String ingredients;
         private boolean viewed;
-        private String viewedAt;
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+        private LocalDateTime viewedAt;
     }
 
     @Builder

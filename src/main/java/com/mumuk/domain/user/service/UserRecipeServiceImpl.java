@@ -103,7 +103,11 @@ public class UserRecipeServiceImpl implements UserRecipeService{
         // DB에서 해당 user와 recipeIds에 대한 UserRecipe 정보 조회
         List<UserRecipe> userRecipes = userRecipeRepository.findByUserIdAndRecipeIdIn(userId, recipeIds);
         Map<Long, UserRecipe> userRecipeMap = userRecipes.stream()
-                .collect(Collectors.toMap(userRecipe -> userRecipe.getRecipe().getId(), Function.identity()));
+                .collect(Collectors.toMap(
+                        userRecipe -> userRecipe.getRecipe().getId(),
+                        Function.identity(),
+                        (existing, replacement) -> replacement
+                ));
 
         return toRecentRecipeDTOList(recipeIds, recipeMap,userRecipeMap);
 
