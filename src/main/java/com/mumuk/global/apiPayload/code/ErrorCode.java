@@ -33,7 +33,8 @@ public enum ErrorCode implements BaseCode {
     JWT_EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "JWT_401_EX", "만료된 JWT 토큰입니다."),
     JWT_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "JWT_401", "JWT 토큰을 찾을 수 없습니다."),
 
-
+    // UserRecipe Error
+    USER_RECIPE_ALREADY_EXISTS(HttpStatus.CONFLICT, "USER_RECIPE_409", "이미 존재하는 정보입니다."),
     // KaKao
     KAKAO_JSON_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "KAKAO_500_JSON", "카카오 프로필 파싱 중 오류가 발생했습니다."),
     KAKAO_API_ERROR(HttpStatus.BAD_GATEWAY, "KAKAO_502_API", "카카오 서버와의 통신 중 오류가 발생했습니다."),
