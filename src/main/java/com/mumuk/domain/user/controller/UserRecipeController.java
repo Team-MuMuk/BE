@@ -2,6 +2,7 @@ package com.mumuk.domain.user.controller;
 
 
 
+import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 
 import com.mumuk.domain.user.service.UserRecipeService;
@@ -9,7 +10,6 @@ import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
-import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 

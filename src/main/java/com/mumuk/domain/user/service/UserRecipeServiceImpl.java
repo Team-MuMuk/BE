@@ -1,5 +1,6 @@
 package com.mumuk.domain.user.service;
 
+import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.repository.RecipeRepository;
 import com.mumuk.domain.user.converter.UserRecipeConverter;
@@ -11,6 +12,7 @@ import com.mumuk.domain.user.repository.UserRecipeRepository;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
+import com.mumuk.global.apiPayload.exception.GlobalException;
 import com.mumuk.global.security.exception.AuthException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -108,6 +110,19 @@ public class UserRecipeServiceImpl implements UserRecipeService{
 
         return toRecentRecipeDTOList(recipeIds, recipeMap,userRecipeMap);
 
+    }
+    @Override
+    public Long getMostRecentRecipeId(Long userId) {
+
+        String key = "user:" + userId + ":recent_recipes";
+
+        Set<String> recipeIdsAsString = redisTemplate.opsForZSet().reverseRange(key, 0, 0);
+
+        if (recipeIdsAsString == null || recipeIdsAsString.isEmpty()) {
+            throw new BusinessException(ErrorCode.RECENT_RECIPE_NOT_FOUND);
+        }
+
+        return Long.parseLong(recipeIdsAsString.iterator().next());
     }
 
 
