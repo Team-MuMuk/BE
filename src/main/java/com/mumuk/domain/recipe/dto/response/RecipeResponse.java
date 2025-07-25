@@ -1,16 +1,20 @@
 package com.mumuk.domain.recipe.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.mumuk.domain.recipe.entity.Recipe;
+import com.mumuk.domain.user.entity.UserRecipe;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class RecipeResponse {
 
     @Getter
     @AllArgsConstructor
+    @RequiredArgsConstructor
     public static class DetailRes {
         private Long id;
         private String title;
@@ -25,8 +29,6 @@ public class RecipeResponse {
         private String sourceUrl;
         private String ingredients;
 
-        public DetailRes(Recipe recipe) {
-        }
     }
 
     @Getter
@@ -35,7 +37,6 @@ public class RecipeResponse {
         private Long id;
         private String title;
         private String recipeImage;
-        private boolean liked;
     }
 
     @Getter

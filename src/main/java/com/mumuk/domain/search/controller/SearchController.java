@@ -3,10 +3,7 @@ package com.mumuk.domain.search.controller;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.search.dto.request.SearchRequest;
 import com.mumuk.domain.search.dto.response.SearchResponse;
-import com.mumuk.domain.search.service.AutocompleteService;
-import com.mumuk.domain.search.service.RecentSearchService;
-import com.mumuk.domain.search.service.SearchService;
-import com.mumuk.domain.search.service.TrendSearchService;
+import com.mumuk.domain.search.service.*;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
@@ -24,13 +21,16 @@ public class SearchController {
     private final AutocompleteService autocompleteService;
     private final RecentSearchService recentSearchService;
     private final TrendSearchService trendSearchService;
+    private final RecommendedRecipeService recommendedRecipeService;
     private final SearchService searchService;
 
-    public SearchController(AutocompleteService autocompleteService, RecentSearchService recentSearchService, TrendSearchService trendSearchService, SearchService searchService) {
+
+    public SearchController(AutocompleteService autocompleteService, RecentSearchService recentSearchService, TrendSearchService trendSearchService, SearchService searchService, RecommendedRecipeService recommendedRecipeService) {
         this.autocompleteService = autocompleteService;
         this.recentSearchService = recentSearchService;
         this.trendSearchService = trendSearchService;
         this.searchService = searchService;
+        this.recommendedRecipeService = recommendedRecipeService;
     }
 
     @Operation(summary = "레시피 검색결과 목록 조회")
@@ -42,9 +42,16 @@ public class SearchController {
 
     @Operation(summary = "레시피 검색결과 세부 조회")
     @GetMapping("/recipes/{recipeId}")
-    public Response<RecipeResponse.DetailRes> showDetailResult(@RequestParam Long recipeId) {
+    public Response<RecipeResponse.DetailRes> showDetailResult(@PathVariable Long recipeId) {
         RecipeResponse.DetailRes detailResult= searchService.SearchDetailRecipe(recipeId);
         return Response.ok(ResultCode.SEARCH_DETAILRECIPE_OK,detailResult);
+    }
+
+    @Operation(summary ="추천 검색어 조회", description = "가장 최근 검색한 레시피와 같은 카테고리의 레시피 6개 랜덤 제공")
+    @GetMapping("/recommended-keywords")
+    public Response<List<String>> getRecommendedKeywords(@AuthUser Long userId) {
+        List<String> recommendedKeywordList=recommendedRecipeService.getRecommendedRecipeList(userId);
+        return Response.ok(ResultCode.SEARCH_GET_RECOMMENDED_KEYWORDS_OK,recommendedKeywordList);
     }
 
     @Operation(summary = "레시피 자동완성 기능")
@@ -83,6 +90,6 @@ public class SearchController {
     @GetMapping("/trends")
     public Response<SearchResponse.TrendKeywordListRes> getTrend(){
         SearchResponse.TrendKeywordListRes trendKeywords=trendSearchService.getTrendKeyword();
-        return Response.ok(ResultCode.TRENDKEYWORDS_OK ,trendKeywords);
+        return Response.ok(ResultCode.SEARCH_GET_TRENDKEYWORDS_OK ,trendKeywords);
     }
 }

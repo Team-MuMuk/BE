@@ -10,7 +10,6 @@ import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
-import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,16 +29,16 @@ public class UserRecipeController {
 
     @Operation(summary = "해당 레시피 상세 조회 + 사용자의 해당 레시피 조회 여부를 저장")
     @GetMapping("/{recipeId}")
-    public Response<RecipeResponse.DetailRes> getUserRecipe(@AuthUser Long userId, @PathVariable Long recipeId) {
-        RecipeResponse.DetailRes response = userRecipeService.getUserRecipeDetail(userId,recipeId);
+    public Response<UserRecipeResponse.UserRecipeRes> getUserRecipe(@AuthUser Long userId, @PathVariable Long recipeId) {
+        UserRecipeResponse.UserRecipeRes response = userRecipeService.getUserRecipeDetail(userId,recipeId);
         return Response.ok(ResultCode.USER_RECIPE_OK, response);
     }
 
 
     @Operation(summary = "최근 레시피 조회", description = "사용자가 최근에 조회한 레시피 목록을 8개까지 조회합니다.")
     @GetMapping("/recent-recipe")
-    public Response<RecipeResponse.SimpleResList> getRecentRecipe(@AuthUser Long userId) {
-        RecipeResponse.SimpleResList response = userRecipeService.getRecentRecipes(userId);
+    public Response<UserRecipeResponse.RecentRecipeDTOList> getRecentRecipe(@AuthUser Long userId) {
+        UserRecipeResponse.RecentRecipeDTOList response = userRecipeService.getRecentRecipes(userId);
         return Response.ok(ResultCode.RECENT_RECIPE_OK, response);
     }
 }

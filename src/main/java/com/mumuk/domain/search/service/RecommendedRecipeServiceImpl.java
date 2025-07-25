@@ -22,9 +22,6 @@ public class RecommendedRecipeServiceImpl implements RecommendedRecipeService {
         this.userRecipeService = userRecipeService;
     }
 
-    // 가장 최근 조회한 레시피는 다른 사람이 맡은 개발부분, 아직 미구현
-
-
     @Override
     public List<String> getRecommendedRecipeList(Long userId) {
 

@@ -48,7 +48,7 @@ public class UserRecipeServiceImpl implements UserRecipeService{
 
     @Override
     @Transactional
-    public RecipeResponse.DetailRes getUserRecipeDetail(Long userId, Long recipeId) {
+    public UserRecipeResponse.UserRecipeRes getUserRecipeDetail(Long userId, Long recipeId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
@@ -74,18 +74,18 @@ public class UserRecipeServiceImpl implements UserRecipeService{
                     newUserRecipe.setLiked(false);
                     return userRecipeRepository.save(newUserRecipe);
                 });
-        return new RecipeResponse.DetailRes(recipe);
+        return UserRecipeConverter.toUserRecipeRes(recipe, userRecipe);
     }
 
     @Override
-    public RecipeResponse.SimpleResList getRecentRecipes(Long userId) {
+    public UserRecipeResponse.RecentRecipeDTOList getRecentRecipes(Long userId) {
         String key = "user:" + userId + ":recent_recipes";
 
         // Redis에서 최신순으로 recipeId 목록을 조회
         Set<String> recipeIdsAsString = redisTemplate.opsForZSet().reverseRange(key, 0, 7);
 
         if (recipeIdsAsString == null || recipeIdsAsString.isEmpty()) {
-            return new RecipeResponse.SimpleResList(Collections.emptyList());
+            return new UserRecipeResponse.RecentRecipeDTOList(Collections.emptyList());
 
         }
 
@@ -108,9 +108,9 @@ public class UserRecipeServiceImpl implements UserRecipeService{
                         (existing, replacement) -> replacement
                 ));
 
-        return new RecipeResponse.SimpleResList(recipeIds, recipeMap, userRecipeMap);
-    }
+        return toRecentRecipeDTOList(recipeIds, recipeMap,userRecipeMap);
 
+    }
     @Override
     public Long getMostRecentRecipeId(Long userId) {
 

@@ -9,9 +9,8 @@ import com.mumuk.domain.user.entity.User;
 import java.util.List;
 
 public interface UserRecipeService {
-
-    RecipeResponse.DetailRes getUserRecipeDetail(Long userId, Long recipeId);
-    RecipeResponse.SimpleResList getRecentRecipes(Long userId);
+    UserRecipeResponse.UserRecipeRes getUserRecipeDetail(Long userId, Long recipeId);
+    UserRecipeResponse.RecentRecipeDTOList getRecentRecipes(Long userId);
     Long getMostRecentRecipeId(Long userId);
 }
 
