@@ -119,7 +119,7 @@ public class UserRecipeServiceImpl implements UserRecipeService{
         Set<String> recipeIdsAsString = redisTemplate.opsForZSet().reverseRange(key, 0, 0);
 
         if (recipeIdsAsString == null || recipeIdsAsString.isEmpty()) {
-            throw new GlobalException(ErrorCode.RECENT_RECIPE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.RECENT_RECIPE_NOT_FOUND);
         }
 
         return Long.parseLong(recipeIdsAsString.iterator().next());
