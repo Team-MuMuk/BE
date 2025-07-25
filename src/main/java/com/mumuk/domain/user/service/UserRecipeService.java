@@ -12,6 +12,7 @@ public interface UserRecipeService {
 
     UserRecipeResponse.UserRecipeRes getUserRecipeDetail(Long userId, Long recipeId);
     UserRecipeResponse.RecentRecipeDTOList getRecentRecipes(Long userId);
+    Long getMostRecentRecipeId(Long userId);
 }
 
 

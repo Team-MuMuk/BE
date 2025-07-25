@@ -3,27 +3,32 @@ package com.mumuk.domain.search.service;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.entity.RecipeCategory;
 import com.mumuk.domain.recipe.repository.RecipeRepository;
+import com.mumuk.domain.user.service.UserRecipeService;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class RecommandedRecipeServiceImpl implements RecommandedRecipeService {
+public class RecommendedRecipeServiceImpl implements RecommendedRecipeService {
 
     private final RecipeRepository recipeRepository;
+    private final UserRecipeService userRecipeService;
 
-    public RecommandedRecipeServiceImpl(RecipeRepository recipeRepository) {
+    public RecommendedRecipeServiceImpl(RecipeRepository recipeRepository, UserRecipeService userRecipeService) {
         this.recipeRepository = recipeRepository;
+        this.userRecipeService = userRecipeService;
     }
 
     // 가장 최근 조회한 레시피는 다른 사람이 맡은 개발부분, 아직 미구현
 
+
     @Override
-    public List<String> getRecommendedRecipeList(Long recipeId) {
+    public List<String> getRecommendedRecipeList(Long userId) {
+
+        Long recipeId= userRecipeService.getMostRecentRecipeId(userId);
 
         Recipe recipe = recipeRepository.findById(recipeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECIPE_NOT_FOUND));

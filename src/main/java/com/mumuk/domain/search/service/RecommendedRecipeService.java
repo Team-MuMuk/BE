@@ -1,10 +1,8 @@
 package com.mumuk.domain.search.service;
 
-import com.mumuk.domain.recipe.entity.RecipeCategory;
-
 import java.util.List;
 
-public interface RecommandedRecipeService {
+public interface RecommendedRecipeService {
 
     // 1. 최근 검색한 레시피 불러오기 (가은님 개발파트)
     // 2. 해당 레시피의 카테고리 추출
