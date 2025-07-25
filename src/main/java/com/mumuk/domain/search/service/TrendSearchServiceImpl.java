@@ -1,5 +1,6 @@
 package com.mumuk.domain.search.service;
 
+import com.mumuk.domain.search.dto.response.SearchResponse;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,8 +30,11 @@ public class TrendSearchServiceImpl implements TrendSearchService {
 
     @Override
     @Scheduled(cron = "0 0 * * * *")
-    public List<String> getTrendKeyword() {
+    public SearchResponse.TrendKeywordListRes getTrendKeyword() {
         Set<String> trendKeywordSet = redisTemplate.opsForZSet().reverseRange(KEY,0,9);
-        return new ArrayList<>(trendKeywordSet);
+        // 순서 보장 위해 리스트로 한 번 변환
+        List<String> trendKeywordList = new ArrayList<>(trendKeywordSet);
+
+        return new SearchResponse.TrendKeywordListRes(trendKeywordList);
     }
 }
