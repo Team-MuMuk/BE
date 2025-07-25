@@ -80,7 +80,7 @@ public class SearchController {
     }
 
     @Operation(summary = "인기 검색어 조회")
-    @GetMapping("/search-trends")
+    @GetMapping("/trends")
     public Response<SearchResponse.TrendKeywordListRes> getTrend(){
         SearchResponse.TrendKeywordListRes trendKeywords=trendSearchService.getTrendKeyword();
         return Response.ok(ResultCode.TRENDKEYWORDS_OK ,trendKeywords);
