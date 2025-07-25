@@ -7,7 +7,13 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_recipe")
+@Table(
+        name = "user_recipe",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_user_recipe_user_id_recipe_id",
+                columnNames = {"user_id", "recipe_id"}
+        )
+)
 public class UserRecipe extends BaseEntity {
 
     @Id
