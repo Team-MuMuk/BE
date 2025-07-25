@@ -18,7 +18,7 @@ import retrofit2.http.DELETE;
 import static com.mumuk.global.apiPayload.response.Response.ok;
 
 @RestController
-@RequestMapping("/api/allergy")
+@RequestMapping("/api/allergies")
 public class AllergyController {
 
     private final AllergyService allergyService;
@@ -28,7 +28,7 @@ public class AllergyController {
     }
 
     @Operation(summary = "사용자의 알러지 정보 선택/취소", description = "사용자가 가진 특정 알러지에 대해서, 해당 알러지기 이미 존재한다면 삭제, 존재하지 않는다면 추가")
-    @PatchMapping("/toggle")
+    @PatchMapping
     public Response<AllergyResponse.ToggleResultRes> toggleAllergy(@AuthUser Long userId, @RequestBody @Valid AllergyRequest.ToggleAllergyReq request) {
         AllergyResponse.ToggleResultRes result= allergyService.toggleAllergy(userId, request.getAllergyTypeList());
         return Response.ok(ResultCode.ALLERGY_PATCH_OK,result);
@@ -36,14 +36,14 @@ public class AllergyController {
     }
 
     @Operation(summary = "사용자의 알러지 정보 조회")
-    @GetMapping("/get")
+    @GetMapping
     public Response<AllergyResponse.AllergyListRes> getAllergy(@AuthUser Long userId) {
         AllergyResponse.AllergyListRes allergyList=allergyService.getAllergyList(userId);
         return Response.ok(ResultCode.ALLERGY_GET_OK, allergyList);
     }
 
     @Operation(summary = "사용자의 모든 알러지 정보 초기화", description = "알러지 없음 선택시, 사용자의 다른 모든 알러지 정보를 제거하기 위함")
-    @DeleteMapping("/deleteAll")
+    @DeleteMapping
     public Response<String> clearAllergy(@AuthUser Long userId) {
         allergyService.clearAllAllergy(userId);
         return Response.ok(ResultCode.ALLERGY_DELETE_OK, "알러지 초기화 완료");

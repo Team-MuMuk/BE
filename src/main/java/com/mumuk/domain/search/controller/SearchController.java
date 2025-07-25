@@ -2,6 +2,7 @@ package com.mumuk.domain.search.controller;
 
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.search.dto.request.SearchRequest;
+import com.mumuk.domain.search.dto.response.SearchResponse;
 import com.mumuk.domain.search.service.AutocompleteService;
 import com.mumuk.domain.search.service.RecentSearchService;
 import com.mumuk.domain.search.service.SearchService;
@@ -33,23 +34,21 @@ public class SearchController {
     }
 
     @Operation(summary = "레시피 검색결과 목록 조회")
-    @GetMapping("/recipe/search")
-    public Response<List<RecipeResponse.SimpleRes>> showResultList( @AuthUser Long userId,  @RequestParam String keyword) {
-
-        recentSearchService.saveRecentSearch(userId, keyword);
+    @GetMapping("/recipes")
+    public Response<List<RecipeResponse.SimpleRes>> showResultList( @RequestParam String keyword) {
         List<RecipeResponse.SimpleRes> resultList= searchService.SearchRecipeList(keyword);
         return Response.ok(ResultCode.SEARCH_RECIPE_OK, resultList);
     }
 
     @Operation(summary = "레시피 검색결과 세부 조회")
-    @GetMapping("/recipe/{recipeId}")
+    @GetMapping("/recipes/{recipeId}")
     public Response<RecipeResponse.DetailRes> showDetailResult(@RequestParam Long recipeId) {
         RecipeResponse.DetailRes detailResult= searchService.SearchDetailRecipe(recipeId);
         return Response.ok(ResultCode.SEARCH_DETAILRECIPE_OK,detailResult);
     }
 
     @Operation(summary = "레시피 자동완성 기능")
-    @GetMapping("/recipe/autocomplete")
+    @GetMapping("/recipes/autocomplete")
     public Response<List<String>> getAutocompleteSuggestions(@RequestParam String userInput) {
 
         List<String> suggestions = autocompleteService.getAutocompleteSuggestions(userInput);
@@ -81,9 +80,9 @@ public class SearchController {
     }
 
     @Operation(summary = "인기 검색어 조회")
-    @GetMapping("/search-trends")
-    public Response<List<String>> getTrend(){
-        List<String> trendKeywords=trendSearchService.getTrendKeyword();
+    @GetMapping("/trends")
+    public Response<SearchResponse.TrendKeywordListRes> getTrend(){
+        SearchResponse.TrendKeywordListRes trendKeywords=trendSearchService.getTrendKeyword();
         return Response.ok(ResultCode.TRENDKEYWORDS_OK ,trendKeywords);
     }
 }
