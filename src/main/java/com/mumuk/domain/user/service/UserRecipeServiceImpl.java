@@ -1,5 +1,6 @@
 package com.mumuk.domain.user.service;
 
+import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.repository.RecipeRepository;
 import com.mumuk.domain.user.converter.UserRecipeConverter;
@@ -47,7 +48,7 @@ public class UserRecipeServiceImpl implements UserRecipeService{
 
     @Override
     @Transactional
-    public UserRecipeResponse.UserRecipeRes getUserRecipeDetail(Long userId, Long recipeId) {
+    public RecipeResponse.DetailRes getUserRecipeDetail(Long userId, Long recipeId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
@@ -73,18 +74,18 @@ public class UserRecipeServiceImpl implements UserRecipeService{
                     newUserRecipe.setLiked(false);
                     return userRecipeRepository.save(newUserRecipe);
                 });
-        return UserRecipeConverter.toUserRecipeRes(recipe, userRecipe);
+        return new RecipeResponse.DetailRes(recipe);
     }
 
     @Override
-    public UserRecipeResponse.RecentRecipeDTOList getRecentRecipes(Long userId) {
+    public RecipeResponse.SimpleResList getRecentRecipes(Long userId) {
         String key = "user:" + userId + ":recent_recipes";
 
         // Redis에서 최신순으로 recipeId 목록을 조회
         Set<String> recipeIdsAsString = redisTemplate.opsForZSet().reverseRange(key, 0, 7);
 
         if (recipeIdsAsString == null || recipeIdsAsString.isEmpty()) {
-            return new UserRecipeResponse.RecentRecipeDTOList(Collections.emptyList());
+            return new RecipeResponse.SimpleResList(Collections.emptyList());
 
         }
 
@@ -107,7 +108,7 @@ public class UserRecipeServiceImpl implements UserRecipeService{
                         (existing, replacement) -> replacement
                 ));
 
-        return toRecentRecipeDTOList(recipeIds, recipeMap,userRecipeMap);
+        return new RecipeResponse.SimpleResList(recipeIds, recipeMap, userRecipeMap);
     }
 
     @Override

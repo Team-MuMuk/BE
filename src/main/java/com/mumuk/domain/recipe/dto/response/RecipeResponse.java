@@ -1,7 +1,10 @@
 package com.mumuk.domain.recipe.dto.response;
 
+import com.mumuk.domain.recipe.entity.Recipe;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
 import java.util.List;
 
 public class RecipeResponse {
@@ -21,6 +24,9 @@ public class RecipeResponse {
         private String category;
         private String sourceUrl;
         private String ingredients;
+
+        public DetailRes(Recipe recipe) {
+        }
     }
 
     @Getter
@@ -29,5 +35,12 @@ public class RecipeResponse {
         private Long id;
         private String title;
         private String recipeImage;
+        private boolean liked;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class SimpleResList {
+        private List<SimpleRes> simpleResList;
     }
 }

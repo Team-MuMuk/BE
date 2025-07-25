@@ -49,7 +49,8 @@ public enum ResultCode implements BaseCode {
     SEARCH_SAVE_RECENTSEARCHES_OK(HttpStatus.CREATED,"SEARCH_201", "최근 검색어 저장 성공"),
     SEARCH_DELETE_RECENTSEARCHES_OK(HttpStatus.NO_CONTENT,"SEARCH_204", "최근 검색어 삭제 성공"),
     SEARCH_GET_RECENTSEARCHES_OK(HttpStatus.OK,"SEARCH_200", "최근 검색어 조회 성공"),
-    TRENDKEYWORDS_OK(HttpStatus.OK, "SEARCH_400", "인기 검색어 반환 성공"),
+    SEARCH_GET_TRENDKEYWORDS_OK(HttpStatus.OK, "SEARCH_400", "인기 검색어 조회 성공"),
+    SEARCH_GET_RECOMMENDED_RECIPE_OK(HttpStatus.OK,"SEARCH400","추천 검색어 조회 성공"),
 
     //Allergy Success
     ALLERGY_PATCH_OK(HttpStatus.OK, "ALLERGY_200","알러지 정보 변경 성공"),
