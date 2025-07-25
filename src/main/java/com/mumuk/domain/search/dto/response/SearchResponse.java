@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
-@Getter
 public class SearchResponse {
 
     @Getter
