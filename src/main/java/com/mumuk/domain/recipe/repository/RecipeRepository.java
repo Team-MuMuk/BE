@@ -42,4 +42,12 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
             @Param("maxCalories") Long maxCalories,
             @Param("maxCookingTime") Long maxCookingTime
     );
+
+    // 제목과 재료로 중복 체크
+    @Query("SELECT r FROM Recipe r WHERE r.title = :title AND r.ingredients = :ingredients")
+    List<Recipe> findByTitleAndIngredients(@Param("title") String title, @Param("ingredients") String ingredients);
+
+    // 배치 중복 체크를 위한 메서드
+    @Query("SELECT r FROM Recipe r WHERE (r.title, r.ingredients) IN :titleIngredientPairs")
+    List<Recipe> findByTitleAndIngredientsPairs(@Param("titleIngredientPairs") List<Object[]> titleIngredientPairs);
 }

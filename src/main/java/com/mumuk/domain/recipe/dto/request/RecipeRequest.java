@@ -2,7 +2,6 @@ package com.mumuk.domain.recipe.dto.request;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import java.util.List;
 
 public class RecipeRequest {
 
@@ -20,5 +19,11 @@ public class RecipeRequest {
         private String category; // enum 이름(예: "EXAMPLE")
         private String sourceUrl;
         private String ingredients;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    public static class AiRecommendReq {
+        private Long userId; // 사용자 ID (필수)
     }
 }

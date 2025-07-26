@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "recipe")
+@Table(name = "recipe", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"title", "ingredients"})
+})
 public class Recipe extends BaseEntity {
 
     @Id
