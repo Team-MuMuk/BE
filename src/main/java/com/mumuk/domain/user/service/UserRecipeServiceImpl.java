@@ -67,7 +67,7 @@ public class UserRecipeServiceImpl implements UserRecipeService{
                     //조회 시간을 현재 시간으로 변경
                     existing.setViewed(true);
                     existing.setViewedAt(LocalDateTime.now());
-                    return existing;
+                    return userRecipeRepository.save(existing);
                 })
                 .orElseGet(() -> {
                     //데이터가 없으면 viewed= true, 조회 시간 = 현재 시간 데이터를 저장
@@ -141,7 +141,7 @@ public class UserRecipeServiceImpl implements UserRecipeService{
         }
         int pageIndex = page - 1;
         //사용자가 찜한 레시피를 조회
-        Page<UserRecipe> likedUserRecipes = userRecipeRepository.findByUser_IdAndLikedIsTrue(user.getId(), PageRequest.of(pageIndex, DEFAULT_PAGE_SIZE));
+        Page<UserRecipe> likedUserRecipes = userRecipeRepository.findByUser_IdAndLikedIsTrue(userId, PageRequest.of(pageIndex, DEFAULT_PAGE_SIZE));
         //Converter: Page<UserRecipe> -> LikedRecipeListDTO
         UserRecipeResponse.LikedRecipeListDTO likedRecipeListDTO = MypageConverter.toLikedRecipeListDTO(userId, likedUserRecipes);
         return likedRecipeListDTO;
@@ -157,10 +157,10 @@ public class UserRecipeServiceImpl implements UserRecipeService{
         Long recipeId = req.getRecipeId();
         Recipe recipe = recipeRepository.findById(recipeId)
                 .orElseThrow(() -> new BusinessException((ErrorCode.RECIPE_NOT_FOUND)));
-        UserRecipe updatedUserRecipe = userRecipeRepository.findByUserIdAndRecipeId(userId,recipeId)
+        userRecipeRepository.findByUserIdAndRecipeId(userId,recipeId)
                 .map(existingUserRecipe -> { // 데이터가 존재하는 경우 찜여부 변경
                     existingUserRecipe.setLiked(!existingUserRecipe.getLiked());
-                    return existingUserRecipe;
+                    return userRecipeRepository.save(existingUserRecipe);
                 })
                 .orElseGet(() -> {
                     //데이터가 없으면 liked = true 데이터를 저장

@@ -12,6 +12,7 @@ import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,7 +55,7 @@ public class UserRecipeController {
     //찜한 레시피 조회
     @Operation(summary = "찜한 레시피 조회", description = "사용자가 찜한 레시피를 조회합니다.")
     @GetMapping("/liked-recipe")
-    public Response<UserRecipeResponse.LikedRecipeListDTO> likedRecipe(@AuthUser Long userId, @RequestParam(defaultValue = "1") int page) {
+    public Response<UserRecipeResponse.LikedRecipeListDTO> likedRecipe(@AuthUser Long userId,@Valid @RequestParam(defaultValue = "1") int page) {
         return Response.ok(userRecipeService.likedRecipe(userId,page));
     }
 
