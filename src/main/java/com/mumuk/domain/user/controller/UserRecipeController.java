@@ -3,13 +3,16 @@ package com.mumuk.domain.user.controller;
 
 
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
+import com.mumuk.domain.user.dto.request.UserRecipeRequest;
 import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 
+import com.mumuk.domain.user.dto.response.UserResponse;
 import com.mumuk.domain.user.service.UserRecipeService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,4 +44,19 @@ public class UserRecipeController {
         UserRecipeResponse.RecentRecipeDTOList response = userRecipeService.getRecentRecipes(userId);
         return Response.ok(ResultCode.RECENT_RECIPE_OK, response);
     }
+
+    @Operation(summary = "레시피 찜버튼(하트) 클릭", description = "레시피의 하트를 클릭하면 찜 상태가 바뀝니다.")
+    @PostMapping("/click-like")
+    public Response<String> clickLike(@AuthUser Long userId,@RequestBody UserRecipeRequest.ClickLikeReq req) {
+        userRecipeService.clickLike(userId, req);
+        return Response.ok(ResultCode.CLICK_LIKE_OK,"찜 상태가 변경되었습니다.");
+    }
+
+    //찜한 레시피 조회
+    @Operation(summary = "찜한 레시피 조회", description = "사용자가 찜한 레시피를 조회합니다.")
+    @GetMapping("/liked-recipe")
+    public Response<UserRecipeResponse.LikedRecipeListDTO> likedRecipe(@AuthUser Long userId,@Valid @RequestParam(defaultValue = "1") int page) {
+        return Response.ok(userRecipeService.likedRecipe(userId,page));
+    }
+
 }

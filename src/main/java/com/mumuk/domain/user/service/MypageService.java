@@ -12,4 +12,5 @@ public interface MypageService {
 
     UserResponse.ProfileInfoDTO profileInfo(Long userId);
     void editProfile(MypageRequest.EditProfileReq request, String accessToken);
+
 }
