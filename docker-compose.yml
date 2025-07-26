@@ -24,6 +24,18 @@ services:
       retries: 5
       start_period: 60s
 
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: postgres-exporter
+    env_file:
+      - .env
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${PROD_DB_USERNAME}:${PROD_DB_PASSWORD}@${PROD_DB_ENDPOINT}:${PROD_DB_PORT}/${PROD_DB_NAME}"
+    ports:
+      - "9187:9187"
+    networks:
+      - mumuk_network
+
   redis:
     image: redis:7.2
     container_name: redis
@@ -31,6 +43,16 @@ services:
       - "6379:6379"
     networks:
       - mumuk_network
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.61.0
+    container_name: redis-exporter
+    ports:
+      - "9121:9121"
+    networks:
+      - mumuk_network
+    environment:
+      - REDIS_ADDR=redis:6379
 
   nginx:
     container_name: nginx
@@ -51,6 +73,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.1.0
+    container_name: nginx-exporter
+    command:
+      - "--nginx.scrape-uri=http://nginx:80/stub_status"
+    ports:
+      - "9113:9113"
+    depends_on:
+      - nginx
+    networks:
+      - mumuk_network
+
 
   prometheus:
     image: prom/prometheus:v3.5.0
