@@ -40,6 +40,7 @@ public class UserRecipeServiceImpl implements UserRecipeService{
     private final RecipeRepository recipeRepository;
     private final UserRecipeRepository userRecipeRepository;
     private final RecentRecipeService recentRecipeService;
+    private static final int DEFAULT_PAGE_SIZE = 6;
 
     public UserRecipeServiceImpl(StringRedisTemplate redisTemplate, UserRepository userRepository, RecipeRepository recipeRepository, UserRecipeRepository userRecipeRepository, RecentRecipeService recentRecipeService) {
 
@@ -140,7 +141,7 @@ public class UserRecipeServiceImpl implements UserRecipeService{
         }
         int pageIndex = page - 1;
         //사용자가 찜한 레시피를 조회
-        Page<UserRecipe> likedUserRecipes = userRecipeRepository.findByUser_IdAndLikedIsTrue(user.getId(), PageRequest.of(pageIndex, 6));
+        Page<UserRecipe> likedUserRecipes = userRecipeRepository.findByUser_IdAndLikedIsTrue(user.getId(), PageRequest.of(pageIndex, DEFAULT_PAGE_SIZE));
         //Converter: Page<UserRecipe> -> LikedRecipeListDTO
         UserRecipeResponse.LikedRecipeListDTO likedRecipeListDTO = MypageConverter.toLikedRecipeListDTO(userId, likedUserRecipes);
         return likedRecipeListDTO;

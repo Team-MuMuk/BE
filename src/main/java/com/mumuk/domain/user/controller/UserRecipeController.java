@@ -54,7 +54,7 @@ public class UserRecipeController {
     //찜한 레시피 조회
     @Operation(summary = "찜한 레시피 조회", description = "사용자가 찜한 레시피를 조회합니다.")
     @GetMapping("/liked-recipe")
-    public Response<UserRecipeResponse.LikedRecipeListDTO> likedRecipe(@AuthUser Long userId, @RequestParam(defaultValue = "0") int page) {
+    public Response<UserRecipeResponse.LikedRecipeListDTO> likedRecipe(@AuthUser Long userId, @RequestParam(defaultValue = "1") int page) {
         return Response.ok(userRecipeService.likedRecipe(userId,page));
     }
 

@@ -7,7 +7,7 @@ public interface UserRecipeService {
     UserRecipeResponse.UserRecipeRes getUserRecipeDetail(Long userId, Long recipeId);
     UserRecipeResponse.RecentRecipeDTOList getRecentRecipes(Long userId);
     Long getMostRecentRecipeId(Long userId);
-    UserRecipeResponse.LikedRecipeListDTO likedRecipe(Long userId, Integer page);//UserResponse.RecentRecipeDTO recentRecipe(Long userId);
+    UserRecipeResponse.LikedRecipeListDTO likedRecipe(Long userId, Integer page);
 
     void clickLike(Long userId, UserRecipeRequest.ClickLikeReq req);
 }
