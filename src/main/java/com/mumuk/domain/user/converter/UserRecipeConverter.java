@@ -29,7 +29,8 @@ public class UserRecipeConverter {
                 recipe.getSourceUrl(),
                 recipe.getIngredients(),
                 userRecipe.getViewed(),
-                userRecipe.getViewedAt()
+                userRecipe.getViewedAt(),
+                userRecipe.getLiked()
         );
     }
 
