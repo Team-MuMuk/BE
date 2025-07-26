@@ -1,8 +1,12 @@
 package com.mumuk.domain.user.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.mumuk.domain.user.entity.UserRecipe;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+
+import java.util.List;
 
 public class UserResponse {
 
@@ -36,5 +40,6 @@ public class UserResponse {
         private String statusMessage;
 
     }
+
 
 }
