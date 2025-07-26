@@ -53,12 +53,6 @@ public class MypageController {
         return Response.ok(mypageService.likedRecipe(userId,page));
     }
 
-    //최근 레시피 조회
-    /*@Operation(summary = "최근 레시피 조회", description = "사용자가 최근에 본 레시피를 조회합니다.")
-    @GetMapping("/recent-recipe")
-    public Response<UserResponse.RecentRecipeDTO> recentRecipe(@AuthUser Long userId) {
-        return Response.ok(mypageService.recentRecipe(userId));
-    }*/
 
 
 
