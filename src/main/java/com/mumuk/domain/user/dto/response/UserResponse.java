@@ -1,6 +1,7 @@
 package com.mumuk.domain.user.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.mumuk.domain.user.entity.UserRecipe;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -40,31 +41,5 @@ public class UserResponse {
 
     }
 
-    @Builder
-    @Getter
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class LikedRecipeDTO {
 
-        Long recipeId;
-        String recipeName;
-        String recipeImage;
-        boolean liked;
-
-    }
-
-    @Builder
-    @Getter
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class LikedRecipeListDTO {
-        private Long userId;
-        private List<LikedRecipeDTO> likedRecipes;
-        private int currentPage;
-        private int totalPages;
-        private long totalElements;
-        private int pageSize;
-        private boolean hasNext;
-    }
-
-   /* public class RecentRecipeDTO {
-    }*/
 }

@@ -64,53 +64,7 @@ public class MypageServiceImpl implements MypageService {
 
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public UserResponse.LikedRecipeListDTO likedRecipe(Long userId, Integer page) {
-        //사용자 조회
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
-        int pageIndex = (page != null && page > 0) ? page - 1 : 0;
-        //사용자가 찜한 레시피를 조회
-        Page<UserRecipe> likedUserRecipes = userRecipeRepository.findByUser_IdAndLikedIsTrue(user.getId(),PageRequest.of(pageIndex, 6));
-        //Converter: Page<UserRecipe> -> LikedRecipeListDTO
-        UserResponse.LikedRecipeListDTO likedRecipeListDTO = MypageConverter.toLikedRecipeListDTO(likedUserRecipes);
-        return likedRecipeListDTO;
-    }
 
-    /*@Override
-    @Transactional(readOnly = true)
-    public UserResponse.RecentRecipeDTO recentRecipe(Long userId) {
-        // 1. 사용자 존재 여부 확인
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
-        // 2. 최근 조회한 레시피를 조회하기 위해 Pageable 객체를 생성합니다.
-        // 한 페이지에 8개의 결과를 가져오고, 첫 번째 페이지(인덱스 0)부터 시작합니다.
-        Pageable pageable = PageRequest.of(0, 8);
-
-        // 3. 해당 사용자가 조회한 레시피(UserRecipe 엔티티)들을 조회하고, 조회 시간 내림차순으로 정렬하여 8개까지 가져옵니다.
-        List<UserRecipe> recentUserRecipes = userRecipeRepository.findByUser_IdAndViewedIsTrueOrderByViewedAtDesc(userId, pageable);
-
-        // 4. UserRecipe 엔티티에서 실제 Recipe 정보를 추출하여 DTO로 변환합니다.
-        List<UserResponse.RecipeSummaryDTO> recentRecipes = recentUserRecipes.stream()
-                .map(userRecipe -> {
-                    Recipe recipe = userRecipe.getRecipe();
-                    // 여기에 RecipeSummaryDTO를 구성하는 로직을 작성합니다.
-                    return UserResponse.RecipeSummaryDTO.builder()
-                            .recipeId(recipe.getId())
-                            .recipeName(recipe.getName())
-                            .description(recipe.getDescription())
-                            // .imageUrl(recipe.getImages().isEmpty() ? null : recipe.getImages().get(0).getImageUrl()) // 첫 번째 이미지 URL
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        // 5. 최종 RecentRecipeDTO 객체를 생성하여 반환합니다.
-        return UserResponse.RecentRecipeDTO.builder()
-                .userId(userId)
-                .recentRecipes(recentRecipes)
-                .build();
-    }*/
 
 }

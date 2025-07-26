@@ -33,7 +33,7 @@ public enum ResultCode implements BaseCode {
     // UserRecipe Success
     USER_RECIPE_OK(HttpStatus.OK, "USER_RECIPE_200", "유저의 해당 레시피 조회 정보 저장 성공"),
     RECENT_RECIPE_OK(HttpStatus.OK, "USER_RECIPE_201", "최근 조회한 레시피 불러오기 성공"),
-
+    CLICK_LIKE_OK(HttpStatus.OK, "USER_RECIPE_202", "찜상태 변경 성공"),
     //Ingredient Success
     INGREDIENT_REGISTER_OK(HttpStatus.OK, "INGREDIENT_200","재료등록 성공"),
     INGREDIENT_RETRIEVE_OK(HttpStatus.OK, "INGREDIENT_200","등록하신 재료조회 성공"),

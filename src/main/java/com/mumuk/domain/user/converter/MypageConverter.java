@@ -1,6 +1,7 @@
 package com.mumuk.domain.user.converter;
 
 import com.mumuk.domain.recipe.entity.Recipe;
+import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import com.mumuk.domain.user.dto.response.UserResponse;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.entity.UserRecipe;
@@ -20,32 +21,27 @@ public class MypageConverter {
         );
     }
 
-    public static UserResponse.LikedRecipeDTO toLikedRecipeDTO(UserRecipe userRecipe) {
+    public static UserRecipeResponse.RecentRecipeDTO toLikedRecipeDTO(UserRecipe userRecipe) {
 
         Recipe recipe = userRecipe.getRecipe();
         boolean liked = userRecipe.getLiked();
-        return UserResponse.LikedRecipeDTO.builder()
+        return UserRecipeResponse.RecentRecipeDTO.builder()
                 .recipeId(recipe.getId())
-                .recipeName(recipe.getTitle())
-                .recipeImage(recipe.getRecipeImage())
+                .name(recipe.getTitle())
+                .imageUrl(recipe.getRecipeImage())
                 .liked(liked)
                 .build();
 
     }
-    public static UserResponse.LikedRecipeListDTO toLikedRecipeListDTO(Page<UserRecipe> likedUserRecipes) {
-        List<UserResponse.LikedRecipeDTO> likedRecipeDTOList = likedUserRecipes.stream()
+    public static UserRecipeResponse.LikedRecipeListDTO toLikedRecipeListDTO(Long userId, Page<UserRecipe> likedUserRecipes) {
+        List<UserRecipeResponse.RecentRecipeDTO> likedRecipeDTOList = likedUserRecipes.stream()
                 .map(MypageConverter::toLikedRecipeDTO)
                 .collect(Collectors.toList());
 
-        Long userId = null;
-        if (!likedUserRecipes.isEmpty()) {
-            userId = likedUserRecipes.getContent().get(0).getUser().getId();
-        }
-
-        return UserResponse.LikedRecipeListDTO.builder()
+        return UserRecipeResponse.LikedRecipeListDTO.builder()
                 .userId(userId)
                 .likedRecipes(likedRecipeDTOList)
-                .currentPage(likedUserRecipes.getNumber())
+                .currentPage(likedUserRecipes.getNumber()+1)
                 .totalPages(likedUserRecipes.getTotalPages())
                 .totalElements(likedUserRecipes.getTotalElements())
                 .pageSize(likedUserRecipes.getSize())

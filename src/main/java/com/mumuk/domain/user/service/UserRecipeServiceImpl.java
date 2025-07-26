@@ -3,7 +3,9 @@ package com.mumuk.domain.user.service;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.repository.RecipeRepository;
+import com.mumuk.domain.user.converter.MypageConverter;
 import com.mumuk.domain.user.converter.UserRecipeConverter;
+import com.mumuk.domain.user.dto.request.UserRecipeRequest;
 import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import com.mumuk.domain.user.dto.response.UserResponse;
 import com.mumuk.domain.user.entity.User;
@@ -16,6 +18,8 @@ import com.mumuk.global.apiPayload.exception.GlobalException;
 import com.mumuk.global.security.exception.AuthException;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,14 +62,14 @@ public class UserRecipeServiceImpl implements UserRecipeService{
         recentRecipeService.addRecentRecipe(userId, recipeId);
         UserRecipe userRecipe = userRecipeRepository.findByUserIdAndRecipeId(userId, recipeId)
                 .map(existing -> {
-                    //사용자가 해당 레시피를 조회한 적이 있으면
+                    //데이터가 없으면 조회 여부 = true,
                     //조회 시간을 현재 시간으로 변경
                     existing.setViewed(true);
                     existing.setViewedAt(LocalDateTime.now());
                     return existing;
                 })
                 .orElseGet(() -> {
-                    //조회한 적이 없으면 데이터를 저장
+                    //데이터가 없으면 viewed= true, 조회 시간 = 현재 시간 데이터를 저장
                     UserRecipe newUserRecipe = new UserRecipe();
                     newUserRecipe.setUser(user);
                     newUserRecipe.setRecipe(recipe);
@@ -123,6 +127,50 @@ public class UserRecipeServiceImpl implements UserRecipeService{
         }
 
         return Long.parseLong(recipeIdsAsString.iterator().next());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserRecipeResponse.LikedRecipeListDTO likedRecipe(Long userId, Integer page) {
+        //사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        if (page<1) {
+            throw new BusinessException(ErrorCode.PAGE_INVALID);
+        }
+        int pageIndex = page - 1;
+        //사용자가 찜한 레시피를 조회
+        Page<UserRecipe> likedUserRecipes = userRecipeRepository.findByUser_IdAndLikedIsTrue(user.getId(), PageRequest.of(pageIndex, 6));
+        //Converter: Page<UserRecipe> -> LikedRecipeListDTO
+        UserRecipeResponse.LikedRecipeListDTO likedRecipeListDTO = MypageConverter.toLikedRecipeListDTO(userId, likedUserRecipes);
+        return likedRecipeListDTO;
+    }
+
+    @Override
+    @Transactional
+    public void clickLike(Long userId, UserRecipeRequest.ClickLikeReq req) {
+        //사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+        //레시피 조회
+        Long recipeId = req.getRecipeId();
+        Recipe recipe = recipeRepository.findById(recipeId)
+                .orElseThrow(() -> new BusinessException((ErrorCode.RECIPE_NOT_FOUND)));
+        UserRecipe updatedUserRecipe = userRecipeRepository.findByUserIdAndRecipeId(userId,recipeId)
+                .map(existingUserRecipe -> { // 데이터가 존재하는 경우 찜여부 변경
+                    existingUserRecipe.setLiked(!existingUserRecipe.getLiked());
+                    return existingUserRecipe;
+                })
+                .orElseGet(() -> {
+                    //데이터가 없으면 liked = true 데이터를 저장
+                    UserRecipe newUserRecipe = new UserRecipe();
+                    newUserRecipe.setUser(user);
+                    newUserRecipe.setRecipe(recipe);
+                    newUserRecipe.setViewed(false);
+                    newUserRecipe.setViewedAt(null);
+                    newUserRecipe.setLiked(true);
+                    return userRecipeRepository.save(newUserRecipe);
+                });
     }
 
 

@@ -52,4 +52,17 @@ public class UserRecipeResponse {
     public static class RecentRecipeDTOList {
         private List<RecentRecipeDTO> recentRecipes;
     }
+
+    @Builder
+    @Getter
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class LikedRecipeListDTO {
+        private Long userId;
+        private List<UserRecipeResponse.RecentRecipeDTO> likedRecipes;
+        private int currentPage;
+        private int totalPages;
+        private long totalElements;
+        private int pageSize;
+        private boolean hasNext;
+    }
 }

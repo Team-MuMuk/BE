@@ -12,5 +12,5 @@ public interface MypageService {
 
     UserResponse.ProfileInfoDTO profileInfo(Long userId);
     void editProfile(MypageRequest.EditProfileReq request, String accessToken);
-    UserResponse.LikedRecipeListDTO likedRecipe(Long userId, Integer page);//UserResponse.RecentRecipeDTO recentRecipe(Long userId);
+
 }

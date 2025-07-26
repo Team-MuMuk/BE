@@ -46,12 +46,6 @@ public class MypageController {
         return Response.ok(ResultCode.EDIT_PROFILE_OK, "프로필이 수정되었습니다.");
     }
 
-    //찜한 레시피 조회
-    @Operation(summary = "찜한 레시피 조회", description = "사용자가 찜한 레시피를 조회합니다.")
-    @GetMapping("/liked-recipe")
-    public Response<UserResponse.LikedRecipeListDTO> likedRecipe(@AuthUser Long userId, @RequestParam(defaultValue = "0") int page) {
-        return Response.ok(mypageService.likedRecipe(userId,page));
-    }
 
 
 
