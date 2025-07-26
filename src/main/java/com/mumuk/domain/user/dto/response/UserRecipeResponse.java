@@ -31,6 +31,7 @@ public class UserRecipeResponse {
         private boolean viewed;
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         private LocalDateTime viewedAt;
+        private boolean liked;
     }
 
     @Builder
