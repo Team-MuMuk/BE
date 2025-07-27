@@ -17,16 +17,8 @@ public class UserResponse {
         private String email;
         private String nickName;
         private String profileImage;
+        private String accessToken;
         private String refreshToken;
-    }
-
-    @Getter
-    @AllArgsConstructor
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class ProfileResultDTO {     // 프로필 수정 후 반환할 정보
-        private String nickName;
-        private String profileImage;
-
     }
 
     @Getter
@@ -40,6 +32,4 @@ public class UserResponse {
         private String statusMessage;
 
     }
-
-
 }
