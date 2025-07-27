@@ -4,6 +4,7 @@ package com.mumuk.domain.user.service;
 import com.mumuk.domain.user.converter.OAuthConverter;
 import com.mumuk.domain.user.dto.response.KaKaoResponse;
 import com.mumuk.domain.user.dto.response.NaverResponse;
+import com.mumuk.domain.user.dto.response.UserResponse;
 import com.mumuk.domain.user.entity.LoginType;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
@@ -42,7 +43,7 @@ public class OAuthServiceImpl implements OAuthService {
 
     @Override
     @Transactional
-    public User oAuthKaKaoLogin(String accessCode, String state, HttpServletResponse response) {
+    public UserResponse.JoinResultDTO oAuthKaKaoLogin(String accessCode, String state) {
 
         KaKaoResponse.OAuthToken oAuthToken = kakaoUtil.requestToken(accessCode, state, kakaoRedirectUri);
         KaKaoResponse.KakaoProfile kakaoProfile = kakaoUtil.requestProfile(oAuthToken);
@@ -68,15 +69,18 @@ public class OAuthServiceImpl implements OAuthService {
         user.setProfileImage(profileImage);
         userRepository.save(user);
 
-        response.setHeader("Authorization", "Bearer " + accessToken);
-        response.setHeader("X-Refresh-Token", refreshToken);
-
-        return user;
+        return new UserResponse.JoinResultDTO(
+                user.getEmail(),
+                user.getNickName(),
+                user.getProfileImage(),
+                accessToken,
+                refreshToken
+        );
     }
 
     @Override
     @Transactional
-    public User oAuthNaverLogin(String accessCode, String state, HttpServletResponse response) {
+    public UserResponse.JoinResultDTO oAuthNaverLogin(String accessCode, String state) {
 
         NaverResponse.OAuthToken oAuthToken = naverUtil.requestToken(accessCode, state);
         NaverResponse.NaverProfile naverProfile = naverUtil.requestProfile(oAuthToken);
@@ -102,10 +106,13 @@ public class OAuthServiceImpl implements OAuthService {
         user.setProfileImage(profileImage);
         userRepository.save(user);
 
-        response.setHeader("Authorization", "Bearer " + accessToken);
-        response.setHeader("X-Refresh-Token", refreshToken);
-
-        return user;
+        return new UserResponse.JoinResultDTO(
+                user.getEmail(),
+                user.getNickName(),
+                user.getProfileImage(),
+                accessToken,
+                refreshToken
+        );
     }
 
     private User createNewUser(String email, String nickname, String profileImage, LoginType loginType, String socialId) {
