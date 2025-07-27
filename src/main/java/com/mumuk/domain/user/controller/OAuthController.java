@@ -20,14 +20,14 @@ public class OAuthController {
     }
 
     @Operation(summary = "카카오 로그인", description = "카카오 서버로부터 인가코드를 받아 이를 기반으로 로그인 처리")
-    @PostMapping("/kakao/callback")
+    @GetMapping("/kakao/callback")
     public Response<UserResponse.JoinResultDTO> kakaoLogin(@RequestParam("code") String accessCode, @RequestParam("state") String state) {
         UserResponse.JoinResultDTO result = oAuthService.oAuthKaKaoLogin(accessCode, state);
         return Response.ok(result);
     }
 
     @Operation(summary = "네이버 로그인", description = "네이버 서버로부터 인가코드를 받아 이를 기반으로 로그인 처리")
-    @PostMapping("/naver/callback")
+    @GetMapping("/naver/callback")
     public Response<UserResponse.JoinResultDTO> naverLogin(@RequestParam("code") String accessCode, @RequestParam("state") String state) {
         UserResponse.JoinResultDTO result = oAuthService.oAuthNaverLogin(accessCode, state);
         return Response.ok(result);
