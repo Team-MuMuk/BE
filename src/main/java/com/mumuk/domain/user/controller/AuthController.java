@@ -9,7 +9,6 @@ import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
