@@ -25,6 +25,7 @@ public enum ResultCode implements BaseCode {
     USER_WITHDRAW_OK(HttpStatus.NO_CONTENT, "USER_204", "유저 탈퇴 성공"),
     USER_LOGIN_OK(HttpStatus.OK, "USER_200", "유저 로그인 성공"),
     USER_SIGNUP_OK(HttpStatus.CREATED, "USER_201", "유저 회원가입 성공"),
+    PASSWORD_CHECK_OK(HttpStatus.OK, "USER_200", "올바른 비밀번호를 입력하였습니다."),
 
     SEND_ID_BY_SMS_OK(HttpStatus.NO_CONTENT, "USER_204", "아이디 변경을 위한 SMS 인증 발송 성공"),
     SEND_PW_BY_SMS_OK(HttpStatus.NO_CONTENT, "USER_204", "비밀번호 변경을 위한 SMS 인증 발송 성공"),
