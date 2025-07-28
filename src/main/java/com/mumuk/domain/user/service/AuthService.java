@@ -14,5 +14,6 @@ public interface AuthService {
     TokenResponse reissue(String refreshToken, LoginType loginType);
     void findUserIdAndSendSms(AuthRequest.FindIdReq request);
     void findUserPassWordAndSendSms(AuthRequest.FindPassWordReq request);
+    void checkCurrentPassword(AuthRequest.CheckCurrentPasswordReq request, Long userId);
     void reissueUserPassword(AuthRequest.RecoverPassWordReq request, Long userId);
 }
