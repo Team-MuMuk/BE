@@ -1,6 +1,5 @@
 package com.mumuk.domain.user.repository;
 
-import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import com.mumuk.domain.user.entity.UserRecipe;
 import org.springframework.data.domain.Page;
