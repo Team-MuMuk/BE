@@ -1,8 +1,12 @@
 package com.mumuk.domain.user.entity;
 
 
+import com.mumuk.domain.ingredient.entity.Ingredient;
 import com.mumuk.global.common.BaseEntity;
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 @Entity
@@ -40,6 +44,9 @@ public class User extends BaseEntity {
     private String socialId;
     @Column(length = 300)
     private String refreshToken;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Ingredient> ingredients = new ArrayList<>();
 
     public User() {
 
@@ -185,5 +192,13 @@ public class User extends BaseEntity {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public List<Ingredient> getIngredients() {
+        return ingredients;
+    }
+
+    public void setIngredients(List<Ingredient> ingredients) {
+        this.ingredients = ingredients;
     }
 }
