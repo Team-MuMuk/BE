@@ -58,7 +58,7 @@ public class SearchServiceImpl implements SearchService {
                     // 좋아요 여부 입력받기
                     UserRecipe userRecipe = userRecipeMap.get(recipe.getId());
                     boolean isLiked=(userRecipe!=null)&&userRecipe.getLiked();
-                    return new UserRecipeResponse.RecentRecipeDTO(recipe.getId(),recipe.getRecipeImage(),recipe.getTitle(),isLiked);
+                    return new UserRecipeResponse.RecentRecipeDTO(recipe.getId(),recipe.getTitle(),recipe.getRecipeImage(),isLiked);
                 }).collect(Collectors.toList());
 
         return recipeList;
