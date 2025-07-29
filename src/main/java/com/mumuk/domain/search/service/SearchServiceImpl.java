@@ -37,21 +37,25 @@ public class SearchServiceImpl implements SearchService {
         if (!(keyword == null || keyword.isEmpty())) {
             trendSearchService.increaseKeywordCount(keyword);
         }
-
         // 키워드를 바탕으로 결과값 반환
         List<RecipeResponse.SimpleRes> recipes= recipeRepository.findByTitleContainingIgnoreCase(keyword);
 
+        // 레시피가 없는 경우 예외 던지기
         if (recipes.isEmpty()) {
             throw new GlobalException(ErrorCode.SEARCH_RESULT_NOT_FOUND);
         }
 
+        // 찜하기 여부를 불러오기 위해, 검색결과에서 반환받은 레시피 id를 바탕으로 userRecipe 생성
         List<UserRecipe> userRecipes =userRecipeRepository.findByUserIdAndRecipeIdIn(userId, recipes.stream().map(RecipeResponse.SimpleRes::getId).collect(Collectors.toList()));
 
+        // dto 생성을 빠르게 하기 위해, recipeId를 키로, userRecipe를 밸류로 하는 map을 생성
         Map<Long, UserRecipe> userRecipeMap = userRecipes.stream()
                 .collect(Collectors.toMap(userRecipe -> userRecipe.getRecipe().getId(), userRecipe -> userRecipe));
 
+        // RecentRecipeDTO를 반환하는 List 생성
         List<UserRecipeResponse.RecentRecipeDTO> recipeList = recipes.stream()
                 .map(recipe -> {
+                    // 좋아요 여부 입력받기
                     UserRecipe userRecipe = userRecipeMap.get(recipe.getId());
                     boolean isLiked=(userRecipe!=null)&&userRecipe.getLiked();
                     return new UserRecipeResponse.RecentRecipeDTO(recipe.getId(),recipe.getRecipeImage(),recipe.getTitle(),isLiked);
