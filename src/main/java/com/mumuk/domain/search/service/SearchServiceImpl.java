@@ -34,7 +34,7 @@ public class SearchServiceImpl implements SearchService {
     public List<UserRecipeResponse.RecentRecipeDTO> SearchRecipeList(Long userId, String keyword) {
 
         // 검색어가 존재한다면, 해당 검색어 조회수를 1 추가
-        if (!(keyword == null || keyword.isEmpty())) {
+        if (!(keyword == null || keyword.isBlank())) {
             trendSearchService.increaseKeywordCount(keyword);
         }
         // 키워드를 바탕으로 결과값 반환

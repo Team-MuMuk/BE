@@ -38,6 +38,7 @@ public class SearchController {
     @GetMapping("/recipes")
     public Response<List<UserRecipeResponse.RecentRecipeDTO>> showResultList(@AuthUser Long userId, @RequestParam String keyword) {
         List<UserRecipeResponse.RecentRecipeDTO> resultList= searchService.SearchRecipeList(userId, keyword);
+        recentSearchService.saveRecentSearch(userId, keyword);
         return Response.ok(ResultCode.SEARCH_RECIPE_OK, resultList);
     }
 
