@@ -79,7 +79,7 @@ public class UserRecipeServiceImpl implements UserRecipeService{
                     newUserRecipe.setLiked(false);
                     return userRecipeRepository.save(newUserRecipe);
                 });
-        return UserRecipeConverter.toUserRecipeRes(recipe, userRecipe);
+        return UserRecipeConverter.toUserRecipeRes(user, recipe, userRecipe);
     }
 
     @Override

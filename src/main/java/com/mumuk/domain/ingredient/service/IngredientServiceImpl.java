@@ -31,7 +31,7 @@ public class IngredientServiceImpl implements IngredientService {
         this.userRepository = userRepository;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     public void registerIngredient(IngredientRequest.RegisterReq req, Long userId) {
         //유통기한 날짜 과거날짜 입력시 예외처리
