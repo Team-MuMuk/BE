@@ -17,8 +17,12 @@ public class UserRecipeConverter {
 
         //레시피 재료 리스트: 레시피 재료 문자열 파싱
         String recipeIngredientsString = recipe.getIngredients();
+        if (recipeIngredientsString == null || recipeIngredientsString.trim().isEmpty()) {
+            recipeIngredientsString = "";
+            }
         List<String> recipeIngredients = Arrays.stream(recipeIngredientsString.split(","))
                 .map(String::trim)
+                .filter(ingredient -> !ingredient.isEmpty())
                 .distinct()
                 .collect(Collectors.toList());
 
