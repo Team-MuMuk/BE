@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mumuk.domain.user.dto.response.KaKaoResponse;
 import com.mumuk.global.apiPayload.code.ErrorCode;
-import com.mumuk.global.config.OAuthConfig;
 import com.mumuk.global.security.exception.AuthFailureHandler;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -29,14 +28,14 @@ public class KaKaoUtil {
 
     private final ObjectMapper objectMapper;
     private final StateUtil stateUtil;
-    private final OAuthConfig oAuthConfig;
-    private String clientId;
 
-    public KaKaoUtil(ObjectMapper objectMapper, StateUtil stateUtil, OAuthConfig oAuthConfig) {
+    public KaKaoUtil(ObjectMapper objectMapper, StateUtil stateUtil) {
         this.objectMapper = objectMapper;
         this.stateUtil = stateUtil;
-        this.oAuthConfig = oAuthConfig;
     }
+
+    @Value("${kakao.native-app-key}")
+    private String clientId;
 
     @Value("${kakao.redirect-uri}")
     private String redirectUri;
@@ -45,15 +44,9 @@ public class KaKaoUtil {
 
     @PostConstruct
     public void initAllowedRedirectUris() {
-        this.clientId = oAuthConfig.getKakaoAppKey();
         this.allowedRedirectUris = new HashSet<>();
         allowedRedirectUris.add("http://localhost:8080/login/oauth2/code/kakao"); // 개발용
         allowedRedirectUris.add(redirectUri); // 운영 환경
-        
-        // Validate that required environment variables are set
-        if (clientId == null || clientId.isEmpty()) {
-            log.warn("Kakao app key is not configured. Kakao OAuth functionality will be disabled.");
-        }
     }
 
     /**
@@ -124,7 +117,7 @@ public class KaKaoUtil {
     public KaKaoResponse.KakaoProfile requestProfile(KaKaoResponse.OAuthToken oAuthToken) {
 
         if (oAuthToken == null || oAuthToken.getAccess_token() == null) {
-                throw new AuthFailureHandler(ErrorCode.KAKAO_AUTH_FAILED);
+            throw new AuthFailureHandler(ErrorCode.KAKAO_AUTH_FAILED);
         }
 
         RestTemplate restTemplate = new RestTemplate();

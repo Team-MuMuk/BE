@@ -6,9 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mumuk.domain.user.dto.response.KaKaoResponse;
 import com.mumuk.domain.user.dto.response.NaverResponse;
 import com.mumuk.global.apiPayload.code.ErrorCode;
-import com.mumuk.global.config.OAuthConfig;
 import com.mumuk.global.security.exception.AuthFailureHandler;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -26,28 +24,17 @@ public class NaverUtil {
 
     private final ObjectMapper objectMapper;
     private final StateUtil stateUtil;
-    private final OAuthConfig oAuthConfig;
+
+
+    @Value("${naver.login.client-id}")
     private String clientId;
+    @Value("${naver.login.secret-key}")
     private String clientSecret;
 
-    public NaverUtil(ObjectMapper objectMapper, StateUtil stateUtil, OAuthConfig oAuthConfig) {
+
+    public NaverUtil(ObjectMapper objectMapper, StateUtil stateUtil) {
         this.objectMapper = objectMapper;
         this.stateUtil = stateUtil;
-        this.oAuthConfig = oAuthConfig;
-    }
-
-    @PostConstruct
-    private void validateConfiguration() {
-        this.clientId = oAuthConfig.getNaverClientId();
-        this.clientSecret = oAuthConfig.getNaverSecretKey();
-        
-        // Validate that required environment variables are set
-        if (clientId == null || clientId.isEmpty()) {
-            log.warn("Naver client ID is not configured. Naver OAuth functionality will be disabled.");
-        }
-        if (clientSecret == null || clientSecret.isEmpty()) {
-            log.warn("Naver secret key is not configured. Naver OAuth functionality will be disabled.");
-        }
     }
 
     /**
