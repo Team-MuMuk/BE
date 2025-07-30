@@ -49,9 +49,9 @@ public class RecipeController {
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
 
-    @Operation(summary = "카테고리별 레시피 이름 조회 (여러 카테고리)")
-    @GetMapping("/category/names")
-    public Response<List<String>> getRecipeNamesByCategories(@RequestParam @NotBlank String categories) {
+    @Operation(summary = "카테고리별 레시피 이름 조회 (콤마 구분)")
+    @GetMapping("/categories/{categories}/names")
+    public Response<List<String>> getRecipeNamesByCategories(@PathVariable @NotBlank String categories) {
         List<String> names = recipeService.findNamesByCategories(categories);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }

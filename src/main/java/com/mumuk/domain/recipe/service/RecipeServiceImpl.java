@@ -34,7 +34,16 @@ public class RecipeServiceImpl implements RecipeService {
         if (recipeRepository.existsByTitleAndIngredients(request.getTitle(), request.getIngredients())) {
             throw new BusinessException(ErrorCode.RECIPE_DUPLICATE_TITLE);
         }
-        
+        // 카테고리 유효성 검증
+        if (request.getCategories() != null) {
+            for (String categoryStr : request.getCategories()) {
+                try {
+                    RecipeCategory.valueOf(categoryStr.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    throw new BusinessException(ErrorCode.RECIPE_INVALID_CATEGORY);
+                }
+            }
+        }
         Recipe recipe = RecipeConverter.toRecipe(request);
         recipeRepository.save(recipe);
     }

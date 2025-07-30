@@ -26,13 +26,7 @@ public class RecipeConverter {
         // 카테고리 문자열 리스트를 Enum 리스트로 변환
         if (req.getCategories() != null) {
             List<RecipeCategory> categoryEnums = req.getCategories().stream()
-                .map(categoryStr -> {
-                    try {
-                        return RecipeCategory.valueOf(categoryStr.toUpperCase());
-                    } catch (IllegalArgumentException e) {
-                        throw new BusinessException(ErrorCode.RECIPE_INVALID_CATEGORY);
-                    }
-                })
+                .map(categoryStr -> RecipeCategory.valueOf(categoryStr.toUpperCase()))
                 .collect(Collectors.toList());
             recipe.setCategories(categoryEnums);
         }
