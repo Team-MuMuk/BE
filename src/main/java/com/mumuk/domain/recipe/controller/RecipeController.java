@@ -3,9 +3,9 @@ package com.mumuk.domain.recipe.controller;
 import com.mumuk.domain.recipe.dto.request.RecipeRequest;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.service.RecipeService;
-import com.mumuk.domain.recipe.service.RecipeRecommendService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
+import com.mumuk.global.security.annotation.AuthUser;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
@@ -15,11 +15,9 @@ import org.springframework.web.bind.annotation.*;
 public class RecipeController {
 
     private final RecipeService recipeService;
-    private final RecipeRecommendService recipeRecommendService;
 
-    public RecipeController(RecipeService recipeService, RecipeRecommendService recipeRecommendService) {
+    public RecipeController(RecipeService recipeService) {
         this.recipeService = recipeService;
-        this.recipeRecommendService = recipeRecommendService;
     }
 
     @Operation(summary = "레시피 등록")
@@ -43,19 +41,27 @@ public class RecipeController {
         return Response.ok(ResultCode.RECIPE_FETCH_OK, response);
     }
 
-    @Operation(summary = "카테고리별 레시피 이름 조회")
+    @Operation(summary = "카테고리별 레시피 이름 조회 (단일 카테고리)")
     @GetMapping("/category/{category}/names")
     public Response<List<String>> getRecipeNamesByCategory(@PathVariable String category) {
         List<String> names = recipeService.findNamesByCategory(category);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
 
-    @Operation(summary = "AI 재료 기반 레시피 추천")
-    @PostMapping("/ai/recommend/ingredient")
-    public Response<RecipeResponse.AiRecommendListDto> getAiIngredientBasedRecommendation(@RequestBody RecipeRequest.AiRecommendReq request) {
-        RecipeResponse.AiRecommendListDto response = recipeRecommendService.recommendAndSaveRecipes(request);
-        return Response.ok(ResultCode.RECIPE_FETCH_OK, response);
+    @Operation(summary = "카테고리별 레시피 이름 조회 (여러 카테고리)")
+    @GetMapping("/category/names")
+    public Response<List<String>> getRecipeNamesByCategories(@RequestParam String categories) {
+        List<String> names = recipeService.findNamesByCategories(categories);
+        return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
+
+    // @Operation(summary = "AI 재료 기반 레시피 추천")
+    // @PostMapping("/ai/recommend/ingredient")
+    // public Response<RecipeResponse.AiRecommendListDto> getAiIngredientBasedRecommendation(
+    //         @AuthUser Long userId) {
+    //     RecipeResponse.AiRecommendListDto response = recipeRecommendService.recommendAndSaveRecipes(userId);
+    //     return Response.ok(ResultCode.RECIPE_FETCH_OK, response);
+    // }
 
     @Operation(summary = "레시피 전체 목록 조회")
     @GetMapping

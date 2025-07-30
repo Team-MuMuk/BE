@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import com.mumuk.domain.recipe.entity.RecipeCategory;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Service
 public class RecipeServiceImpl implements RecipeService {
@@ -25,6 +26,11 @@ public class RecipeServiceImpl implements RecipeService {
     @Override
     @Transactional
     public void createRecipe(RecipeRequest.CreateReq request) {
+        // 중복 레시피 검증
+        if (recipeRepository.existsByTitleAndIngredients(request.getTitle(), request.getIngredients())) {
+            throw new BusinessException(ErrorCode.RECIPE_DUPLICATE_TITLE);
+        }
+        
         Recipe recipe = RecipeConverter.toRecipe(request);
         recipeRepository.save(recipe);
     }
@@ -58,7 +64,34 @@ public class RecipeServiceImpl implements RecipeService {
         } catch (IllegalArgumentException e) {
             throw new BusinessException(ErrorCode.RECIPE_CATEGORY_NOT_FOUND);
         }
-        return recipeRepository.findNamesByCategory(recipeCategory);
+        return recipeRepository.findNamesByCategories(List.of(recipeCategory));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> findNamesByCategories(String categories) {
+        if (categories == null || categories.isBlank()) {
+            throw new BusinessException(ErrorCode.RECIPE_CATEGORY_NOT_FOUND);
+        }
+        
+        String[] categoryArray = categories.split(",");
+        List<RecipeCategory> recipeCategories = new ArrayList<>();
+        
+        for (String category : categoryArray) {
+            try {
+                RecipeCategory recipeCategory = RecipeCategory.valueOf(category.trim().toUpperCase());
+                recipeCategories.add(recipeCategory);
+            } catch (IllegalArgumentException e) {
+                // 잘못된 카테고리는 무시하고 계속 진행
+                continue;
+            }
+        }
+        
+        if (recipeCategories.isEmpty()) {
+            throw new BusinessException(ErrorCode.RECIPE_CATEGORY_NOT_FOUND);
+        }
+        
+        return recipeRepository.findNamesByCategories(recipeCategories);
     }
 
     @Override

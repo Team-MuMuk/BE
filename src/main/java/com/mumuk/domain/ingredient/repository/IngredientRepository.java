@@ -10,4 +10,7 @@ import java.util.List;
 public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
     List<Ingredient> findAllByUser(User user);
     List<Ingredient> findByUserAndExpireDateBetweenOrderByExpireDateAsc(User user, LocalDate start, LocalDate end);
+    
+    // 사용자별 재료 조회 (AI 추천용)
+    List<Ingredient> findByUser(User user);
 }

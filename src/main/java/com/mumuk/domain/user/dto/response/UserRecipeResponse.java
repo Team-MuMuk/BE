@@ -25,8 +25,7 @@ public class UserRecipeResponse {
         private Long protein;
         private Long carbohydrate;
         private Long fat;
-        private String category;
-        private String sourceUrl;
+        private List<String> category;
         private String ingredients;
         private boolean viewed;
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")

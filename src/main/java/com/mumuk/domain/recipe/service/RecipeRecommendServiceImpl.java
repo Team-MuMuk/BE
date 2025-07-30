@@ -27,6 +27,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
+import org.springframework.web.reactive.function.client.WebClient;
+// import com.mumuk.domain.recipe.converter.RecipeRecommendConverter; // 삭제
+import com.mumuk.domain.recipe.service.RecipeService;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.Arrays;
+import com.mumuk.domain.recipe.converter.RecipeConverter;
 
 @Slf4j
 @Service
@@ -39,13 +48,15 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private final AllergyService allergyService;
     private final RecipeRepository recipeRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final RecipeService recipeService;
 
     private static final Duration RECIPE_CACHE_TTL = Duration.ofDays(7); // 7일 동안 캐시
 
     public RecipeRecommendServiceImpl(OpenAiClient openAiClient, ObjectMapper objectMapper,
                                    UserRepository userRepository, IngredientService ingredientService,
                                    AllergyService allergyService, RecipeRepository recipeRepository,
-                                   RedisTemplate<String, Object> redisTemplate) {
+                                   RedisTemplate<String, Object> redisTemplate,
+                                   RecipeService recipeService) {
         this.openAiClient = openAiClient;
         this.objectMapper = objectMapper;
         this.userRepository = userRepository;
@@ -53,61 +64,48 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         this.allergyService = allergyService;
         this.recipeRepository = recipeRepository;
         this.redisTemplate = redisTemplate;
+        this.recipeService = recipeService;
+    }
+
+    // 1. recommendAndSaveRecipes는 전체 흐름만 담당하도록 정리
+    @Override
+    public List<RecipeResponse.DetailRes> recommendAndSaveRecipes(Long userId) {
+        User user = getUser(userId);
+        List<String> availableIngredients = getUserIngredients(userId);
+        List<String> allergyTypes = getUserAllergies(userId);
+        String redisKey = generateRedisKey(userId, availableIngredients, allergyTypes);
+        List<RecipeResponse.DetailRes> cachedResult = getCachedRecommendations(redisKey);
+        if (cachedResult != null) return cachedResult;
+        String prompt = createRecommendationPrompt(availableIngredients, allergyTypes, user);
+        List<Recipe> savedRecipes = callAIAndSaveRecipes(prompt);
+        List<RecipeResponse.DetailRes> result = savedRecipes.stream()
+            .map(this::toDetailRes)
+            .collect(Collectors.toList());
+        if (!result.isEmpty()) cacheRecommendations(redisKey, result);
+        return result;
     }
 
     @Override
-    public RecipeResponse.AiRecommendListDto recommendAndSaveRecipes(RecipeRequest.AiRecommendReq request) {
-        // 사용자 정보 조회
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        // 기존 API를 사용하여 사용자의 냉장고 재료 조회
-        List<IngredientResponse.RetrieveRes> userIngredients = ingredientService.getAllIngredient(request.getUserId());
-        List<String> availableIngredients = userIngredients.stream()
-                .map(IngredientResponse.RetrieveRes::getName)
-                .collect(Collectors.toList());
-
-        // 기존 API를 사용하여 사용자의 알러지 정보 조회
-        AllergyResponse.AllergyListRes allergyList = allergyService.getAllergyList(request.getUserId());
-        List<String> allergyTypes = allergyList.getAllergyOptions().stream()
-                .map(allergyOption -> allergyOption.getAllergyType().name())
-                .collect(Collectors.toList());
-
-        // Redis 키 생성 (사용자별 고유 키)
-        String redisKey = generateRedisKey(request.getUserId(), availableIngredients, allergyTypes);
-        
-        // Redis에서 기존 추천 결과 확인
-        RecipeResponse.AiRecommendListDto cachedResult = getCachedRecommendations(redisKey);
-        if (cachedResult != null) {
-            log.info("Redis에서 기존 추천 결과 조회: userId={}", request.getUserId());
-            return cachedResult;
-        }
-
-        // AI 프롬프트 생성
+    public List<RecipeResponse.DetailRes> recommendByIngredient(Long userId) {
+        User user = getUser(userId);
+        List<String> availableIngredients = getUserIngredients(userId);
+        List<String> allergyTypes = getUserAllergies(userId);
         String prompt = createRecommendationPrompt(availableIngredients, allergyTypes, user);
-        
-        // AI 호출 및 응답 처리
-        List<RecipeResponse.AiRecommendDto> recommendations = callAIAndProcessRecommendations(prompt);
-        
-        // 추천된 레시피들을 Recipe 엔티티로 변환하여 저장
-        List<Recipe> savedRecipes = saveRecipesWithDuplicateCheck(recommendations);
-        
-        // 실제 저장된 레시피들만 포함한 결과 생성
-        List<RecipeResponse.AiRecommendDto> savedRecommendations = recommendations.stream()
-                .filter(rec -> savedRecipes.stream()
-                        .anyMatch(saved -> saved.getTitle().equals(rec.getTitle()) && 
-                                        saved.getIngredients().equals(rec.getIngredients())))
-                .collect(Collectors.toList());
-        
-        RecipeResponse.AiRecommendListDto result = new RecipeResponse.AiRecommendListDto(savedRecommendations, 
-                "AI가 추천한 " + savedRecipes.size() + "개의 레시피가 저장되었습니다.");
-        
-        // Redis에 결과 캐싱 (실제 저장된 결과만)
-        cacheRecommendations(redisKey, result);
-        
-        log.info("AI 레시피 추천 및 저장 완료: {}개의 레시피 저장", savedRecipes.size());
-        
-        return result;
+        List<Recipe> savedRecipes = callAIAndSaveRecipes(prompt);
+        List<RecipeResponse.DetailRes> result = savedRecipes.stream()
+            .map(this::toDetailRes)
+            .collect(Collectors.toList());
+        return result.size() > 4 ? result.subList(0, 4) : result;
+    }
+
+    @Override
+    public List<RecipeResponse.DetailRes> recommendRandom() {
+        String prompt = buildRandomPrompt();
+        List<Recipe> savedRecipes = callAIAndSaveRecipes(prompt);
+        List<RecipeResponse.DetailRes> result = savedRecipes.stream()
+            .map(this::toDetailRes)
+            .collect(Collectors.toList());
+        return result.size() > 4 ? result.subList(0, 4) : result;
     }
 
     private String generateRedisKey(Long userId, List<String> ingredients, List<String> allergies) {
@@ -125,99 +123,28 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         return key;
     }
 
-    private RecipeResponse.AiRecommendListDto getCachedRecommendations(String redisKey) {
+    private List<RecipeResponse.DetailRes> getCachedRecommendations(String redisKey) {
         try {
             Object cached = redisTemplate.opsForValue().get(redisKey);
             if (cached != null) {
-                return (RecipeResponse.AiRecommendListDto) cached;
+                log.info("Redis 캐시에서 추천 결과 조회: {}", redisKey);
+                return (List<RecipeResponse.DetailRes>) cached;
             }
         } catch (Exception e) {
             log.warn("Redis 캐시 조회 실패: {}", e.getMessage());
+            // Redis 에러는 추천 기능을 중단시키지 않도록 BusinessException을 던지지 않음
         }
         return null;
     }
 
-    private void cacheRecommendations(String redisKey, RecipeResponse.AiRecommendListDto result) {
+    private void cacheRecommendations(String redisKey, List<RecipeResponse.DetailRes> result) {
         try {
             redisTemplate.opsForValue().set(redisKey, result, RECIPE_CACHE_TTL);
             log.info("Redis에 추천 결과 캐싱: {}", redisKey);
         } catch (Exception e) {
             log.warn("Redis 캐싱 실패: {}", e.getMessage());
+            // Redis 에러는 추천 기능을 중단시키지 않도록 BusinessException을 던지지 않음
         }
-    }
-
-    /**
-     * 배치로 중복 체크하여 N+1 문제 해결
-     */
-    private Set<String> checkDuplicatesBatch(List<RecipeResponse.AiRecommendDto> recommendations) {
-        Set<String> duplicateKeys = new HashSet<>();
-        
-        try {
-            // 제목과 재료 조합을 Object[] 배열로 변환
-            List<Object[]> titleIngredientPairs = recommendations.stream()
-                    .map(rec -> new Object[]{rec.getTitle(), rec.getIngredients()})
-                    .collect(Collectors.toList());
-            
-            // 배치로 중복 체크 (한 번의 쿼리로 모든 조합 확인)
-            List<Recipe> existingRecipes = recipeRepository.findByTitleAndIngredientsPairs(titleIngredientPairs);
-            
-            // 중복된 조합들을 Set으로 저장
-            for (Recipe existingRecipe : existingRecipes) {
-                duplicateKeys.add(existingRecipe.getTitle() + "|" + existingRecipe.getIngredients());
-            }
-            
-        } catch (Exception e) {
-            log.warn("배치 중복 체크 실패: {}", e.getMessage());
-            // 예외 발생 시 모든 레시피를 중복으로 처리하여 안전하게 처리
-            for (RecipeResponse.AiRecommendDto recommendation : recommendations) {
-                duplicateKeys.add(recommendation.getTitle() + "|" + recommendation.getIngredients());
-            }
-        }
-        
-        return duplicateKeys;
-    }
-
-    private List<Recipe> saveRecipesWithDuplicateCheck(List<RecipeResponse.AiRecommendDto> recommendations) {
-        List<Recipe> savedRecipes = new ArrayList<>();
-        
-        // 배치로 중복 체크 (N+1 문제 해결)
-        Set<String> duplicateKeys = checkDuplicatesBatch(recommendations);
-        
-        // 중복되지 않은 레시피들만 필터링
-        List<Recipe> recipesToSave = recommendations.stream()
-                .filter(rec -> !duplicateKeys.contains(rec.getTitle() + "|" + rec.getIngredients()))
-                .map(this::convertToRecipe)
-                .collect(Collectors.toList());
-        
-        try {
-            // 배치 저장 (성능 최적화)
-            if (!recipesToSave.isEmpty()) {
-                List<Recipe> savedBatch = recipeRepository.saveAll(recipesToSave);
-                savedRecipes.addAll(savedBatch);
-                log.info("배치 저장 완료: {}개의 레시피 저장", savedBatch.size());
-            }
-        } catch (Exception e) {
-            log.error("배치 저장 실패: {}", e.getMessage());
-            
-            // 배치 저장 실패 시 개별 저장으로 폴백
-            for (Recipe recipe : recipesToSave) {
-                try {
-                    Recipe savedRecipe = recipeRepository.save(recipe);
-                    savedRecipes.add(savedRecipe);
-                    log.info("개별 레시피 저장: {}", savedRecipe.getTitle());
-                } catch (Exception individualException) {
-                    // 유니크 제약조건 위반 시 중복으로 처리
-                    if (individualException.getMessage().contains("Duplicate entry") || 
-                        individualException.getMessage().contains("unique constraint")) {
-                        log.info("중복 레시피로 인한 저장 실패: {}", recipe.getTitle());
-                    } else {
-                        log.error("레시피 저장 실패: {}", individualException.getMessage());
-                    }
-                }
-            }
-        }
-        
-        return savedRecipes;
     }
 
     private String createRecommendationPrompt(List<String> availableIngredients, 
@@ -225,123 +152,408 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                            User user) {
         StringBuilder promptBuilder = new StringBuilder();
         
-        promptBuilder.append("사용자가 가진 재료와 알러지 정보를 기반으로 5개의 레시피를 추천해주세요.\n\n");
+        // 재료 목록을 5개로 제한 (성능과 품질의 균형)
+        List<String> limitedIngredients = availableIngredients.size() > 5 
+            ? availableIngredients.subList(0, 5) 
+            : availableIngredients;
         
-        promptBuilder.append("사용자 정보:\n");
-        promptBuilder.append("- 이름: ").append(user.getNickName()).append("\n");
-        promptBuilder.append("- 사용 가능한 재료: ").append(String.join(", ", availableIngredients)).append("\n");
-        promptBuilder.append("- 알러지 정보: ").append(String.join(", ", allergyTypes)).append("\n\n");
+        promptBuilder.append("사용자가 보유한 식재료 목록을 기반으로, 실존하는 요리를 추천해줘.\n\n")
+            .append("※ 요리 선택 기준:\n")
+            .append("- 실제 존재하는 보편적인 요리만 추천 (억지 조합 금지)\n")
+            .append("- 요리명은 검색으로 조리법을 찾을 수 있을 정도로 대중적이고 보편적\n")
+            .append("- 예시: 된장찌개 O, 미나리 된장찌개 O, 돼지고기 앞다리살 감자 상추 된장찌개 X\n")
+            .append("- 사용자 냉장고 재료를 기반으로 추천하되, 많이 들어가는 것보다 실제 보편적 레시피임이 중요\n\n")
+            .append("※ 재료 포함 기준:\n")
+            .append("- 요리에 필요한 모든 보편적인 재료를 포함 (선택사항은 제외)\n")
+            .append("- 예시: 제육볶음 → 고추장, 설탕, 간장, 식용유, 앞다리살, 양파, 당근 (보편적)\n")
+            .append("- 예시: 배추, 깻잎, 치킨스톡, 다시마, 로즈마리, 바질 등은 선택사항이므로 제외\n")
+            .append("- 재료명은 최대한 한국어로 표기 (네기 X → 양파 O)\n")
+            .append("- 기본 조미료: 소금, 후추, 식용유, 간장, 고추장, 설탕\n")
+            .append("- 특수한 양념이나 허브는 필수적인 것만 포함 (로즈마리, 바질, 오레가노, 치킨스톡 등)\n\n")
+            .append("※ 카테고리 선택:\n")
+            .append("- 각 요리의 특성에 맞는 카테고리를 적절하게 선택, 여러개 선택 가능\n")
+            .append("- 마땅히 없다면 OTHER 선택\n\n")
+            .append("※ 추천 결과는 다음 JSON 형식으로 출력해줘:\n")
+            .append("{\n")
+            .append("  \"recommendations\": [\n")
+            .append("    {\n")
+            .append("      \"title\": \"레시피 제목\",\n")
+            .append("      \"description\": \"레시피 설명\",\n")
+            .append("      \"ingredients\": \"재료1, 재료2, 재료3\",\n")
+            .append("      \"category\": \"BODY_WEIGHT_MANAGEMENT,HEALTH_MANAGEMENT\",\n")
+            .append("      \"cookingTime\": 30,\n")
+            .append("      \"calories\": 300,\n")
+            .append("      \"protein\": 20,\n")
+            .append("      \"carbohydrate\": 30,\n")
+            .append("      \"fat\": 10\n")
+            .append("    }\n")
+            .append("  ]\n")
+            .append("}\n\n")
+            .append("※ 사용 가능한 카테고리: BODY_WEIGHT_MANAGEMENT, HEALTH_MANAGEMENT, WEIGHT_LOSS, MUSCLE_GAIN, SUGAR_REDUCTION, BLOOD_PRESSURE, CHOLESTEROL, DIGESTION, OTHER\n\n")
+            .append("※ summary는 UI 상단에 한 줄로 보여줄 예정이므로 간결하고 매력적으로 작성해줘. 예: '바삭한 계란전으로 든든한 한끼 완성!'\n\n")
+            .append("※ 사용자가 보유한 식재료 목록:\n")
+            .append(String.join(", ", limitedIngredients)).append("\n\n")
+            .append("위 재료들을 활용하여 만들 수 있는 보편적인 요리를 4가지 추천해줘.");
         
-        promptBuilder.append("주의사항:\n");
-        promptBuilder.append("- 알러지가 있는 재료는 절대 사용하지 마세요\n");
-        promptBuilder.append("- 사용자가 가진 재료를 최대한 활용하세요\n");
-        promptBuilder.append("- 알러지 정보가 NONE인 경우 알러지가 없다는 의미입니다\n");
-        promptBuilder.append("- 기존에 많이 알려진 레시피보다는 창의적이고 새로운 레시피를 추천해주세요\n\n");
+        String prompt = promptBuilder.toString();
+        log.info("프롬프트 길이: {} characters", prompt.length());
         
-        promptBuilder.append("다음 JSON 형식으로 5개의 레시피를 추천해주세요:\n");
-        promptBuilder.append("{\n");
-        promptBuilder.append("  \"recommendations\": [\n");
-        promptBuilder.append("    {\n");
-        promptBuilder.append("      \"title\": \"레시피 제목\",\n");
-        promptBuilder.append("      \"description\": \"레시피 설명\",\n");
-        promptBuilder.append("      \"ingredients\": \"필요한 재료들\",\n");
-        promptBuilder.append("      \"estimatedCalories\": 300,\n");
-        promptBuilder.append("      \"estimatedProtein\": 20,\n");
-        promptBuilder.append("      \"estimatedCarbohydrate\": 30,\n");
-        promptBuilder.append("      \"estimatedFat\": 10,\n");
-        promptBuilder.append("      \"category\": \"한식\",\n");
-        promptBuilder.append("      \"reason\": \"추천 이유\",\n");
-        promptBuilder.append("      \"nutritionNotes\": \"영양 정보\"\n");
-        promptBuilder.append("    }\n");
-        promptBuilder.append("  ]\n");
-        promptBuilder.append("}\n");
-        
-        return promptBuilder.toString();
+        return prompt;
     }
 
-    private List<RecipeResponse.AiRecommendDto> callAIAndProcessRecommendations(String prompt) {
+    private List<Recipe> callAIAndSaveRecipes(String prompt) {
         try {
-            // AI 호출
-            Mono<String> aiResponse = openAiClient.chat(prompt);
-            String response = aiResponse.block();
-
-            // JSON 파싱
-            JsonNode root = objectMapper.readTree(response);
-            
-            List<RecipeResponse.AiRecommendDto> recommendations = new ArrayList<>();
-            JsonNode recommendationsNode = root.path("recommendations");
-            
-            // AI 응답 검증
-            if (recommendationsNode.isMissingNode() || !recommendationsNode.isArray()) {
-                log.error("AI 응답에서 recommendations 배열을 찾을 수 없습니다: {}", response);
+            String response = callAI(prompt);
+            if (response == null || response.isEmpty()) {
                 throw new BusinessException(ErrorCode.OPENAI_INVALID_RESPONSE);
             }
+            
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode choicesNode = root.path("choices");
+            if (choicesNode.isMissingNode() || !choicesNode.isArray() || choicesNode.size() == 0) {
+                throw new BusinessException(ErrorCode.OPENAI_NO_CHOICES);
+            }
+            
+            String aiContent = choicesNode.get(0).path("message").path("content").asText();
+            if (aiContent.isEmpty()) {
+                throw new BusinessException(ErrorCode.OPENAI_MISSING_CONTENT);
+            }
+            
+            String jsonContent = extractJsonFromResponse(aiContent);
+            if (jsonContent.isEmpty()) {
+                throw new BusinessException(ErrorCode.OPENAI_JSON_PARSE_ERROR);
+            }
+            
+            JsonNode recommendationsRoot = objectMapper.readTree(jsonContent);
+            JsonNode recommendationsNode = recommendationsRoot.path("recommendations");
+            if (recommendationsNode.isMissingNode() || !recommendationsNode.isArray()) {
+                throw new BusinessException(ErrorCode.OPENAI_INVALID_RESPONSE);
+            }
+            
+            List<Recipe> nonDuplicateRecipes = new ArrayList<>();
             
             for (JsonNode rec : recommendationsNode) {
                 try {
-                    // 필수 필드 검증
-                    String title = rec.path("title").asText();
-                    String description = rec.path("description").asText();
-                    String ingredients = rec.path("ingredients").asText();
-                    String category = rec.path("category").asText();
-                    
-                    if (title.isEmpty() || description.isEmpty() || ingredients.isEmpty() || category.isEmpty()) {
-                        log.warn("AI 응답에서 필수 필드가 누락되었습니다: {}", rec.toString());
-                        continue; // 해당 레시피 건너뛰기
+                    Recipe recipe = parseAndValidateRecipe(rec);
+                    if (recipe != null && !isDuplicateRecipe(recipe)) {
+                        nonDuplicateRecipes.add(recipe);
                     }
-                    
-                    RecipeResponse.AiRecommendDto dto = new RecipeResponse.AiRecommendDto(
-                            title,
-                            description,
-                            ingredients,
-                            "", // cookingSteps
-                            0L, // estimatedCookingTime
-                            rec.path("estimatedCalories").asLong(0),
-                            rec.path("estimatedProtein").asLong(0),
-                            rec.path("estimatedCarbohydrate").asLong(0),
-                            rec.path("estimatedFat").asLong(0),
-                            "", // difficulty
-                            category,
-                            rec.path("reason").asText(""),
-                            rec.path("nutritionNotes").asText(""),
-                            "", // introMent
-                            "", // mainIngredients
-                            "", // nutritionInfo
-                            ""  // cookingInfo
-                    );
-                    recommendations.add(dto);
                 } catch (Exception e) {
-                    log.warn("AI 응답 파싱 중 오류 발생, 해당 레시피 건너뛰기: {}", e.getMessage());
+                    log.warn("레시피 파싱 실패: {}", e.getMessage());
                 }
             }
             
-            if (recommendations.isEmpty()) {
-                log.error("유효한 레시피 추천이 없습니다: {}", response);
-                throw new BusinessException(ErrorCode.OPENAI_INVALID_RESPONSE);
+            if (nonDuplicateRecipes.isEmpty()) {
+                throw new BusinessException(ErrorCode.OPENAI_EMPTY_RECOMMENDATIONS);
             }
             
-            return recommendations;
+            // 중복되지 않는 레시피들을 DB에 저장
+            List<Recipe> savedRecipes = saveNonDuplicateRecipes(nonDuplicateRecipes);
             
+            return savedRecipes;
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("AI 레시피 추천 실패: {}", e.getMessage());
+            log.error("AI 추천 및 저장 실패: {}", e.getMessage());
             throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
         }
     }
 
-    private Recipe convertToRecipe(RecipeResponse.AiRecommendDto aiRecipe) {
-        Recipe recipe = new Recipe();
-        recipe.setTitle(aiRecipe.getTitle());
-        recipe.setDescription(aiRecipe.getDescription());
-        recipe.setIngredients(aiRecipe.getIngredients());
-        recipe.setCookingTime(0L); // 기본값 설정
-        recipe.setCalories(aiRecipe.getEstimatedCalories());
-        recipe.setProtein(aiRecipe.getEstimatedProtein());
-        recipe.setCarbohydrate(aiRecipe.getEstimatedCarbohydrate());
-        recipe.setFat(aiRecipe.getEstimatedFat());
-        recipe.setCategory(RecipeCategory.valueOf(aiRecipe.getCategory()));
-        recipe.setSourceUrl("AI_RECOMMENDED");
-        recipe.setRecipeImage("default_recipe_image.jpg"); // 기본 이미지
+    /**
+     * AI 응답에서 JSON 부분만 추출하는 메서드 (정규표현식 기반 간결화)
+     */
+    private String extractJsonFromResponse(String aiContent) {
+        // ```json ... ``` 또는 ``` ... ``` 코드블록 추출
+        Pattern codeBlockPattern = Pattern.compile("```(?:json)?\\s*([\\s\\S]*?)\\s*```", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = codeBlockPattern.matcher(aiContent);
+        if (matcher.find()) {
+            return matcher.group(1).trim();
+        }
+        // 중괄호로 감싸진 JSON 추출
+        int start = aiContent.indexOf("{");
+        int end = aiContent.lastIndexOf("}");
+        if (start >= 0 && end > start) {
+            return aiContent.substring(start, end + 1).trim();
+        }
+        // 그 외에는 전체 반환
+        return aiContent.trim();
+    }
+
+    /**
+     * AI 응답에서 레시피 정보를 파싱하고 검증하는 메서드
+     */
+    private Recipe parseAndValidateRecipe(JsonNode rec) {
+        try {
+            String title = rec.path("title").asText();
+            String description = rec.path("description").asText();
+            String category = rec.path("category").asText();
+            String ingredients = parseIngredients(rec.path("ingredients"));
+            
+            // 필수 필드 검증
+            if (title.isEmpty() || description.isEmpty() || ingredients.isEmpty() || category.isEmpty()) {
+                log.warn("필수 필드 누락 - title: {}, category: {}, ingredients: {}", title, category, ingredients);
+                return null;
+            }
+            
+            Recipe recipe = new Recipe();
+            recipe.setTitle(title);
+            recipe.setRecipeImage("default-recipe-image.jpg");
+            recipe.setDescription(description);
+            recipe.setCookingTime(rec.path("cookingTime").asLong(0));
+            recipe.setCalories(rec.path("calories").asLong(0));
+            recipe.setProtein(rec.path("protein").asLong(0));
+            recipe.setCarbohydrate(rec.path("carbohydrate").asLong(0));
+            recipe.setFat(rec.path("fat").asLong(0));
+            recipe.setCategories(parseCategories(category));
+            recipe.setIngredients(ingredients);
+            
+            return recipe;
+        } catch (Exception e) {
+            log.warn("레시피 파싱 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 레시피 중복 검사 (Redis → DB 순서)
+     */
+    private boolean isDuplicateRecipe(Recipe recipe) {
+        String title = recipe.getTitle();
+        String ingredients = recipe.getIngredients();
         
-        return recipe;
+        // 1. Redis에서 중복 검사
+        try {
+            String redisKey = "recipe:title:" + title.hashCode();
+            Object cached = redisTemplate.opsForValue().get(redisKey);
+            if (cached != null) {
+                log.info("Redis에서 중복 레시피 발견: {}", title);
+                return true;
+            }
+        } catch (Exception e) {
+            log.warn("Redis 중복 검사 실패: {}", e.getMessage());
+        }
+        
+        // 2. DB에서 중복 검사
+        try {
+            if (recipeRepository.existsByTitle(title)) {
+                log.info("DB에서 중복 레시피 발견 (제목): {}", title);
+                return true;
+            }
+            
+            if (recipeRepository.existsByTitleAndIngredients(title, ingredients)) {
+                log.info("DB에서 중복 레시피 발견 (제목+재료): {}", title);
+                return true;
+            }
+        } catch (Exception e) {
+            log.warn("DB 중복 검사 실패: {}", e.getMessage());
+        }
+        
+        return false;
+    }
+
+    /**
+     * 중복되지 않는 레시피들을 DB에 저장하고 Redis에 캐싱
+     */
+    private List<Recipe> saveNonDuplicateRecipes(List<Recipe> nonDuplicateRecipes) {
+        List<Recipe> savedRecipes = new ArrayList<>();
+        
+        for (Recipe recipe : nonDuplicateRecipes) {
+            try {
+                Recipe savedRecipe = recipeRepository.save(recipe);
+                savedRecipes.add(savedRecipe);
+                log.info("레시피 저장 성공: {}", recipe.getTitle());
+                
+                // 저장 성공 시 Redis에 캐싱
+                cacheRecipeToRedis(savedRecipe);
+                
+            } catch (Exception e) {
+                log.warn("레시피 저장 실패: {} - {}", recipe.getTitle(), e.getMessage());
+            }
+        }
+        
+        return savedRecipes;
+    }
+
+    /**
+     * 레시피를 Redis에 캐싱
+     */
+    private void cacheRecipeToRedis(Recipe recipe) {
+        try {
+            String redisKey = "recipe:title:" + recipe.getTitle().hashCode();
+            redisTemplate.opsForValue().set(redisKey, recipe, Duration.ofDays(30));
+            log.info("레시피 Redis 캐싱 성공: {}", recipe.getTitle());
+        } catch (Exception e) {
+            log.warn("레시피 Redis 캐싱 실패: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 재료 정보를 파싱하는 메서드
+     */
+    private String parseIngredients(JsonNode ingredientsNode) {
+        if (ingredientsNode.isArray()) {
+            List<String> ingredientsList = new ArrayList<>();
+            for (JsonNode ingredient : ingredientsNode) {
+                ingredientsList.add(ingredient.asText());
+            }
+            return String.join(", ", ingredientsList);
+        } else {
+            return ingredientsNode.asText();
+        }
+    }
+
+    /**
+     * 카테고리 정보를 파싱하는 메서드
+     */
+    private List<RecipeCategory> parseCategories(String category) {
+        try {
+            String[] categoryArray = category.split(",");
+            List<RecipeCategory> recipeCategories = new ArrayList<>();
+            
+            for (String cat : categoryArray) {
+                try {
+                    RecipeCategory recipeCategory = RecipeCategory.valueOf(cat.trim());
+                    recipeCategories.add(recipeCategory);
+                } catch (IllegalArgumentException e) {
+                    log.warn("알 수 없는 카테고리: {}", cat.trim());
+                }
+            }
+            
+            if (recipeCategories.isEmpty()) {
+                log.warn("모든 카테고리가 유효하지 않음: {}, OTHER로 설정", category);
+                recipeCategories.add(RecipeCategory.OTHER);
+            }
+            
+            return recipeCategories;
+        } catch (Exception e) {
+            log.warn("카테고리 처리 실패: {}, OTHER로 설정", category);
+            return Arrays.asList(RecipeCategory.OTHER);
+        }
+    }
+
+    // callAIWithSmartModelSwitch 메서드 완전 대체 및 간결화
+    private String callAI(String prompt) {
+        String model = "gpt-4o-mini";
+        String apiKey = System.getenv("OPEN_AI_KEY");
+        if (apiKey == null || apiKey.equals("dummy-openai-key")) {
+            log.error("API 키가 설정되지 않았습니다.");
+            throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
+        }
+        try {
+            WebClient webClient = WebClient.builder()
+                    .baseUrl("https://api.openai.com/v1")
+                    .defaultHeader("Authorization", "Bearer " + apiKey)
+                    .build();
+            Map<String, Object> body = new HashMap<>();
+            body.put("model", model);
+            List<Map<String, String>> messages = new ArrayList<>();
+            Map<String, String> message = new HashMap<>();
+            message.put("role", "user");
+            message.put("content", prompt);
+            messages.add(message);
+            body.put("messages", messages);
+            String response = webClient.post()
+                    .uri("/chat/completions")
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(Duration.ofSeconds(30))
+                    .block();
+            if (response != null && !response.isEmpty()) {
+                return response;
+            }
+        } catch (Exception e) {
+            log.warn("gpt-4o-mini 모델로 AI 호출 실패: {}", e.getMessage());
+        }
+        throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
+    }
+
+
+
+    // 2. 역할별 private 메서드 분리 및 간결화
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private List<String> getUserIngredients(Long userId) {
+        List<IngredientResponse.RetrieveRes> ingredients = ingredientService.getAllIngredient(userId);
+        if (ingredients.isEmpty()) {
+            log.warn("사용자 {}의 재료 정보가 없습니다.", userId);
+            throw new BusinessException(ErrorCode.RECIPE_EMPTY_INGREDIENTS);
+        }
+        return ingredients.stream()
+            .map(IngredientResponse.RetrieveRes::getName)
+            .collect(Collectors.toList());
+    }
+
+    private List<String> getUserAllergies(Long userId) {
+        try {
+            AllergyResponse.AllergyListRes allergyList = allergyService.getAllergyList(userId);
+            return allergyList.getAllergyOptions().stream()
+                .map(a -> a.getAllergyType().name())
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.warn("사용자 {}의 알레르기 정보 조회 실패: {}", userId, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    private RecipeResponse.DetailRes toDetailRes(Recipe recipe) {
+        return new RecipeResponse.DetailRes(
+            recipe.getId(),
+            recipe.getTitle(),
+            recipe.getRecipeImage(),
+            recipe.getDescription(),
+            recipe.getCookingTime(),
+            recipe.getCalories(),
+            recipe.getProtein(),
+            recipe.getCarbohydrate(),
+            recipe.getFat(),
+            recipe.getCategories().stream()
+                .map(RecipeCategory::name)
+                .collect(Collectors.toList()),
+            recipe.getIngredients()
+        );
+    }
+
+    private String buildRandomPrompt() {
+        return "다양하고 맛있는 보편적인 요리를 추천해줘.\n\n" +
+               "※ 요리 선택 기준:\n" +
+               "- 실제 존재하는 보편적인 요리만 추천 (억지 조합 금지)\n" +
+               "- 요리명은 검색으로 조리법을 찾을 수 있을 정도로 대중적이고 보편적\n" +
+               "- 예시: 된장찌개 O, 미나리 된장찌개 O, 돼지고기 앞다리살 감자 상추 된장찌개 X\n" +
+               "- 한국 요리, 중국 요리, 일본 요리, 서양 요리, 동남아 요리 등 다양한 문화권의 요리 포함\n" +
+               "- 메인 요리, 반찬, 국물 요리, 볶음 요리, 구이 요리 등 다양한 조리법 포함\n" +
+               "- 고기 요리, 생선 요리, 채식 요리, 면 요리 등 다양한 재료 활용\n\n" +
+               "※ 재료 포함 기준:\n" +
+               "- 요리에 필요한 모든 보편적인 재료를 포함 (선택사항은 제외)\n" +
+               "- 예시: 제육볶음 → 고추장, 설탕, 간장, 식용유, 앞다리살, 양파, 당근 (보편적)\n" +
+               "- 예시: 배추, 깻잎, 치킨스톡, 다시마, 로즈마리, 바질 등은 선택사항이므로 제외\n" +
+               "- 재료명은 반드시 한국어로 표기 (네기 X → 양파 O, 대파 X → 파 O)\n" +
+               "- 기본 조미료: 소금, 후추, 식용유, 간장, 고추장, 설탕, 마늘, 파, 양파, 당근\n" +
+               "- 특수한 양념이나 허브는 제외 (로즈마리, 바질, 오레가노, 치킨스톡 등)\n\n" +
+               "※ 카테고리 선택:\n" +
+               "- 각 요리의 특성에 맞는 카테고리를 적절하게 선택, 여러개 선택 가능\n" +
+               "- 마땅히 없다면 OTHER 선택\n\n" +
+               "※ 추천 결과는 다음 JSON 형식으로 출력해줘:\n" +
+               "{\n" +
+               "  \"recommendations\": [\n" +
+               "    {\n" +
+               "      \"title\": \"레시피 제목\",\n" +
+               "      \"description\": \"레시피 설명\",\n" +
+               "      \"ingredients\": \"재료1, 재료2, 재료3\",\n" +
+               "      \"category\": \"BODY_WEIGHT_MANAGEMENT,HEALTH_MANAGEMENT\",\n" +
+               "      \"cookingTime\": 30,\n" +
+               "      \"calories\": 300,\n" +
+               "      \"protein\": 20,\n" +
+               "      \"carbohydrate\": 30,\n" +
+               "      \"fat\": 10\n" +
+               "    }\n" +
+               "  ]\n" +
+               "}\n\n" +
+               "※ 사용 가능한 카테고리: BODY_WEIGHT_MANAGEMENT, HEALTH_MANAGEMENT, WEIGHT_LOSS, MUSCLE_GAIN, SUGAR_REDUCTION, BLOOD_PRESSURE, CHOLESTEROL, DIGESTION, OTHER\n\n" +
+               "※ summary는 UI 상단에 한 줄로 보여줄 예정이므로 간결하고 매력적으로 작성해줘. 예: '바삭한 계란전으로 든든한 한끼 완성!'\n\n" +
+               "총 8개의 다양한 보편적인 요리를 추천해줘. 중복되지 않는 다양한 요리를 선택해주세요.";
     }
 } 

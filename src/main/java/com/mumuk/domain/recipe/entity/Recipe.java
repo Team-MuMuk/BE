@@ -20,7 +20,7 @@ public class Recipe extends BaseEntity {
     private String title;
 
     @Column(name = "recipe_image", nullable = false, length = 150)
-    private String recipeImage;
+    private String recipeImage = "default-recipe-image.jpg";
 
     @Column(name = "description", nullable = false, length = 100)
     private String description;
@@ -40,12 +40,11 @@ public class Recipe extends BaseEntity {
     @Column(name = "calories", nullable = false)
     private Long calories;
 
+    @ElementCollection(targetClass = RecipeCategory.class)
     @Enumerated(EnumType.STRING)
-    @Column(name = "category", nullable = false)
-    private RecipeCategory category;
-
-    @Column(name = "source_url", nullable = false, length = 150)
-    private String sourceUrl;
+    @CollectionTable(name = "recipe_category_map", joinColumns = @JoinColumn(name = "recipe_id"))
+    @Column(name = "category")
+    private List<RecipeCategory> categories = new ArrayList<>();
 
     @Column(name = "ingredients", nullable = false, length = 200)
     private String ingredients;
@@ -87,12 +86,8 @@ public class Recipe extends BaseEntity {
         return fat;
     }
 
-    public RecipeCategory getCategory() {
-        return category;
-    }
-
-    public String getSourceUrl() {
-        return sourceUrl;
+    public List<RecipeCategory> getCategories() {
+        return categories;
     }
 
     public String getIngredients() {
@@ -136,12 +131,8 @@ public class Recipe extends BaseEntity {
         this.fat = fat;
     }
 
-    public void setCategory(RecipeCategory category) {
-        this.category = category;
-    }
-
-    public void setSourceUrl(String sourceUrl) {
-        this.sourceUrl = sourceUrl;
+    public void setCategories(List<RecipeCategory> categories) {
+        this.categories = categories;
     }
 
     public void setIngredients(String ingredients) {

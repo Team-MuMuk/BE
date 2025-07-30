@@ -30,16 +30,22 @@ public class RecommendedRecipeServiceImpl implements RecommendedRecipeService {
         Recipe recipe = recipeRepository.findById(recipeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECIPE_NOT_FOUND));
 
-        RecipeCategory category = recipe.getCategory();
+        // 기존: RecipeCategory category = recipe.getCategory();
+        // 변경: 여러 카테고리 중 첫 번째만 사용 (예시)
+        RecipeCategory category = recipe.getCategories().isEmpty() ? null : recipe.getCategories().get(0);
 
         // 레포지토리에서 random을 사용하기 때문에 naviveQuery를 사용,
         // nativeQuery 사용 과정에서 enum 변환에 문제가 생길 수 있기 때문에 카테고리 이름만 넘김
-        List<Recipe> randomRecipeList = recipeRepository.findRandomRecipesByCategory(category.name(), recipeId);
+        // 기존: recipeRepository.findRandomRecipesByCategory(category.name(), recipeId)
+        // 변경: category가 null이 아니면 리스트로 변환해 넘김
+        List<Recipe> randomRecipes = (category != null)
+            ? recipeRepository.findRandomRecipesByCategories(List.of(category.name()), recipeId)
+            : List.of();
 
         // recipeList에서 레시피 제목 (String)만 꺼내서 추출하려고 함
         // 이때 추천 검색어에는 항상 다른 레시피들이 추출되었으면 좋겠음
 
-        List<String> recommendedRecipeList = randomRecipeList.stream()
+        List<String> recommendedRecipeList = randomRecipes.stream()
                 .map(Recipe::getTitle)
                 .collect(Collectors.toList());
 
