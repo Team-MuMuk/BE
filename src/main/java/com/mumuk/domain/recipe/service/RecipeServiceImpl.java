@@ -13,9 +13,13 @@ import java.util.List;
 import com.mumuk.domain.recipe.entity.RecipeCategory;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class RecipeServiceImpl implements RecipeService {
+
+    private static final Logger log = LoggerFactory.getLogger(RecipeServiceImpl.class);
 
     private final RecipeRepository recipeRepository;
 
@@ -76,15 +80,19 @@ public class RecipeServiceImpl implements RecipeService {
         
         String[] categoryArray = categories.split(",");
         List<RecipeCategory> recipeCategories = new ArrayList<>();
+        List<String> invalidCategories = new ArrayList<>();
         
         for (String category : categoryArray) {
             try {
                 RecipeCategory recipeCategory = RecipeCategory.valueOf(category.trim().toUpperCase());
                 recipeCategories.add(recipeCategory);
             } catch (IllegalArgumentException e) {
-                // 잘못된 카테고리는 무시하고 계속 진행
-                continue;
+                invalidCategories.add(category.trim());
             }
+        }
+        
+        if (!invalidCategories.isEmpty()) {
+            log.warn("유효하지 않은 카테고리들이 무시되었습니다: {}", String.join(", ", invalidCategories));
         }
         
         if (recipeCategories.isEmpty()) {

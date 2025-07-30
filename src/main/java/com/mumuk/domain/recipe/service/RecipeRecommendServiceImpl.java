@@ -21,6 +21,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -112,15 +114,27 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         String ingredientsStr = String.join(",", ingredients);
         String allergiesStr = String.join(",", allergies);
         
-        // Redis 키 길이 제한 (512자) 및 특수문자 처리
         String key = "recipe:recommend:" + userId + ":" + ingredientsStr + ":" + allergiesStr;
         
-        // 키가 너무 길 경우 해시 사용
         if (key.length() > 200) {
-            return "recipe:recommend:" + userId + ":" + ingredientsStr.hashCode() + ":" + allergiesStr.hashCode();
+            try {
+                MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                byte[] hash = digest.digest(key.getBytes(StandardCharsets.UTF_8));
+                return "recipe:recommend:" + userId + ":" + bytesToHex(hash).substring(0, 16);
+            } catch (Exception e) {
+                return "recipe:recommend:" + userId + ":" + ingredientsStr.hashCode() + ":" + allergiesStr.hashCode();
+            }
         }
         
         return key;
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder result = new StringBuilder();
+        for (byte b : bytes) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
     }
 
     private List<RecipeResponse.DetailRes> getCachedRecommendations(String redisKey) {
@@ -380,7 +394,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private void cacheRecipeToRedis(Recipe recipe) {
         try {
             String redisKey = "recipe:title:" + recipe.getTitle().hashCode();
-            redisTemplate.opsForValue().set(redisKey, recipe, Duration.ofDays(30));
+            redisTemplate.opsForValue().set(redisKey, recipe, RECIPE_CACHE_TTL); // 7일로 통일
             log.info("레시피 Redis 캐싱 성공: {}", recipe.getTitle());
         } catch (Exception e) {
             log.warn("레시피 Redis 캐싱 실패: {}", e.getMessage());
@@ -435,32 +449,39 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private String callAI(String prompt) {
         String model = "gpt-4o-mini";
         String apiKey = System.getenv("OPEN_AI_KEY");
-        if (apiKey == null || apiKey.equals("dummy-openai-key")) {
+        if (apiKey == null || apiKey.trim().isEmpty() || apiKey.startsWith("dummy") || apiKey.startsWith("test")) {
             log.error("API 키가 설정되지 않았습니다.");
             throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
         }
-            try {
-                WebClient webClient = WebClient.builder()
-                        .baseUrl("https://api.openai.com/v1")
-                        .defaultHeader("Authorization", "Bearer " + apiKey)
-                        .build();
-                Map<String, Object> body = new HashMap<>();
-                body.put("model", model);
-                List<Map<String, String>> messages = new ArrayList<>();
-                Map<String, String> message = new HashMap<>();
-                message.put("role", "user");
-                message.put("content", prompt);
-                messages.add(message);
-                body.put("messages", messages);
-                String response = webClient.post()
-                        .uri("/chat/completions")
-                        .bodyValue(body)
-                        .retrieve()
-                        .bodyToMono(String.class)
-                        .timeout(Duration.ofSeconds(30))
-                        .block();
-                if (response != null && !response.isEmpty()) {
-                    return response;
+        
+        // API 키 길이 검증 (OpenAI API 키는 보통 51자)
+        if (apiKey.length() < 20) {
+            log.error("유효하지 않은 API 키 형식입니다.");
+            throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
+        }
+        
+        try {
+            WebClient webClient = WebClient.builder()
+                    .baseUrl("https://api.openai.com/v1")
+                    .defaultHeader("Authorization", "Bearer " + apiKey)
+                    .build();
+            Map<String, Object> body = new HashMap<>();
+            body.put("model", model);
+            List<Map<String, String>> messages = new ArrayList<>();
+            Map<String, String> message = new HashMap<>();
+            message.put("role", "user");
+            message.put("content", prompt);
+            messages.add(message);
+            body.put("messages", messages);
+            String response = webClient.post()
+                    .uri("/chat/completions")
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(Duration.ofSeconds(30))
+                    .block();
+            if (response != null && !response.isEmpty()) {
+                return response;
             }
         } catch (Exception e) {
             log.warn("gpt-4o-mini 모델로 AI 호출 실패: {}", e.getMessage());
