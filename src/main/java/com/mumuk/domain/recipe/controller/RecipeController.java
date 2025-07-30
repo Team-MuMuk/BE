@@ -5,9 +5,11 @@ import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.service.RecipeService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
+import com.mumuk.global.security.annotation.AuthUser;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.constraints.NotBlank;
 
 @RestController
 @RequestMapping("/api/recipe")
@@ -40,12 +42,27 @@ public class RecipeController {
         return Response.ok(ResultCode.RECIPE_FETCH_OK, response);
     }
 
-    @Operation(summary = "카테고리별 레시피 이름 조회")
+    @Operation(summary = "카테고리별 레시피 이름 조회 (단일 카테고리)")
     @GetMapping("/category/{category}/names")
-    public Response<List<String>> getRecipeNamesByCategory(@PathVariable String category) {
+    public Response<List<String>> getRecipeNamesByCategory(@PathVariable @NotBlank String category) {
         List<String> names = recipeService.findNamesByCategory(category);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
+
+    @Operation(summary = "카테고리별 레시피 이름 조회 (콤마 구분)")
+    @GetMapping("/categories/{categories}/names")
+    public Response<List<String>> getRecipeNamesByCategories(@PathVariable @NotBlank String categories) {
+        List<String> names = recipeService.findNamesByCategories(categories);
+        return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
+    }
+
+    // @Operation(summary = "AI 재료 기반 레시피 추천")
+    // @PostMapping("/ai/recommend/ingredient")
+    // public Response<RecipeResponse.AiRecommendListDto> getAiIngredientBasedRecommendation(
+    //         @AuthUser Long userId) {
+    //     RecipeResponse.AiRecommendListDto response = recipeRecommendService.recommendAndSaveRecipes(userId);
+    //     return Response.ok(ResultCode.RECIPE_FETCH_OK, response);
+    // }
 
     @Operation(summary = "레시피 전체 목록 조회")
     @GetMapping
@@ -60,6 +77,4 @@ public class RecipeController {
         List<RecipeResponse.SimpleRes> recipes = recipeService.getSimpleRecipes();
         return Response.ok(ResultCode.RECIPE_FETCH_OK, recipes);
     }
-
-
 }
