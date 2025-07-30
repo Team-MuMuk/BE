@@ -62,35 +62,24 @@ public class AllergyServiceImpl implements AllergyService {
             throw new GlobalException(ErrorCode.ALLERGY_NONE_WITH_OTHERS);
         }
 
-        List<AllergyResponse.ToggleResultRes.ToggleResult> ToggleResultList=new ArrayList<>();
+        // 사용자의 기존 알러지 정보 삭제
+        allergyRepository.deleteByUser(user);
 
-        // 일러지 존재 여부를 검사 후
-        List<Allergy> existingAllergyList=allergyRepository.findByUser(user);
-        // map으로 만들어 타입을 키, 객체를 밸류값으로 반환, 빠른 탐색이 가능하게 만듬
-        Map<AllergyType,Allergy> allergyMap= existingAllergyList.stream()
-                .collect(Collectors.toMap(Allergy::getAllergyType, Function.identity()));
+        // 입력받은 알러지 타입 정보 목록에 대해서, 하나하나 알러지 객체 목록으로 변환
+        List<Allergy> allergyList = allergyTypeList.stream()
+                .map(allergyType -> new Allergy(allergyType,user))
+                .toList();
 
-        // 입력받은 여러 알러지를 한 번에 처리
-        for (AllergyType allergyType:allergyTypeList) {
+        // 알러지 객체 목록 데이터베이스에 저장
+        allergyRepository.saveAll(allergyList);
 
-            // map에 allergyType에 해당하는 키가 존재할 때
-            if ( allergyMap.containsKey(allergyType) ) {
-                // 알러지가 존재한다면, 제거
-                Allergy allergyToToggle=allergyMap.get(allergyType);
-                allergyRepository.delete(allergyToToggle);
-                ToggleResultList.add(new AllergyResponse.ToggleResultRes.ToggleResult(allergyType,Action.DELETED));
-            } else{
-                // "알러지 없음" 이 선택되어 있다면, 이를 먼저 삭제
-                allergyRepository.deleteByUserAndAllergyType(user,AllergyType.NONE);
+        // 입력한 알러지 객체 목록 반환
+        List<AllergyResponse.ToggleResultRes.ToggleResult> toggleResultList = allergyTypeList.stream()
+                .map(allergyType -> new AllergyResponse.ToggleResultRes.ToggleResult(allergyType,Action.ADDED))
+                .toList();
 
-                //알러지가 존재하지 않는다면 해당 알러지 추가
-                Allergy newAllergy=new Allergy(allergyType,user);
-                allergyRepository.save(newAllergy);
-                ToggleResultList.add(new AllergyResponse.ToggleResultRes.ToggleResult(allergyType, Action.ADDED));
-            }
-        }
 
-        return new AllergyResponse.ToggleResultRes(ToggleResultList);
+        return new AllergyResponse.ToggleResultRes(toggleResultList);
     }
 
     @Override
