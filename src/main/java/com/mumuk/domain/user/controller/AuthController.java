@@ -76,6 +76,13 @@ public class AuthController {
         return Response.ok(ResultCode.SEND_PW_BY_SMS_OK, "SMS 메시지로 PW의 일부를 확인하실 수 있습니다.");
     }
 
+    @Operation(summary = "현재 비밀번호 확인", description = "사용자의 현재 비밀번호를 확인합니다.")
+    @PostMapping("/check-current-pw")
+    public Response<String> checkCurrentPassword(@AuthUser Long userId, @Valid @RequestBody AuthRequest.CheckCurrentPasswordReq req) {
+        authService.checkCurrentPassword(req, userId);
+        return Response.ok(ResultCode.PASSWORD_CHECK_OK, "현재 비밀번호가 일치합니다.");
+    }
+
     @Operation(summary = "비밀번호 재설성", description = "비밀번호를 재설정합니다.")
     @PatchMapping("/reissue-pw")
     public Response<String> reissuePassWord(@AuthUser Long userId, @Valid @RequestBody AuthRequest.RecoverPassWordReq req) {

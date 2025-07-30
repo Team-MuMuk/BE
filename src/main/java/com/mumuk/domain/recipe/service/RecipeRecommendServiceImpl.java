@@ -69,7 +69,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
 
     // 1. recommendAndSaveRecipes는 전체 흐름만 담당하도록 정리
     @Override
-    public List<RecipeResponse.DetailRes> recommendAndSaveRecipes(Long userId) {
+    public List<RecipeResponse.DetailRes> recommendAndSaveRecipesByIngredient(Long userId) {
         User user = getUser(userId);
         List<String> availableIngredients = getUserIngredients(userId);
         List<String> allergyTypes = getUserAllergies(userId);
@@ -80,7 +80,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         List<Recipe> savedRecipes = callAIAndSaveRecipes(prompt);
         List<RecipeResponse.DetailRes> result = savedRecipes.stream()
             .map(this::toDetailRes)
-            .collect(Collectors.toList());
+                .collect(Collectors.toList());
         if (!result.isEmpty()) cacheRecommendations(redisKey, result);
         return result;
     }
@@ -194,7 +194,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             .append("※ 사용자가 보유한 식재료 목록:\n")
             .append(String.join(", ", limitedIngredients)).append("\n\n")
             .append("위 재료들을 활용하여 만들 수 있는 보편적인 요리를 4가지 추천해줘.");
-        
+
         String prompt = promptBuilder.toString();
         log.info("프롬프트 길이: {} characters", prompt.length());
         
@@ -207,7 +207,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             if (response == null || response.isEmpty()) {
                 throw new BusinessException(ErrorCode.OPENAI_INVALID_RESPONSE);
             }
-            
+
             JsonNode root = objectMapper.readTree(response);
             JsonNode choicesNode = root.path("choices");
             if (choicesNode.isMissingNode() || !choicesNode.isArray() || choicesNode.size() == 0) {
@@ -439,28 +439,28 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             log.error("API 키가 설정되지 않았습니다.");
             throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
         }
-        try {
-            WebClient webClient = WebClient.builder()
-                    .baseUrl("https://api.openai.com/v1")
-                    .defaultHeader("Authorization", "Bearer " + apiKey)
-                    .build();
-            Map<String, Object> body = new HashMap<>();
-            body.put("model", model);
-            List<Map<String, String>> messages = new ArrayList<>();
-            Map<String, String> message = new HashMap<>();
-            message.put("role", "user");
-            message.put("content", prompt);
-            messages.add(message);
-            body.put("messages", messages);
-            String response = webClient.post()
-                    .uri("/chat/completions")
-                    .bodyValue(body)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(30))
-                    .block();
-            if (response != null && !response.isEmpty()) {
-                return response;
+            try {
+                WebClient webClient = WebClient.builder()
+                        .baseUrl("https://api.openai.com/v1")
+                        .defaultHeader("Authorization", "Bearer " + apiKey)
+                        .build();
+                Map<String, Object> body = new HashMap<>();
+                body.put("model", model);
+                List<Map<String, String>> messages = new ArrayList<>();
+                Map<String, String> message = new HashMap<>();
+                message.put("role", "user");
+                message.put("content", prompt);
+                messages.add(message);
+                body.put("messages", messages);
+                String response = webClient.post()
+                        .uri("/chat/completions")
+                        .bodyValue(body)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(30))
+                        .block();
+                if (response != null && !response.isEmpty()) {
+                    return response;
             }
         } catch (Exception e) {
             log.warn("gpt-4o-mini 모델로 AI 호출 실패: {}", e.getMessage());

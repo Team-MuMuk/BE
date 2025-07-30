@@ -9,6 +9,7 @@ import com.mumuk.global.security.annotation.AuthUser;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.constraints.NotBlank;
 
 @RestController
 @RequestMapping("/api/recipe")
@@ -43,14 +44,14 @@ public class RecipeController {
 
     @Operation(summary = "카테고리별 레시피 이름 조회 (단일 카테고리)")
     @GetMapping("/category/{category}/names")
-    public Response<List<String>> getRecipeNamesByCategory(@PathVariable String category) {
+    public Response<List<String>> getRecipeNamesByCategory(@PathVariable @NotBlank String category) {
         List<String> names = recipeService.findNamesByCategory(category);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
 
     @Operation(summary = "카테고리별 레시피 이름 조회 (여러 카테고리)")
     @GetMapping("/category/names")
-    public Response<List<String>> getRecipeNamesByCategories(@RequestParam String categories) {
+    public Response<List<String>> getRecipeNamesByCategories(@RequestParam @NotBlank String categories) {
         List<String> names = recipeService.findNamesByCategories(categories);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }

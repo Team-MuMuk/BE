@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mumuk.domain.user.dto.response.KaKaoResponse;
 import com.mumuk.global.apiPayload.code.ErrorCode;
+import com.mumuk.global.config.OAuthConfig;
 import com.mumuk.global.security.exception.AuthFailureHandler;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,29 +29,31 @@ public class KaKaoUtil {
 
     private final ObjectMapper objectMapper;
     private final StateUtil stateUtil;
-
-    public KaKaoUtil(ObjectMapper objectMapper, StateUtil stateUtil) {
-        this.objectMapper = objectMapper;
-        this.stateUtil = stateUtil;
-        
-        // Validate that required environment variables are set
-        if (clientId == null || clientId.isEmpty()) {
-            log.warn("Kakao app key is not configured. Kakao OAuth functionality will be disabled.");
-        }
-    }
-
-    @Value("${kakao.native-app-key:}")
+    private final OAuthConfig oAuthConfig;
     private String clientId;
 
+    public KaKaoUtil(ObjectMapper objectMapper, StateUtil stateUtil, OAuthConfig oAuthConfig) {
+        this.objectMapper = objectMapper;
+        this.stateUtil = stateUtil;
+        this.oAuthConfig = oAuthConfig;
+    }
+
+    @Value("${kakao.redirect-uri}")
+    private String redirectUri;
 
     private Set<String> allowedRedirectUris;
 
     @PostConstruct
     public void initAllowedRedirectUris() {
-        this.allowedRedirectUris = Set.of(
-                "http://localhost:8080/login/oauth2/code/kakao",           // 개발용
-                "kakao" + clientId + "://oauth"                           // 안드로이드용
-        );
+        this.clientId = oAuthConfig.getKakaoAppKey();
+        this.allowedRedirectUris = new HashSet<>();
+        allowedRedirectUris.add("http://localhost:8080/login/oauth2/code/kakao"); // 개발용
+        allowedRedirectUris.add(redirectUri); // 운영 환경
+        
+        // Validate that required environment variables are set
+        if (clientId == null || clientId.isEmpty()) {
+            log.warn("Kakao app key is not configured. Kakao OAuth functionality will be disabled.");
+        }
     }
 
     /**

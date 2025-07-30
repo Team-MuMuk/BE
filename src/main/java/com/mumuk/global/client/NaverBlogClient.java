@@ -21,22 +21,18 @@ public class NaverBlogClient {
         this.restTemplate = restTemplate;
     }
 
-    @Value("${naver.blog.client-id:}")
+    @Value("${naver.blog.client-id}")
     private String clientId;
 
-    @Value("${naver.blog.secret-key:}")
+    @Value("${naver.blog.secret-key}")
     private String clientSecret;
 
-    @Value("${naver.blog.base-url:}")
+    @Value("${naver.blog.base-url}")
     private String BASE_URL;
 
 
     public String searchBlog(String query) {
-        // 환경 변수가 설정되지 않은 경우 더미 응답 반환
-        if (clientId.isEmpty() || clientSecret.isEmpty()) {
-            return "{\"items\":[]}";
-        }
-        
+
         String url = BASE_URL + "?query=" + URLEncoder.encode(query, StandardCharsets.UTF_8);
 
         HttpHeaders headers = new HttpHeaders();

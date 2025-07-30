@@ -27,10 +27,6 @@ public class OpenAiClient {
         this.model = model;
     }
 
-    public WebClient getWebClient() {
-        return webClient;
-    }
-
     public Mono<String> chat(String prompt) {
         Map<String, Object> body = createRequestBody(prompt);
 
@@ -77,22 +73,22 @@ public class OpenAiClient {
     /**
      * OpenAI API 사용량을 확인하는 메서드
      */
-    public Mono<String> getUsageInfo() {
+    public Mono<Map<String, Object>> getUsageInfo() {
         return webClient.get()
-                .uri("/usage")
+                .uri("/dashboard/billing/usage")
                 .retrieve()
-                .bodyToMono(String.class)
-                .onErrorReturn("사용량 정보를 가져올 수 없습니다.");
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .onErrorMap(ex -> new BusinessException(ErrorCode.OPENAI_API_ERROR));
     }
 
     /**
      * OpenAI API 모델 목록을 확인하는 메서드
      */
-    public Mono<String> getModels() {
+    public Mono<Map<String, Object>> getModels() {
         return webClient.get()
                 .uri("/models")
                 .retrieve()
-                .bodyToMono(String.class)
-                .onErrorReturn("모델 정보를 가져올 수 없습니다.");
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .onErrorMap(ex -> new BusinessException(ErrorCode.OPENAI_API_ERROR));
     }
 }

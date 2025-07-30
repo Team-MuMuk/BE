@@ -4,6 +4,8 @@ import com.mumuk.domain.recipe.dto.request.RecipeRequest;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.entity.RecipeCategory;
+import com.mumuk.global.apiPayload.code.ErrorCode;
+import com.mumuk.global.apiPayload.exception.BusinessException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,7 +26,13 @@ public class RecipeConverter {
         // 카테고리 문자열 리스트를 Enum 리스트로 변환
         if (req.getCategories() != null) {
             List<RecipeCategory> categoryEnums = req.getCategories().stream()
-                .map(RecipeCategory::valueOf)
+                .map(categoryStr -> {
+                    try {
+                        return RecipeCategory.valueOf(categoryStr.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        throw new BusinessException(ErrorCode.RECIPE_INVALID_CATEGORY);
+                    }
+                })
                 .collect(Collectors.toList());
             recipe.setCategories(categoryEnums);
         }
