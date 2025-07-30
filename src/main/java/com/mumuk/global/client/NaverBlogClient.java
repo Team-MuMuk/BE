@@ -32,8 +32,7 @@ public class NaverBlogClient {
 
 
     public String searchBlog(String query) {
-
-        String url = BASE_URL + "?query=" + URLEncoder.encode(query, StandardCharsets.UTF_8);
+        String url = BASE_URL + "?query=" + query;
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Naver-Client-Id", clientId);
