@@ -1,8 +1,12 @@
 package com.mumuk.domain.user.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.mumuk.domain.user.entity.UserRecipe;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+
+import java.util.List;
 
 public class UserResponse {
 
@@ -13,16 +17,8 @@ public class UserResponse {
         private String email;
         private String nickName;
         private String profileImage;
+        private String accessToken;
         private String refreshToken;
-    }
-
-    @Getter
-    @AllArgsConstructor
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class ProfileResultDTO {     // 프로필 수정 후 반환할 정보
-        private String nickName;
-        private String profileImage;
-
     }
 
     @Getter
@@ -36,5 +32,4 @@ public class UserResponse {
         private String statusMessage;
 
     }
-
 }

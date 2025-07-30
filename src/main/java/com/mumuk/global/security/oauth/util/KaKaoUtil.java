@@ -17,6 +17,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -41,15 +42,16 @@ public class KaKaoUtil {
     @Value("${kakao.native-app-key:}")
     private String clientId;
 
+    @Value("${kakao.redirect-uri}")
+    private String redirectUri;
 
     private Set<String> allowedRedirectUris;
 
     @PostConstruct
     public void initAllowedRedirectUris() {
-        this.allowedRedirectUris = Set.of(
-                "http://localhost:8080/login/oauth2/code/kakao",           // 개발용
-                "kakao" + clientId + "://oauth"                           // 안드로이드용
-        );
+        this.allowedRedirectUris = new HashSet<>();
+        allowedRedirectUris.add("http://localhost:8080/login/oauth2/code/kakao"); // 개발용
+        allowedRedirectUris.add(redirectUri); // 운영 환경
     }
 
     /**
