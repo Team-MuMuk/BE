@@ -5,7 +5,7 @@ import com.mumuk.global.common.BaseEntity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name="allergy")
+@Table(name="allergy", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id","allergy_type"}))
 public class Allergy extends BaseEntity {
 
     @Id
@@ -14,7 +14,7 @@ public class Allergy extends BaseEntity {
 
 
     @Enumerated(EnumType.STRING)
-    @Column(name="알러지 이름", nullable=false)
+    @Column(name="allergy_type", nullable=false)
     private AllergyType allergyType;
 
     @ManyToOne(fetch = FetchType.LAZY)
