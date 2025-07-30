@@ -63,8 +63,9 @@ public class UserRecipeConverter {
                 recipe.getProtein(),
                 recipe.getCarbohydrate(),
                 recipe.getFat(),
-                recipe.getCategory().name(),
-                recipe.getSourceUrl(),
+                recipe.getCategories().stream().map(Enum::name).collect(Collectors.toList()),
+                recipe.getIngredients(),
+                null, // sourceUrl은 현재 Recipe 엔티티에 없음
                 recipeIngredientDTOList,
                 inFridgeIngredients,
                 notInFridgeIngredients,

@@ -19,10 +19,8 @@ public class RecipeResponse {
         private Long protein;
         private Long carbohydrate;
         private Long fat;
-        private String category;
-        private String sourceUrl;
+        private List<String> categories;
         private String ingredients;
-
     }
 
     @Getter

@@ -9,6 +9,7 @@ public interface RecipeService {
     void deleteRecipe(Long id);
     RecipeResponse.DetailRes getRecipeDetail(Long id);
     List<String> findNamesByCategory(String category);
+    List<String> findNamesByCategories(String categories);
     List<RecipeResponse.DetailRes> getAllRecipes();
     List<RecipeResponse.SimpleRes> getSimpleRecipes();
 }

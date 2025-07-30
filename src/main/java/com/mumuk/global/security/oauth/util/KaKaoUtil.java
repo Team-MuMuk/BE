@@ -117,7 +117,7 @@ public class KaKaoUtil {
     public KaKaoResponse.KakaoProfile requestProfile(KaKaoResponse.OAuthToken oAuthToken) {
 
         if (oAuthToken == null || oAuthToken.getAccess_token() == null) {
-                throw new AuthFailureHandler(ErrorCode.KAKAO_AUTH_FAILED);
+            throw new AuthFailureHandler(ErrorCode.KAKAO_AUTH_FAILED);
         }
 
         RestTemplate restTemplate = new RestTemplate();

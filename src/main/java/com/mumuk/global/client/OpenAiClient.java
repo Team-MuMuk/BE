@@ -69,4 +69,26 @@ public class OpenAiClient {
 
         return (String) message.get("content");
     }
+
+    /**
+     * OpenAI API 사용량을 확인하는 메서드
+     */
+    public Mono<Map<String, Object>> getUsageInfo() {
+        return webClient.get()
+                .uri("/dashboard/billing/usage")
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .onErrorMap(ex -> new BusinessException(ErrorCode.OPENAI_API_ERROR));
+    }
+
+    /**
+     * OpenAI API 모델 목록을 확인하는 메서드
+     */
+    public Mono<Map<String, Object>> getModels() {
+        return webClient.get()
+                .uri("/models")
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .onErrorMap(ex -> new BusinessException(ErrorCode.OPENAI_API_ERROR));
+    }
 }
