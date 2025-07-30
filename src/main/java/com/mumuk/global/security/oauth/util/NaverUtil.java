@@ -26,15 +26,23 @@ public class NaverUtil {
     private final StateUtil stateUtil;
 
 
-    @Value("${naver.login.client-id}")
+    @Value("${naver.login.client-id:}")
     private String clientId;
-    @Value("${naver.login.secret-key}")
+    @Value("${naver.login.secret-key:}")
     private String clientSecret;
 
 
     public NaverUtil(ObjectMapper objectMapper, StateUtil stateUtil) {
         this.objectMapper = objectMapper;
         this.stateUtil = stateUtil;
+        
+        // Validate that required environment variables are set
+        if (clientId == null || clientId.isEmpty()) {
+            log.warn("Naver client ID is not configured. Naver OAuth functionality will be disabled.");
+        }
+        if (clientSecret == null || clientSecret.isEmpty()) {
+            log.warn("Naver secret key is not configured. Naver OAuth functionality will be disabled.");
+        }
     }
 
     /**

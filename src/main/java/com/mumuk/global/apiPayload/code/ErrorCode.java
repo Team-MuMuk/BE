@@ -21,6 +21,10 @@ public enum ErrorCode implements BaseCode {
     RECIPE_ALREADY_EXISTS(HttpStatus.CONFLICT, "RECIPE_409", "이미 존재하는 레시피입니다."),
     RECIPE_INVALID_DATA(HttpStatus.BAD_REQUEST, "RECIPE_400", "잘못된 레시피 데이터입니다."),
     RECIPE_CATEGORY_NOT_FOUND(HttpStatus.BAD_REQUEST, "RECIPE_400_CATEGORY_NOT_FOUND", "카테고리를 찾을 수 없습니다."),
+    RECIPE_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "RECIPE_500_SAVE", "레시피 저장에 실패했습니다."),
+    RECIPE_DUPLICATE_TITLE(HttpStatus.CONFLICT, "RECIPE_409_DUPLICATE", "이미 존재하는 레시피 제목입니다."),
+    RECIPE_INVALID_CATEGORY(HttpStatus.BAD_REQUEST, "RECIPE_400_INVALID_CATEGORY", "유효하지 않은 레시피 카테고리입니다."),
+    RECIPE_EMPTY_INGREDIENTS(HttpStatus.BAD_REQUEST, "RECIPE_400_EMPTY_INGREDIENTS", "재료 정보가 비어있습니다."),
 
 
     // User Error
@@ -68,6 +72,8 @@ public enum ErrorCode implements BaseCode {
     OPENAI_API_TIMEOUT(HttpStatus.REQUEST_TIMEOUT, "OPENAI_408_TIMEOUT", "OpenAI API 호출 시간이 초과되었습니다."),
     OPENAI_INVALID_API_KEY(HttpStatus.UNAUTHORIZED, "OPENAI_401_INVALID_API_KEY", "유효하지 않은 OpenAI API 키입니다."),
     OPENAI_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "OPENAI_503_SERVICE_UNAVAILABLE", "OpenAI 서비스가 일시적으로 사용 불가능합니다."),
+    OPENAI_EMPTY_RECOMMENDATIONS(HttpStatus.BAD_REQUEST, "OPENAI_400_EMPTY_RECOMMENDATIONS", "AI 추천 결과가 비어있습니다."),
+    OPENAI_JSON_PARSE_ERROR(HttpStatus.BAD_REQUEST, "OPENAI_400_JSON_PARSE", "AI 응답 JSON 파싱에 실패했습니다."),
 
     // Search Error
     KEYWORD_NOT_FOUND(HttpStatus.BAD_REQUEST, "SEARCH_400", "검색하려는 단어가 존재하지 않습니다."),
@@ -87,7 +93,11 @@ public enum ErrorCode implements BaseCode {
 
     //Allergy Error
     ALLERGY_NOT_FOUND(HttpStatus.BAD_REQUEST,"ALLERGY_404", "해당 알러지 타입은 존재하지 않습니다,"),
-    ALLERGY_NONE_WITH_OTHERS(HttpStatus.BAD_REQUEST, "ALLERGY_400", "알러지 없음과 다른 알러지를 동시에 선택할 수 없습니다");
+    ALLERGY_NONE_WITH_OTHERS(HttpStatus.BAD_REQUEST, "ALLERGY_400", "알러지 없음과 다른 알러지를 동시에 선택할 수 없습니다"),
+
+    // Redis Error
+    REDIS_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "REDIS_500_CONNECTION", "Redis 연결에 실패했습니다."),
+    REDIS_CACHE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "REDIS_500_CACHE", "Redis 캐시 작업 중 오류가 발생했습니다.");
 
 
 

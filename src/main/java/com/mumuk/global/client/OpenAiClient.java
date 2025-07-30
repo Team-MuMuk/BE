@@ -27,6 +27,10 @@ public class OpenAiClient {
         this.model = model;
     }
 
+    public WebClient getWebClient() {
+        return webClient;
+    }
+
     public Mono<String> chat(String prompt) {
         Map<String, Object> body = createRequestBody(prompt);
 
@@ -68,5 +72,27 @@ public class OpenAiClient {
         }
 
         return (String) message.get("content");
+    }
+
+    /**
+     * OpenAI API 사용량을 확인하는 메서드
+     */
+    public Mono<String> getUsageInfo() {
+        return webClient.get()
+                .uri("/usage")
+                .retrieve()
+                .bodyToMono(String.class)
+                .onErrorReturn("사용량 정보를 가져올 수 없습니다.");
+    }
+
+    /**
+     * OpenAI API 모델 목록을 확인하는 메서드
+     */
+    public Mono<String> getModels() {
+        return webClient.get()
+                .uri("/models")
+                .retrieve()
+                .bodyToMono(String.class)
+                .onErrorReturn("모델 정보를 가져올 수 없습니다.");
     }
 }

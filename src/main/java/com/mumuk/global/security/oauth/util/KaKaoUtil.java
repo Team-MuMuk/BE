@@ -31,9 +31,14 @@ public class KaKaoUtil {
     public KaKaoUtil(ObjectMapper objectMapper, StateUtil stateUtil) {
         this.objectMapper = objectMapper;
         this.stateUtil = stateUtil;
+        
+        // Validate that required environment variables are set
+        if (clientId == null || clientId.isEmpty()) {
+            log.warn("Kakao app key is not configured. Kakao OAuth functionality will be disabled.");
+        }
     }
 
-    @Value("${kakao.native-app-key}")
+    @Value("${kakao.native-app-key:}")
     private String clientId;
 
 
