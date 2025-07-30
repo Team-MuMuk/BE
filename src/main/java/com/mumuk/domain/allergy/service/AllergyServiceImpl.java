@@ -64,6 +64,7 @@ public class AllergyServiceImpl implements AllergyService {
 
         // 사용자의 기존 알러지 정보 삭제
         allergyRepository.deleteByUser(user);
+        allergyRepository.flush();
 
         // 입력받은 알러지 타입 정보 목록에 대해서, 하나하나 알러지 객체 목록으로 변환
         List<Allergy> allergyList = allergyTypeList.stream()
@@ -72,6 +73,7 @@ public class AllergyServiceImpl implements AllergyService {
 
         // 알러지 객체 목록 데이터베이스에 저장
         allergyRepository.saveAll(allergyList);
+        allergyRepository.flush();
 
         // 입력한 알러지 객체 목록 반환
         List<AllergyResponse.ToggleResultRes.ToggleResult> toggleResultList = allergyTypeList.stream()
