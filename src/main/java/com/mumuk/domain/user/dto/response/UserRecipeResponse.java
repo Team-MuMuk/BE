@@ -25,9 +25,14 @@ public class UserRecipeResponse {
         private Long protein;
         private Long carbohydrate;
         private Long fat;
+<<<<<<< HEAD
         private List<String> categories;
         private String ingredients;
         private String sourceUrl;
+=======
+        private List<String> category;
+        private String ingredients;
+>>>>>>> ffc113ba7da2893295d3073443686032df24260e
         private List<RecipeIngredientDTO> recipeIngredients;
         private List<String> inFridgeIngredients;
         private List<String> notInFridgeIngredients;

@@ -65,7 +65,11 @@ public class UserRecipeConverter {
                 recipe.getFat(),
                 recipe.getCategories().stream().map(Enum::name).collect(Collectors.toList()),
                 recipe.getIngredients(),
+<<<<<<< HEAD
                 null, // sourceUrl은 현재 Recipe 엔티티에 없음
+=======
+                recipe.getSourceUrl(),
+>>>>>>> ffc113ba7da2893295d3073443686032df24260e
                 recipeIngredientDTOList,
                 inFridgeIngredients,
                 notInFridgeIngredients,
