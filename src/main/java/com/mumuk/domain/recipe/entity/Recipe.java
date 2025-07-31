@@ -8,7 +8,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "recipe", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"title", "ingredients"})
+    @UniqueConstraint(columnNames = {"title"})
 })
 public class Recipe extends BaseEntity {
 

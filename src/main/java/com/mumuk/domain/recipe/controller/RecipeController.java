@@ -10,6 +10,7 @@ import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/recipe")
@@ -23,7 +24,7 @@ public class RecipeController {
 
     @Operation(summary = "레시피 등록")
     @PostMapping
-    public Response<String> createRecipe(@RequestBody RecipeRequest.CreateReq request) {
+    public Response<String> createRecipe(@Valid @RequestBody RecipeRequest.CreateReq request) {
         recipeService.createRecipe(request);
         return Response.ok(ResultCode.RECIPE_CREATE_OK, "레시피 등록 완료");
     }
@@ -42,27 +43,26 @@ public class RecipeController {
         return Response.ok(ResultCode.RECIPE_FETCH_OK, response);
     }
 
+    @Operation(summary = "레시피 부분 수정")
+    @PatchMapping("/{id}")
+    public Response<String> updateRecipe(@PathVariable Long id, @Valid @RequestBody RecipeRequest.CreateReq request) {
+        recipeService.updateRecipe(id, request);
+        return Response.ok(ResultCode.RECIPE_UPDATE_OK, "레시피 수정 완료");
+    }
+
     @Operation(summary = "카테고리별 레시피 이름 조회 (단일 카테고리)")
     @GetMapping("/category/{category}/names")
-    public Response<List<String>> getRecipeNamesByCategory(@PathVariable @NotBlank String category) {
+    public Response<List<String>> getRecipeNamesByCategory(@PathVariable String category) {
         List<String> names = recipeService.findNamesByCategory(category);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
 
     @Operation(summary = "카테고리별 레시피 이름 조회 (콤마 구분)")
     @GetMapping("/categories/{categories}/names")
-    public Response<List<String>> getRecipeNamesByCategories(@PathVariable @NotBlank String categories) {
+    public Response<List<String>> getRecipeNamesByCategories(@PathVariable String categories) {
         List<String> names = recipeService.findNamesByCategories(categories);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
-
-    // @Operation(summary = "AI 재료 기반 레시피 추천")
-    // @PostMapping("/ai/recommend/ingredient")
-    // public Response<RecipeResponse.AiRecommendListDto> getAiIngredientBasedRecommendation(
-    //         @AuthUser Long userId) {
-    //     RecipeResponse.AiRecommendListDto response = recipeRecommendService.recommendAndSaveRecipes(userId);
-    //     return Response.ok(ResultCode.RECIPE_FETCH_OK, response);
-    // }
 
     @Operation(summary = "레시피 전체 목록 조회")
     @GetMapping
