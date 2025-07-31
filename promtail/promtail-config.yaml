@@ -38,7 +38,7 @@ scrape_configs:
 
     pipeline_stages:
       - match:
-          selector: '{}'
+          selector: '{job=""}'
           action: drop
 
       - docker: {}
