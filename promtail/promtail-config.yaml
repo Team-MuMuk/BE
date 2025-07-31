@@ -37,4 +37,8 @@ scrape_configs:
         action: replace
 
     pipeline_stages:
+      - match:
+          selector: '{}'
+          action: drop
+
       - docker: {}
