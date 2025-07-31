@@ -52,14 +52,14 @@ public class RecipeController {
 
     @Operation(summary = "카테고리별 레시피 이름 조회 (단일 카테고리)")
     @GetMapping("/category/{category}/names")
-    public Response<List<String>> getRecipeNamesByCategory(@PathVariable @NotBlank String category) {
+    public Response<List<String>> getRecipeNamesByCategory(@PathVariable String category) {
         List<String> names = recipeService.findNamesByCategory(category);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
 
     @Operation(summary = "카테고리별 레시피 이름 조회 (콤마 구분)")
     @GetMapping("/categories/{categories}/names")
-    public Response<List<String>> getRecipeNamesByCategories(@PathVariable @NotBlank String categories) {
+    public Response<List<String>> getRecipeNamesByCategories(@PathVariable String categories) {
         List<String> names = recipeService.findNamesByCategories(categories);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
