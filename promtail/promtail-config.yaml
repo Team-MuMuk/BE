@@ -18,7 +18,7 @@ scrape_configs:
     relabel_configs:
       # backend 컨테이너만 수집
       - source_labels: [__meta_docker_container_name]
-        regex: /backend
+        regex: backend
         action: keep
 
       # 라벨 추가 (최소 하나 이상)
