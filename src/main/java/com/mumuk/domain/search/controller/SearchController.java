@@ -42,7 +42,7 @@ public class SearchController {
         return Response.ok(ResultCode.SEARCH_RECIPE_OK, resultList);
     }
 
-    @Operation(summary = "레시피 검색결과 세부 조회")
+    @Operation(summary = "레시피 검색결과 세부 조회" ,description="사용 x, user-recipe 컨트롤러의 레시피 상세 조회로 통합")
     @GetMapping("/recipes/{recipeId}")
     public Response<RecipeResponse.DetailRes> showDetailResult(@PathVariable Long recipeId) {
         RecipeResponse.DetailRes detailResult= searchService.SearchDetailRecipe(recipeId);
