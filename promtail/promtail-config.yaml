@@ -18,6 +18,12 @@ scrape_configs:
         regex: /backend
         action: keep
 
+      # 다른 모든 컨테이너는 drop (명시적)
+      - source_labels: [ __meta_docker_container_name ]
+        regex: /(?!backend$).*
+        action: drop
+
+
       # job 라벨 붙이기
       - target_label: job
         replacement: backend
