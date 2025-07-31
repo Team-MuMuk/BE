@@ -16,5 +16,7 @@ scrape_configs:
       - source_labels: [__meta_docker_container_name]
         regex: /backend
         action: keep
+      - source_labels: [ __meta_docker_container_name ]
+        target_label: container
     pipeline_stages:
       - docker: {}
