@@ -19,7 +19,7 @@ scrape_configs:
 
       - source_labels: [__meta_docker_container_name]
         target_label: container
-      - source_labels: [__meta_docker_image_name]
-        target_label: image
+      - replacement: backend
+        target_label: job
     pipeline_stages:
       - docker: {}
