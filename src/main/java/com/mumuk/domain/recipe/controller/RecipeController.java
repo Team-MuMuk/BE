@@ -10,6 +10,7 @@ import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/recipe")
@@ -23,7 +24,7 @@ public class RecipeController {
 
     @Operation(summary = "레시피 등록")
     @PostMapping
-    public Response<String> createRecipe(@RequestBody RecipeRequest.CreateReq request) {
+    public Response<String> createRecipe(@Valid @RequestBody RecipeRequest.CreateReq request) {
         recipeService.createRecipe(request);
         return Response.ok(ResultCode.RECIPE_CREATE_OK, "레시피 등록 완료");
     }
@@ -44,7 +45,7 @@ public class RecipeController {
 
     @Operation(summary = "레시피 부분 수정")
     @PatchMapping("/{id}")
-    public Response<String> updateRecipe(@PathVariable Long id, @RequestBody RecipeRequest.CreateReq request) {
+    public Response<String> updateRecipe(@PathVariable Long id, @Valid @RequestBody RecipeRequest.CreateReq request) {
         recipeService.updateRecipe(id, request);
         return Response.ok(ResultCode.RECIPE_UPDATE_OK, "레시피 수정 완료");
     }
