@@ -20,7 +20,7 @@ scrape_configs:
 
       # 다른 모든 컨테이너는 drop (명시적)
       - source_labels: [ __meta_docker_container_name ]
-        regex: /(?!backend$).*
+        regex: /.*
         action: drop
 
 
