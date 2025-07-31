@@ -225,7 +225,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 페이징 처리로 성능 최적화
         PageRequest pageRequest = PageRequest.of(0, PAGE_SIZE);
         Page<Recipe> recipePage = recipeRepository.findAll(pageRequest);
-        List<Recipe> allRecipes = recipePage.getContent();
+        List<Recipe> allRecipes = new ArrayList<>(recipePage.getContent()); // 새로운 ArrayList로 복사
         
         if (allRecipes.isEmpty()) {
             log.warn("DB에 레시피가 없습니다.");
@@ -732,7 +732,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         String title = recipe.getTitle();
         String ingredients = recipe.getIngredients();
         
-        // 1. Redis에서 중복 검사
+        // 1. Redis에서 중복 검사 (제목만 캐싱)
         try {
             String redisKey = "recipe:title:" + title.hashCode();
             Object cached = redisTemplate.opsForValue().get(redisKey);
@@ -774,8 +774,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 savedRecipes.add(savedRecipe);
                 log.info("레시피 저장 성공: {}", recipe.getTitle());
                 
-                // 저장 성공 시 Redis에 캐싱
-                cacheRecipeToRedis(savedRecipe);
+                // 저장 성공 시 Redis에 제목만 캐싱
+                cacheRecipeTitleToRedis(savedRecipe);
                 
             } catch (Exception e) {
                 log.warn("레시피 저장 실패: {} - {}", recipe.getTitle(), e.getMessage());
@@ -786,15 +786,15 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     /**
-     * 레시피를 Redis에 캐싱
+     * 레시피 제목을 Redis에 캐싱 (중복 방지용)
      */
-    private void cacheRecipeToRedis(Recipe recipe) {
+    private void cacheRecipeTitleToRedis(Recipe recipe) {
         try {
             String redisKey = "recipe:title:" + recipe.getTitle().hashCode();
-            redisTemplate.opsForValue().set(redisKey, recipe, RECIPE_CACHE_TTL); // 7일로 통일
-            log.info("레시피 Redis 캐싱 성공: {}", recipe.getTitle());
+            redisTemplate.opsForValue().set(redisKey, recipe.getTitle(), RECIPE_CACHE_TTL);
+            log.info("레시피 제목 Redis 캐싱 성공: {}", recipe.getTitle());
         } catch (Exception e) {
-            log.warn("레시피 Redis 캐싱 실패: {}", e.getMessage());
+            log.warn("레시피 제목 Redis 캐싱 실패: {}", e.getMessage());
         }
     }
 
