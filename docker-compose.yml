@@ -105,6 +105,8 @@ services:
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki:/loki
     networks:
       - mumuk_network
 
@@ -113,8 +115,9 @@ services:
     container_name: promtail
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      - ./promtail/positions.yaml:/etc/promtail/positions.yaml
     command: -config.file=/etc/promtail/promtail-config.yaml
     networks:
       - mumuk_network
