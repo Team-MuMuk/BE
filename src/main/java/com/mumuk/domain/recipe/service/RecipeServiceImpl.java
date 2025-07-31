@@ -131,7 +131,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional
-    public void updateRecipe(Long id, RecipeRequest.UpdateReq request) {
+    public void updateRecipe(Long id, RecipeRequest.CreateReq request) {
         Recipe recipe = recipeRepository.findById(id)
             .orElseThrow(() -> new BusinessException(ErrorCode.RECIPE_NOT_FOUND));
 

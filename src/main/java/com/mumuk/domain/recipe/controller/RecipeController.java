@@ -44,7 +44,7 @@ public class RecipeController {
 
     @Operation(summary = "레시피 부분 수정")
     @PatchMapping("/{id}")
-    public Response<String> updateRecipe(@PathVariable Long id, @RequestBody RecipeRequest.UpdateReq request) {
+    public Response<String> updateRecipe(@PathVariable Long id, @RequestBody RecipeRequest.CreateReq request) {
         recipeService.updateRecipe(id, request);
         return Response.ok(ResultCode.RECIPE_UPDATE_OK, "레시피 수정 완료");
     }
@@ -62,14 +62,6 @@ public class RecipeController {
         List<String> names = recipeService.findNamesByCategories(categories);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
-
-    // @Operation(summary = "AI 재료 기반 레시피 추천")
-    // @PostMapping("/ai/recommend/ingredient")
-    // public Response<RecipeResponse.AiRecommendListDto> getAiIngredientBasedRecommendation(
-    //         @AuthUser Long userId) {
-    //     RecipeResponse.AiRecommendListDto response = recipeRecommendService.recommendAndSaveRecipes(userId);
-    //     return Response.ok(ResultCode.RECIPE_FETCH_OK, response);
-    // }
 
     @Operation(summary = "레시피 전체 목록 조회")
     @GetMapping
