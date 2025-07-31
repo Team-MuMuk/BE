@@ -128,4 +128,35 @@ public class RecipeServiceImpl implements RecipeService {
                 .map(RecipeConverter::toSimpleRes)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional
+    public void updateRecipe(Long id, RecipeRequest.UpdateReq request) {
+        Recipe recipe = recipeRepository.findById(id)
+            .orElseThrow(() -> new BusinessException(ErrorCode.RECIPE_NOT_FOUND));
+
+        if (request.getTitle() != null) recipe.setTitle(request.getTitle());
+        if (request.getRecipeImage() != null) recipe.setRecipeImage(request.getRecipeImage());
+        if (request.getDescription() != null) recipe.setDescription(request.getDescription());
+        if (request.getCookingTime() != null) recipe.setCookingTime(request.getCookingTime());
+        if (request.getCalories() != null) recipe.setCalories(request.getCalories());
+        if (request.getProtein() != null) recipe.setProtein(request.getProtein());
+        if (request.getCarbohydrate() != null) recipe.setCarbohydrate(request.getCarbohydrate());
+        if (request.getFat() != null) recipe.setFat(request.getFat());
+        if (request.getIngredients() != null) recipe.setIngredients(request.getIngredients());
+
+        if (request.getCategories() != null) {
+            List<RecipeCategory> categoryList = new ArrayList<>();
+            for (String categoryStr : request.getCategories()) {
+                try {
+                    categoryList.add(RecipeCategory.valueOf(categoryStr.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    throw new BusinessException(ErrorCode.RECIPE_INVALID_CATEGORY);
+                }
+            }
+            recipe.setCategories(categoryList);
+        }
+
+        recipeRepository.save(recipe);
+    }
 }

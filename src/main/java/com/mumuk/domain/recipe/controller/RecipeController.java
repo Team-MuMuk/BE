@@ -42,6 +42,13 @@ public class RecipeController {
         return Response.ok(ResultCode.RECIPE_FETCH_OK, response);
     }
 
+    @Operation(summary = "레시피 부분 수정")
+    @PatchMapping("/{id}")
+    public Response<String> updateRecipe(@PathVariable Long id, @RequestBody RecipeRequest.UpdateReq request) {
+        recipeService.updateRecipe(id, request);
+        return Response.ok(ResultCode.RECIPE_UPDATE_OK, "레시피 수정 완료");
+    }
+
     @Operation(summary = "카테고리별 레시피 이름 조회 (단일 카테고리)")
     @GetMapping("/category/{category}/names")
     public Response<List<String>> getRecipeNamesByCategory(@PathVariable @NotBlank String category) {
