@@ -117,7 +117,7 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
-      - ./promtail/positions.yaml:/etc/promtail/positions.yaml
+      - ./promtail/positions.yaml:/etc/promtail/positions.yaml:rw
     command: -config.file=/etc/promtail/promtail-config.yaml
     networks:
       - mumuk_network
