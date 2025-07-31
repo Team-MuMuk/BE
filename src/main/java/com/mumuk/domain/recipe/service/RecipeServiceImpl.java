@@ -15,28 +15,52 @@ import java.util.stream.Collectors;
 import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import java.time.Duration;
 
 @Service
 public class RecipeServiceImpl implements RecipeService {
 
     private static final Logger log = LoggerFactory.getLogger(RecipeServiceImpl.class);
+    private static final Duration RECIPE_CACHE_TTL = Duration.ofDays(7); // 7일 동안 캐시
 
     private final RecipeRepository recipeRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
-    public RecipeServiceImpl(RecipeRepository recipeRepository) {
+    public RecipeServiceImpl(RecipeRepository recipeRepository, RedisTemplate<String, Object> redisTemplate) {
         this.recipeRepository = recipeRepository;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
     @Transactional
     public void createRecipe(RecipeRequest.CreateReq request) {
-        // 중복 레시피 검증
-        if (recipeRepository.existsByTitleAndIngredients(request.getTitle(), request.getIngredients())) {
+        log.info("레시피 등록 시작: {}", request.getTitle());
+        
+        // 1. Redis로 중복 검증 (빠른 검증)
+        log.info("Redis 중복 검증 시작: {}", request.getTitle());
+        if (isRecipeTitleExistsInRedis(request.getTitle())) {
+            log.warn("Redis에서 중복 레시피 발견: {}", request.getTitle());
             throw new BusinessException(ErrorCode.RECIPE_DUPLICATE_TITLE);
         }
+        log.info("Redis 중복 검증 통과: {}", request.getTitle());
         
+        // 2. DB로 중복 검증 (정확한 검증)
+        log.info("DB 중복 검증 시작: {}", request.getTitle());
+        if (recipeRepository.existsByTitle(request.getTitle())) {
+            log.warn("DB에서 중복 레시피 발견: {}", request.getTitle());
+            throw new BusinessException(ErrorCode.RECIPE_DUPLICATE_TITLE);
+        }
+        log.info("DB 중복 검증 통과: {}", request.getTitle());
+        
+        // 3. DB에 레시피 저장
         Recipe recipe = RecipeConverter.toRecipe(request);
-        recipeRepository.save(recipe);
+        Recipe savedRecipe = recipeRepository.save(recipe);
+        log.info("DB 저장 완료: {} (ID: {})", savedRecipe.getTitle(), savedRecipe.getId());
+        
+        // 4. DB 저장 성공 시 Redis에 완전한 캐싱
+        cacheRecipeTitleToRedis(savedRecipe);
+        log.info("레시피 등록 완료: {}", savedRecipe.getTitle());
     }
 
     @Override
@@ -149,5 +173,58 @@ public class RecipeServiceImpl implements RecipeService {
         }
 
         recipeRepository.save(recipe);
+    }
+
+    /**
+     * 레시피 제목을 Redis에 캐싱 (ZSet으로 통합)
+     */
+    private void cacheRecipeTitleToRedis(Recipe recipe) {
+        try {
+            log.debug("Redis 캐싱 시작: '{}'", recipe.getTitle());
+            
+            // ZSet 하나로 중복 방지 + 자동완성 모두 처리
+            String titleToCache = recipe.getTitle().toLowerCase();
+            log.debug("캐싱할 제목 (소문자): '{}'", titleToCache);
+            
+            Boolean result = redisTemplate.opsForZSet().add("recipetitles", titleToCache, 0);
+            log.debug("Redis ZSet 추가 결과: '{}' -> 성공: {}", titleToCache, result);
+            
+            if (result != null && result) {
+                log.info("레시피 제목 Redis 캐싱 성공: '{}' (ZSet 통합)", recipe.getTitle());
+            } else {
+                log.warn("레시피 제목 Redis 캐싱 실패 (이미 존재): '{}'", recipe.getTitle());
+            }
+        } catch (Exception e) {
+            log.warn("레시피 제목 Redis 캐싱 실패: {} - {}", recipe.getTitle(), e.getMessage());
+        }
+    }
+
+    /**
+     * Redis ZSet에 해당 제목의 레시피가 존재하는지 확인합니다.
+     */
+    private boolean isRecipeTitleExistsInRedis(String title) {
+        try {
+            log.debug("Redis ZSet 검색 시작: '{}'", title);
+            
+            // ZSet에서 제목 검색 (소문자로 통일)
+            String searchTitle = title.toLowerCase();
+            log.debug("검색할 제목 (소문자): '{}'", searchTitle);
+            
+            Double score = redisTemplate.opsForZSet().score("recipetitles", searchTitle);
+            boolean exists = score != null;
+            
+            log.debug("Redis 검색 결과: '{}' -> 존재: {}", searchTitle, exists);
+            
+            if (exists) {
+                log.info("Redis에서 레시피 제목 발견: '{}' (점수: {})", searchTitle, score);
+            } else {
+                log.debug("Redis에서 레시피 제목 없음: '{}'", searchTitle);
+            }
+            
+            return exists;
+        } catch (Exception e) {
+            log.warn("Redis 중복 검사 실패: {} - {}", title, e.getMessage());
+            return false;
+        }
     }
 }

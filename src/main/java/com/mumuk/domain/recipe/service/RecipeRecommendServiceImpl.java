@@ -729,37 +729,18 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
      * 레시피 중복 검사 (Redis → DB 순서)
      */
     private boolean isDuplicateRecipe(Recipe recipe) {
-        String title = recipe.getTitle();
-        String ingredients = recipe.getIngredients();
-        
-        // 1. Redis에서 중복 검사 (제목만 캐싱)
-        try {
-            String redisKey = "recipe:title:" + title.hashCode();
-            Object cached = redisTemplate.opsForValue().get(redisKey);
-            if (cached != null) {
-                log.info("Redis에서 중복 레시피 발견: {}", title);
-                return true;
-            }
-        } catch (Exception e) {
-            log.warn("Redis 중복 검사 실패: {}", e.getMessage());
+        // 1. Redis로 중복 검증 (빠른 검증)
+        if (isRecipeTitleExistsInRedis(recipe.getTitle())) {
+            log.info("Redis에서 중복 레시피 발견: {}", recipe.getTitle());
+            return true;
         }
         
-        // 2. DB에서 중복 검사
-        try {
-            if (recipeRepository.existsByTitle(title)) {
-                log.info("DB에서 중복 레시피 발견 (제목): {}", title);
-                return true;
-            }
-            
-            if (recipeRepository.existsByTitleAndIngredients(title, ingredients)) {
-                log.info("DB에서 중복 레시피 발견 (제목+재료): {}", title);
-                return true;
-            }
-        } catch (Exception e) {
-            log.warn("DB 중복 검사 실패: {}", e.getMessage());
+        // 2. DB로 중복 검증 (정확한 검증)
+        boolean existsInDB = recipeRepository.existsByTitle(recipe.getTitle());
+        if (existsInDB) {
+            log.info("DB에서 중복 레시피 발견: {}", recipe.getTitle());
         }
-        
-        return false;
+        return existsInDB;
     }
 
     /**
@@ -786,15 +767,44 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     /**
-     * 레시피 제목을 Redis에 캐싱 (중복 방지용)
+     * 레시피 제목을 Redis에 캐싱 (중복 방지 + 검색용)
      */
     private void cacheRecipeTitleToRedis(Recipe recipe) {
         try {
-            String redisKey = "recipe:title:" + recipe.getTitle().hashCode();
-            redisTemplate.opsForValue().set(redisKey, recipe.getTitle(), RECIPE_CACHE_TTL);
-            log.info("레시피 제목 Redis 캐싱 성공: {}", recipe.getTitle());
+            // ZSet 하나로 중복 방지 + 자동완성 모두 처리
+            redisTemplate.opsForZSet().add("recipetitles", recipe.getTitle().toLowerCase(), 0);
+            
+            log.info("레시피 제목 Redis 캐싱 성공: {} (ZSet 통합)", recipe.getTitle());
         } catch (Exception e) {
             log.warn("레시피 제목 Redis 캐싱 실패: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 레시피 제목으로 중복 검사 (Redis)
+     */
+    private boolean isRecipeTitleExistsInRedis(String title) {
+        try {
+            // ZSet에서 제목 검색 (소문자로 통일)
+            Double score = redisTemplate.opsForZSet().score("recipetitles", title.toLowerCase());
+            return score != null;
+        } catch (Exception e) {
+            log.warn("Redis 중복 검사 실패: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 레시피 제목으로 검색 (Redis)
+     */
+    private Long findRecipeIdByTitleFromRedis(String title) {
+        try {
+            String searchKey = "recipe:search:" + title.toLowerCase();
+            Object cached = redisTemplate.opsForValue().get(searchKey);
+            return cached != null ? (Long) cached : null;
+        } catch (Exception e) {
+            log.warn("Redis 검색 실패: {}", e.getMessage());
+            return null;
         }
     }
 
