@@ -36,6 +36,7 @@ public class RecipeRequest {
         @Min(value = 0, message = "지방은 0 이상이어야 합니다")
         private Long fat;
         
+        @Size(min = 1, message = "최소 1개 이상의 카테고리를 선택해야 합니다")
         private List<String> categories; // 복수 카테고리 지원
         
         @Size(max = 200, message = "재료는 200자를 초과할 수 없습니다")
