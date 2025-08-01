@@ -1,15 +1,15 @@
 package com.mumuk.domain.ingredient.entity;
 
-
-
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.global.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-
 import lombok.Builder;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -26,18 +26,20 @@ public class Ingredient extends BaseEntity {
     @Column(name = "유통기한", nullable = false)
     private LocalDate expireDate;
 
+    @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "재료별 알림 설정", joinColumns = @JoinColumn(name = "ingredient_id"))
     @Column(name = "디데이 알림 설정")
-    private DdayFcmSetting daySetting;
-
+    private List<DdayFcmSetting> daySetting = new ArrayList<>(List.of(DdayFcmSetting.NONE));
+    // 재료 등록시 알림설정을 하지 않으므로 기본값 NONE
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    //builder
+    // builder
     @Builder
-    public Ingredient(String name, LocalDate expireDate, DdayFcmSetting daySetting, User user) {
+    public Ingredient(String name, LocalDate expireDate, List<DdayFcmSetting> daySetting, User user) {
         this.name = name;
         this.expireDate = expireDate;
         this.daySetting = daySetting;
@@ -57,7 +59,7 @@ public class Ingredient extends BaseEntity {
         return expireDate;
     }
 
-    public DdayFcmSetting getDaySetting() {
+    public List<DdayFcmSetting> getDaySetting() {
         return daySetting;
     }
 
@@ -78,7 +80,7 @@ public class Ingredient extends BaseEntity {
         this.expireDate = expireDate;
     }
 
-    public void setDaySetting(DdayFcmSetting daySetting) {
+    public void setDaySetting(List<DdayFcmSetting> daySetting) {
         this.daySetting = daySetting;
     }
 

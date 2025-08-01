@@ -16,7 +16,6 @@ public class IngredientConverter {
         return Ingredient.builder()
                 .name(req.getName())
                 .expireDate(req.getExpireDate())
-                .daySetting(req.getDaySetting())
                 .user(user)
                 .build();
     }
