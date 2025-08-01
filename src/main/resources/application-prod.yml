@@ -19,6 +19,7 @@ spring:
       port: 6379
 logging:
   level:
+    root: WARN
     org.hibernate.SQL: off
     org.hibernate.type.descriptor.sql.BasicBinder: off
 
