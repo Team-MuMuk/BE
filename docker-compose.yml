@@ -113,14 +113,15 @@ services:
   promtail:
     image: grafana/promtail:2.9.2
     container_name: promtail
+    user: root
     ports:
       - "9080:9080"
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
-      - type: tmpfs
-        target: /etc/promtail
+#      - type: tmpfs
+#        target: /etc/promtail
     command: -config.file=/etc/promtail/promtail-config.yaml
     networks:
       - mumuk_network
