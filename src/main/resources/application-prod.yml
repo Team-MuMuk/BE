@@ -17,6 +17,10 @@ spring:
     redis:
       host: redis
       port: 6379
+logging:
+  level:
+    org.hibernate.SQL: off
+    org.hibernate.type.descriptor.sql.BasicBinder: off
 
 naver:
   login:
