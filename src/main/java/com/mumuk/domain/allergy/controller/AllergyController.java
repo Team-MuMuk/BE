@@ -27,7 +27,7 @@ public class AllergyController {
         this.allergyService = allergyService;
     }
 
-    @Operation(summary = "사용자의 알러지 정보 선택/취소", description = "사용자가 가진 특정 알러지에 대해서, 해당 알러지기 이미 존재한다면 삭제, 존재하지 않는다면 추가")
+    @Operation(summary = "사용자의 알러지 정보 선택", description = "사용자가 기존에 가진 알러지를 모두 삭제하고 현재 선택한 알러지만 추가")
     @PutMapping
     public Response<AllergyResponse.ToggleResultRes> toggleAllergy(@AuthUser Long userId, @RequestBody @Valid AllergyRequest.ToggleAllergyReq request) {
         AllergyResponse.ToggleResultRes result= allergyService.toggleAllergy(userId, request.getAllergyTypeList());

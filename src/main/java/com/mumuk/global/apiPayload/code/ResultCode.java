@@ -16,6 +16,7 @@ public enum ResultCode implements BaseCode {
     RECIPE_CREATE_OK(HttpStatus.CREATED, "RECIPE_201", "레시피 등록 성공"),
     RECIPE_DELETE_OK(HttpStatus.NO_CONTENT, "RECIPE_204", "레시피 삭제 성공"),
     RECIPE_FETCH_OK(HttpStatus.OK, "RECIPE_200", "레시피 조회 성공"),
+    RECIPE_UPDATE_OK(HttpStatus.OK, "RECIPE_200", "레시피 수정 성공"),
 
     // User Success
     USER_FETCH_OK(HttpStatus.OK, "USER_200", "유저 정보 조회 성공"),
