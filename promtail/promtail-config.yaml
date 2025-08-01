@@ -9,36 +9,24 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: backend-logs
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-    relabel_configs:
-      # backend 컨테이너만 수집
-      - source_labels: [__meta_docker_container_name]
-        regex: /backend
-        action: keep
-
-      # 다른 모든 컨테이너는 drop (명시적)
-      - source_labels: [ __meta_docker_container_name ]
-        regex: .*
-        action: drop
-
-
-      # job 라벨 붙이기
-      - target_label: job
-        replacement: backend
-        action: replace
-
-      # container 라벨 붙이기
-      - source_labels: [__meta_docker_container_name]
-        regex: /(.+)
-        target_label: container
-        replacement: $1
-        action: replace
-
+  - job_name: backend-container-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: backend
+          __path__: /var/lib/docker/containers/*/*.log
     pipeline_stages:
-      - match:
-          selector: '{job=""}'
-          action: drop
-
       - docker: {}
+    relabel_configs:
+      - source_labels: [__path__]
+        regex: '.*/([a-f0-9]{64})-json.log'
+        target_label: container_id
+
+      - source_labels: [container_id]
+        target_label: container_name
+        replacement: backend
+
+      - source_labels: [container_name]
+        regex: backend
+        action: keep
