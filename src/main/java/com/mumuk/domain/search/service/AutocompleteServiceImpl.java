@@ -18,7 +18,7 @@ import java.util.Set;
 @Service
 public class AutocompleteServiceImpl implements AutocompleteService {
 
-    private static final String ZSET_KEY = "autocomplete";
+    private static final String ZSET_KEY = "recipetitles";
     private final RedisTemplate<String, String> redisTemplate;
 
     public AutocompleteServiceImpl(RedisTemplate<String, String> redisTemplate) {
