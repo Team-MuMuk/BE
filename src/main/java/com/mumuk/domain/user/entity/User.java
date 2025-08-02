@@ -21,7 +21,7 @@ public class User extends BaseEntity {
     private LoginType loginType = LoginType.LOCAL;
 
     @Column(name = "알림 동의 여부", nullable = false)
-    private Boolean isFcmAgreed = false;
+    private Boolean fcmAgreed = false;
 
     private String profileImage;
 
@@ -98,8 +98,8 @@ public class User extends BaseEntity {
         return loginType;
     }
 
-    public Boolean getIsFcmAgreed() {
-        return isFcmAgreed;
+    public Boolean getFcmAgreed() {
+        return fcmAgreed;
     }
 
     public String getProfileImage() {
@@ -139,8 +139,8 @@ public class User extends BaseEntity {
         this.loginType = loginType;
     }
 
-    public void setIsFcmAgreed(Boolean isFcmAgreed) {
-        this.isFcmAgreed = isFcmAgreed;
+    public void setFcmAgreed(Boolean fcmAgreed) {
+        this.fcmAgreed = fcmAgreed;
     }
 
     public void setProfileImage(String profileImage) {

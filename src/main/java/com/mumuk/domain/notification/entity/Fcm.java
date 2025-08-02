@@ -3,9 +3,10 @@ package com.mumuk.domain.notification.entity;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.global.common.BaseEntity;
 import jakarta.persistence.*;
+import lombok.Builder;
 
 @Entity
-@Table(name="fcm")
+@Table(name = "fcm")
 public class Fcm extends BaseEntity {
 
     @Id
@@ -19,7 +20,13 @@ public class Fcm extends BaseEntity {
     @JoinColumn(name = "user id", nullable = false)
     private User user;
 
+    public Fcm() {}
 
+    @Builder
+    public Fcm(String fcmToken, User user) {
+        this.fcmToken = fcmToken;
+        this.user = user;
+    }
 
     // Getter
     public Long getId() {
@@ -45,5 +52,10 @@ public class Fcm extends BaseEntity {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    // Token 업데이트 메서드
+    public String updateFcmToken(String updateToken) {
+        return this.fcmToken = updateToken;
     }
 }

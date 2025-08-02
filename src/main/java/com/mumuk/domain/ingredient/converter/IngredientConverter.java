@@ -16,13 +16,13 @@ public class IngredientConverter {
         return Ingredient.builder()
                 .name(req.getName())
                 .expireDate(req.getExpireDate())
-                .daySetting(req.getDaySetting())
                 .user(user)
                 .build();
     }
 
     public IngredientResponse.RetrieveRes toRetrieve(Ingredient ingredient) {
         return new IngredientResponse.RetrieveRes(
+                ingredient.getId(),
                 ingredient.getName(),
                 ingredient.getExpireDate(),
                 ingredient.getCreatedAt());

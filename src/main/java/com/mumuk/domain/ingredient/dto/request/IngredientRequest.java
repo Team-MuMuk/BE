@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public class IngredientRequest {
 
@@ -20,12 +21,7 @@ public class IngredientRequest {
 
         @NotNull
         @JsonFormat(pattern = "yyyy-MM-dd")
-        @JsonProperty("expireDate")
         private LocalDate expireDate;
-
-        @NotNull
-        @JsonProperty("daySetting")
-        private DdayFcmSetting daySetting;
     }
 
     @Getter
@@ -41,6 +37,6 @@ public class IngredientRequest {
         private LocalDate expireDate;
 
         @NotNull
-        private DdayFcmSetting daySetting;
+        private List<DdayFcmSetting> daySetting;
     }
 }

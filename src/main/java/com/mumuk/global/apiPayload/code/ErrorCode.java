@@ -98,7 +98,11 @@ public enum ErrorCode implements BaseCode {
 
     // Redis Error
     REDIS_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "REDIS_500_CONNECTION", "Redis 연결에 실패했습니다."),
-    REDIS_CACHE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "REDIS_500_CACHE", "Redis 캐시 작업 중 오류가 발생했습니다.");
+    REDIS_CACHE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "REDIS_500_CACHE", "Redis 캐시 작업 중 오류가 발생했습니다."),
+
+    //FCM Error
+    FCM_SEND_MESSAGE_ERROR(HttpStatus.BAD_REQUEST, "FCM_MESSAGE_400", "메세지 전송에 실패하였습니다."),
+    FCM_PUSH_NOT_ARGEED(HttpStatus.BAD_REQUEST, "FCM_PUSH_400", "푸시알림에 동의하지 않습니다.");
 
 
 
