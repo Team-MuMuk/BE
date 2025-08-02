@@ -46,7 +46,7 @@ public class NotificationServiceImpl implements NotificationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
-        if (!user.getFcmAgreed()) { throw new BusinessException(ErrorCode.FCM_PUSH_NOT_ARGEED);}
+        if (!user.getFcmAgreed()) { throw new BusinessException(ErrorCode.FCM_PUSH_NOT_AGREED);}
 
         Optional<Fcm> optionalFcm = notificationRepository.findByUser(user);
         Fcm fcm;

@@ -76,7 +76,7 @@ public class IngredientServiceImpl implements IngredientService {
             throw new BusinessException(ErrorCode.INVALID_EXPIREDATE);
         }
 
-        if (req.getDaySetting() != null && !req.getDaySetting().contains(DdayFcmSetting.NONE)) {
+        if (!req.getDaySetting().contains(DdayFcmSetting.NONE)) {
             ingredient.setDaySetting(req.getDaySetting());
         }
 
@@ -108,7 +108,7 @@ public class IngredientServiceImpl implements IngredientService {
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
         LocalDate today = LocalDate.now();
-        LocalDate limitDate = today.plusDays(30);
+        LocalDate limitDate = today.plusDays(7);
 
         List<Ingredient> ingredients = ingredientRepository
                 .findByUserAndExpireDateBetweenOrderByExpireDateAsc(user, today, limitDate);

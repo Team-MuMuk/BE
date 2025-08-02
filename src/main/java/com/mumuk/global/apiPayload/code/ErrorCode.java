@@ -102,7 +102,7 @@ public enum ErrorCode implements BaseCode {
 
     //FCM Error
     FCM_SEND_MESSAGE_ERROR(HttpStatus.BAD_REQUEST, "FCM_MESSAGE_400", "메세지 전송에 실패하였습니다."),
-    FCM_PUSH_NOT_ARGEED(HttpStatus.BAD_REQUEST, "FCM_PUSH_400", "푸시알림에 동의하지 않습니다.");
+    FCM_PUSH_NOT_AGREED(HttpStatus.BAD_REQUEST, "FCM_PUSH_400", "푸시알림에 동의하지 않습니다.");
 
 
 

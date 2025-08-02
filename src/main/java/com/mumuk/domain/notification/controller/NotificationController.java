@@ -1,6 +1,5 @@
 package com.mumuk.domain.notification.controller;
 
-import com.mumuk.domain.notification.dto.FcmTestRequest;
 import com.mumuk.domain.notification.dto.NotificationRequest;
 import com.mumuk.domain.notification.service.IngredientExpireScheduler;
 import com.mumuk.domain.notification.service.NotificationService;
@@ -42,7 +41,7 @@ public class NotificationController {
 
     @Operation(summary = "FCM 테스트 API", description = "테스트용 API 입니다.")
     @PostMapping("/test")
-    public Response<Void> testFCM(@AuthUser Long userId, @RequestBody FcmTestRequest req) {
+    public Response<Void> testFCM(@AuthUser Long userId, @RequestBody NotificationRequest.FcmTokenReq req) {
         notificationService.testFcmService(userId, req.getFcmToken());
         return Response.ok();
     }
