@@ -31,8 +31,8 @@ public class IngredientExpireScheduler {
         this.userRepository = userRepository;
     }
 
-    //@Scheduled(cron = "0 0 9 * * ?") // 매일 오전 9시
-    @Scheduled(cron = "*/10 * * * * ?")//테스트용
+    //@Scheduled(cron = "*/10 * * * * ?")//테스트용
+    @Scheduled(cron = "0 0 9 * * ?") // 매일 오전 9시
     public void sendExpiryNotifications() {
         List<User> users = userRepository.findByFcmAgreed(true);
 

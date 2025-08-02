@@ -22,6 +22,7 @@ public class IngredientConverter {
 
     public IngredientResponse.RetrieveRes toRetrieve(Ingredient ingredient) {
         return new IngredientResponse.RetrieveRes(
+                ingredient.getId(),
                 ingredient.getName(),
                 ingredient.getExpireDate(),
                 ingredient.getCreatedAt());

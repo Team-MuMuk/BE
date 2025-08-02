@@ -10,6 +10,7 @@ public class IngredientResponse {
     @Getter
     @AllArgsConstructor
     public static class RetrieveRes {
+        private Long ingredient_id;
         private String name;
         private LocalDate expireDate;
         private LocalDateTime createdAt;
