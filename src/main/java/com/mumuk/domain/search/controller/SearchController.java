@@ -4,6 +4,7 @@ import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.search.dto.request.SearchRequest;
 import com.mumuk.domain.search.dto.response.SearchResponse;
 import com.mumuk.domain.search.service.*;
+import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
@@ -35,12 +36,13 @@ public class SearchController {
 
     @Operation(summary = "레시피 검색결과 목록 조회")
     @GetMapping("/recipes")
-    public Response<List<RecipeResponse.SimpleRes>> showResultList( @RequestParam String keyword) {
-        List<RecipeResponse.SimpleRes> resultList= searchService.SearchRecipeList(keyword);
+    public Response<List<UserRecipeResponse.RecentRecipeDTO>> showResultList(@AuthUser Long userId, @RequestParam String keyword) {
+        List<UserRecipeResponse.RecentRecipeDTO> resultList= searchService.SearchRecipeList(userId, keyword);
+        recentSearchService.saveRecentSearch(userId, keyword);
         return Response.ok(ResultCode.SEARCH_RECIPE_OK, resultList);
     }
 
-    @Operation(summary = "레시피 검색결과 세부 조회")
+    @Operation(summary = "레시피 검색결과 세부 조회" ,description="사용 x, user-recipe 컨트롤러의 레시피 상세 조회로 통합")
     @GetMapping("/recipes/{recipeId}")
     public Response<RecipeResponse.DetailRes> showDetailResult(@PathVariable Long recipeId) {
         RecipeResponse.DetailRes detailResult= searchService.SearchDetailRecipe(recipeId);

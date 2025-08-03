@@ -65,3 +65,5 @@ dist/
 nginx/nginx.conf
 ./gradle
 ./bin
+
+/loki/

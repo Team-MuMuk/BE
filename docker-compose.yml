@@ -99,6 +99,32 @@ services:
     networks:
       - mumuk_network
 
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki:/loki
+    networks:
+      - mumuk_network
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    ports:
+      - "9080:9080"
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    networks:
+      - mumuk_network
+    depends_on:
+      - loki
+
   grafana:
     image: grafana/grafana:12.1.0
     container_name: grafana

@@ -25,13 +25,24 @@ public class UserRecipeResponse {
         private Long protein;
         private Long carbohydrate;
         private Long fat;
-        private String category;
-        private String sourceUrl;
+        private List<String> categories;
         private String ingredients;
+        private String sourceUrl;
+        private List<RecipeIngredientDTO> recipeIngredients;
+        private List<String> inFridgeIngredients;
+        private List<String> notInFridgeIngredients;
         private boolean viewed;
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         private LocalDateTime viewedAt;
         private boolean liked;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class RecipeIngredientDTO {
+        private String name;
+        private boolean isInFridge;
     }
 
     @Builder

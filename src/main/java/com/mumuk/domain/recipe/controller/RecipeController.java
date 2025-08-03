@@ -5,9 +5,12 @@ import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.service.RecipeService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
+import com.mumuk.global.security.annotation.AuthUser;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/recipe")
@@ -21,7 +24,7 @@ public class RecipeController {
 
     @Operation(summary = "레시피 등록")
     @PostMapping
-    public Response<String> createRecipe(@RequestBody RecipeRequest.CreateReq request) {
+    public Response<String> createRecipe(@Valid @RequestBody RecipeRequest.CreateReq request) {
         recipeService.createRecipe(request);
         return Response.ok(ResultCode.RECIPE_CREATE_OK, "레시피 등록 완료");
     }
@@ -40,10 +43,24 @@ public class RecipeController {
         return Response.ok(ResultCode.RECIPE_FETCH_OK, response);
     }
 
-    @Operation(summary = "카테고리별 레시피 이름 조회")
+    @Operation(summary = "레시피 부분 수정")
+    @PatchMapping("/{id}")
+    public Response<String> updateRecipe(@PathVariable Long id, @Valid @RequestBody RecipeRequest.CreateReq request) {
+        recipeService.updateRecipe(id, request);
+        return Response.ok(ResultCode.RECIPE_UPDATE_OK, "레시피 수정 완료");
+    }
+
+    @Operation(summary = "카테고리별 레시피 이름 조회 (단일 카테고리)")
     @GetMapping("/category/{category}/names")
     public Response<List<String>> getRecipeNamesByCategory(@PathVariable String category) {
         List<String> names = recipeService.findNamesByCategory(category);
+        return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
+    }
+
+    @Operation(summary = "카테고리별 레시피 이름 조회 (콤마 구분)")
+    @GetMapping("/categories/{categories}/names")
+    public Response<List<String>> getRecipeNamesByCategories(@PathVariable String categories) {
+        List<String> names = recipeService.findNamesByCategories(categories);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, names);
     }
 
@@ -60,6 +77,4 @@ public class RecipeController {
         List<RecipeResponse.SimpleRes> recipes = recipeService.getSimpleRecipes();
         return Response.ok(ResultCode.RECIPE_FETCH_OK, recipes);
     }
-
-
 }
