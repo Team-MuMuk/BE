@@ -1,5 +1,6 @@
 package com.mumuk.domain.ingredient.service;
 
+
 import com.mumuk.domain.ingredient.converter.IngredientConverter;
 import com.mumuk.domain.ingredient.dto.request.IngredientRequest;
 import com.mumuk.domain.ingredient.dto.response.IngredientResponse;
@@ -13,7 +14,6 @@ import com.mumuk.global.apiPayload.exception.BusinessException;
 import com.mumuk.global.security.exception.AuthException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,7 +42,7 @@ public class IngredientServiceImpl implements IngredientService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
-        Ingredient ingredient = ingredientConverter.toRegister(req, user);
+        Ingredient ingredient = ingredientConverter.toRegister(req,user);
         ingredientRepository.save(ingredient);
     }
 
@@ -53,6 +53,7 @@ public class IngredientServiceImpl implements IngredientService {
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
         List<Ingredient> ingredients = ingredientRepository.findAllByUser(user);
+
         return ingredients.stream()
                 .map(ingredientConverter::toRetrieve)
                 .collect(Collectors.toList());
@@ -61,6 +62,7 @@ public class IngredientServiceImpl implements IngredientService {
     @Transactional
     @Override
     public void updateIngredient(Long ingredientId, IngredientRequest.UpdateReq req, Long userId) {
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
@@ -88,6 +90,7 @@ public class IngredientServiceImpl implements IngredientService {
     @Transactional
     @Override
     public void deleteIngredient(Long ingredientId, Long userId) {
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
@@ -95,7 +98,7 @@ public class IngredientServiceImpl implements IngredientService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INGREDIENT_NOT_FOUND));
 
         if (!ingredient.getUser().getId().equals(user.getId())) {
-            throw new AuthException(ErrorCode.USER_NOT_EQUAL);
+            throw new AuthException(ErrorCode.USER_NOT_EQUAL); //사용자의 재료와 재료의 user 비교
         }
 
         ingredientRepository.delete(ingredient);
@@ -108,7 +111,7 @@ public class IngredientServiceImpl implements IngredientService {
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
         LocalDate today = LocalDate.now();
-        LocalDate limitDate = today.plusDays(7);
+        LocalDate limitDate = today.plusDays(7); //유통기한 임박재료 기준 7일
 
         List<Ingredient> ingredients = ingredientRepository
                 .findByUserAndExpireDateBetweenOrderByExpireDateAsc(user, today, limitDate);

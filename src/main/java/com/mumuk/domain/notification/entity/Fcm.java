@@ -17,7 +17,7 @@ public class Fcm extends BaseEntity {
     private String fcmToken;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     public Fcm() {}

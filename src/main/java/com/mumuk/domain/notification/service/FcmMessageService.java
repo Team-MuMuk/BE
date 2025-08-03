@@ -70,7 +70,7 @@ public class FcmMessageService {
                     "messaging/invalid-registration-token"
             );
 
-            String errorCode = String.valueOf(e.getErrorCode());
+            String errorCode = e.getErrorCode() != null ? e.getErrorCode().name() : null;
             if (errorCode != null && deletableErrorCodes.contains(errorCode.toLowerCase())) {
                 notificationRepository.delete(userToken);
                 log.warn("무효한 FCM 토큰 삭제: token={}, userId={}", token, user.getId());

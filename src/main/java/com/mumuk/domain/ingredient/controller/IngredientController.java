@@ -25,16 +25,20 @@ public class IngredientController {
     @Operation(summary = "재료 등록", description = "입력하신 재료를 등록합니다.")
     @PostMapping("/register")
     public Response<String> registerIngredient (@Valid @RequestBody IngredientRequest.RegisterReq req, @AuthUser Long userId){
+
         ingredientService.registerIngredient(req, userId);
         return Response.ok(ResultCode.INGREDIENT_REGISTER_OK, "재료 등록 성공");
     }
 
+
     @Operation(summary = "재료 조회", description = "등록하신 재료를 조회합니다.")
     @GetMapping("/retrieve")
     public Response<List<IngredientResponse.RetrieveRes>> retrieveIngredient (@AuthUser Long userId){
+
         List<IngredientResponse.RetrieveRes> ingredients = ingredientService.getAllIngredient(userId);
         return Response.ok(ResultCode.INGREDIENT_RETRIEVE_OK, ingredients);
     }
+
 
     @Operation(summary = "재료 수정", description = "등록하신 재료의 상세정보를 수정합니다.")
     @PatchMapping("/{ingredientId}/update")
@@ -42,6 +46,8 @@ public class IngredientController {
             @PathVariable Long ingredientId,
             @Valid @RequestBody IngredientRequest.UpdateReq req,
             @AuthUser Long userId) {
+
+
         ingredientService.updateIngredient(ingredientId, req, userId);
         return Response.ok(ResultCode.INGREDIENT_UPDATE_OK, "재료 수정 완료");
     }
@@ -49,6 +55,7 @@ public class IngredientController {
     @Operation(summary = "재료 삭제", description = "해당 재료를 삭제합니다.")
     @DeleteMapping("/{ingredientId}/delete")
     public Response<String> deleteIngredient(@PathVariable Long ingredientId, @AuthUser Long userId) {
+
         ingredientService.deleteIngredient(ingredientId, userId);
         return Response.ok(ResultCode.INGREDIENT_DELETE_OK, "재료 삭제 성공");
     }
@@ -56,6 +63,7 @@ public class IngredientController {
     @Operation(summary = "유통기한 관리", description = "유통기한이 임박한 재료를 조회합니다.")
     @GetMapping("/expireDateManege")
     public Response<List<IngredientResponse.ExpireDateManegeRes>> getExpireDateManegeIngredient (@AuthUser Long userId){
+
         List<IngredientResponse.ExpireDateManegeRes> ingredients = ingredientService.getCloseExpireDateIngredients(userId);
         return Response.ok(ResultCode.CLOSED_DATE_INGREDIENT_RETRIEVE_OK, ingredients);
     }

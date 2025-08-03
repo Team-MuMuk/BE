@@ -23,10 +23,12 @@ public class IngredientResponse {
         private LocalDate expireDate;
         private String dDay;
 
+
         public ExpireDateManegeRes(String name, LocalDate expireDate, String dDay) {
             this.name = name;
             this.expireDate = expireDate;
             this.dDay = dDay;
         }
     }
+
 }

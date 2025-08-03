@@ -41,13 +41,13 @@ public class IngredientExpireScheduler {
         for (User user : users) {
             List<Ingredient> ingredients = ingredientRepository.findAllByUser(user);
 
+            if (ingredients.isEmpty()) continue;
 
 
             for (Ingredient ingredient : ingredients) {
                 if (ingredient.getExpireDate() == null || ingredient.getDaySetting() == null) {
                     continue;
                 }
-                if (ingredients.isEmpty()) continue;
 
                 long daysLeft = ChronoUnit.DAYS.between(today, ingredient.getExpireDate());
 
