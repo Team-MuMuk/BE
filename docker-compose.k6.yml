@@ -6,7 +6,7 @@ services:
     container_name: k6
     volumes:
       - ./k6:/scripts
-    entrypoint: ["k6", "run", "--out", "influxdb=http://influxdb:8086/k6", "/scripts/test.js"]
+    entrypoint: [ "k6", "run", "/scripts/test.js" ]
     networks:
       - monitoring
 
