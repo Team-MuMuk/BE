@@ -12,3 +12,5 @@ services:
 
 networks:
   monitoring:
+
+# docker run --rm -v "$PWD/k6:/scripts" grafana/k6 run /scripts/스크립트 파일명
