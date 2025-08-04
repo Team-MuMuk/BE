@@ -1,7 +1,6 @@
-package com.mumuk.domain.allergy.dto.request;
+package com.mumuk.domain.healthManagement.dto.request;
 
-import com.mumuk.domain.allergy.entity.Allergy;
-import com.mumuk.domain.allergy.entity.AllergyType;
+import com.mumuk.domain.healthManagement.entity.AllergyType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,7 +11,7 @@ public class AllergyRequest {
     @Getter
     @Setter
     @NoArgsConstructor
-    public static class ToggleAllergyReq {
+    public static class SetAllergyReq {
         private List<AllergyType> allergyTypeList;
     }
 }

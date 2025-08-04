@@ -92,9 +92,15 @@ public enum ErrorCode implements BaseCode {
     USER_NOT_EQUAL(HttpStatus.BAD_REQUEST, "INGREDIENT_403", "해당 사용자의 재료가 아닙니다."),
 
 
-    //Allergy Error
+    //HealthManagement Error
     ALLERGY_NOT_FOUND(HttpStatus.BAD_REQUEST,"ALLERGY_404", "해당 알러지 타입은 존재하지 않습니다,"),
     ALLERGY_NONE_WITH_OTHERS(HttpStatus.BAD_REQUEST, "ALLERGY_400", "알러지 없음과 다른 알러지를 동시에 선택할 수 없습니다"),
+
+    HEALTHGOAL_NOT_FOUND(HttpStatus.BAD_REQUEST,"HEALTHGOAL_404", "해당 건강목표는 존재하지 않습니다."),
+    HEALTHGOAL_NONE_WITH_OTHERS(HttpStatus.BAD_REQUEST,"HEALTHGOAL_400", "건강목표 없음과 다른 건강목표를 동시에 선택할 수 없습니다."),
+
+
+    USERINFO_NOT_FOUND(HttpStatus.BAD_REQUEST,"USERINFO_404","사용자 정보가 존재하지 않습니다"),
 
     // Redis Error
     REDIS_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "REDIS_500_CONNECTION", "Redis 연결에 실패했습니다."),

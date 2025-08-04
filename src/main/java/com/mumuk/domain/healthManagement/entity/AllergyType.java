@@ -1,4 +1,4 @@
-package com.mumuk.domain.allergy.entity;
+package com.mumuk.domain.healthManagement.entity;
 
 public enum AllergyType {
 
