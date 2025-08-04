@@ -13,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class IngredientExpireScheduler {
     public void sendExpiryNotifications() {
         List<User> users = userRepository.findByFcmAgreed(true);
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
         for (User user : users) {
             List<Ingredient> ingredients = ingredientRepository.findAllByUser(user);

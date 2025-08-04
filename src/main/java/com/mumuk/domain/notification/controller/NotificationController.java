@@ -7,6 +7,8 @@ import com.mumuk.domain.user.dto.request.FCMRequest;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,7 +27,7 @@ public class NotificationController {
 
     @Operation(summary = "푸시 알림 동의 API", description = "푸시 알림 동의 API 입니다.")
     @PostMapping("/pushAgree")
-    public Response<String> pushAgree(@AuthUser Long userId, @RequestBody FCMRequest.pushAgreeReq req) {
+    public Response<String> pushAgree(@AuthUser Long userId, @RequestBody @Valid FCMRequest.pushAgreeReq req) {
         log.info("요청 값: {}", req.getFcmAgreed());
         Boolean pushAgree = notificationService.agreePush(userId, req);
         String responseMessage = pushAgree ? "푸시 알림 허용" : "푸시 알림 거부";
@@ -34,14 +36,14 @@ public class NotificationController {
 
     @Operation(summary = "FCM 토큰 저장 API", description = "FCM 토큰 저장 API 입니다.")
     @PostMapping("/FcmToken")
-    public Response<Long> saveOrUpdateFcmToken(@AuthUser Long userId, @RequestBody NotificationRequest.FcmTokenReq req) {
+    public Response<Long> saveOrUpdateFcmToken(@AuthUser Long userId, @RequestBody @Valid NotificationRequest.FcmTokenReq req) {
         notificationService.saveOrUpdateFcmToken(userId, req);
         return Response.ok(userId);
     }
 
     @Operation(summary = "FCM 테스트 API", description = "테스트용 API 입니다.")
     @PostMapping("/test")
-    public Response<Void> testFCM(@AuthUser Long userId, @RequestBody NotificationRequest.FcmTokenReq req) {
+    public Response<Void> testFCM(@AuthUser Long userId, @Valid @RequestBody NotificationRequest.FcmTokenReq req) {
         notificationService.testFcmService(userId, req.getFcmToken());
         return Response.ok();
     }

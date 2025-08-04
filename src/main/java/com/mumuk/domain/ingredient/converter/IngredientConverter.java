@@ -2,22 +2,26 @@ package com.mumuk.domain.ingredient.converter;
 
 import com.mumuk.domain.ingredient.dto.request.IngredientRequest;
 import com.mumuk.domain.ingredient.dto.response.IngredientResponse;
+import com.mumuk.domain.ingredient.entity.DdayFcmSetting;
 import com.mumuk.domain.ingredient.entity.Ingredient;
 import com.mumuk.domain.user.entity.User;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Component
 public class IngredientConverter {
 
     public Ingredient toRegister(IngredientRequest.RegisterReq req, User user) {
-        return Ingredient.builder()
-                .name(req.getName())
-                .expireDate(req.getExpireDate())
-                .user(user)
-                .build();
+        Ingredient ingredient = new Ingredient();
+        ingredient.setName(req.getName());
+        ingredient.setExpireDate(req.getExpireDate());
+        ingredient.setUser(user);
+        ingredient.setDaySetting(List.of(DdayFcmSetting.NONE)); //기본값 NONE 설정
+        return ingredient;
+
     }
 
     public IngredientResponse.RetrieveRes toRetrieve(Ingredient ingredient) {

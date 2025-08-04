@@ -22,12 +22,6 @@ public class Fcm extends BaseEntity {
 
     public Fcm() {}
 
-    @Builder
-    public Fcm(String fcmToken, User user) {
-        this.fcmToken = fcmToken;
-        this.user = user;
-    }
-
     // Getter
     public Long getId() {
         return id;

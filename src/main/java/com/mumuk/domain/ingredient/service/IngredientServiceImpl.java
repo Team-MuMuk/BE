@@ -15,6 +15,7 @@ import com.mumuk.global.security.exception.AuthException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,8 +35,8 @@ public class IngredientServiceImpl implements IngredientService {
     @Transactional
     @Override
     public void registerIngredient(IngredientRequest.RegisterReq req, Long userId) {
-        LocalDate now = LocalDate.now();
-        if (req.getExpireDate().isBefore(now)) {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        if (req.getExpireDate().isBefore(today)) {
             throw new BusinessException(ErrorCode.INVALID_EXPIREDATE);
         }
 
@@ -73,7 +74,8 @@ public class IngredientServiceImpl implements IngredientService {
             throw new AuthException(ErrorCode.USER_NOT_EQUAL);
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+
         if (req.getExpireDate().isBefore(today)) {
             throw new BusinessException(ErrorCode.INVALID_EXPIREDATE);
         }
@@ -110,7 +112,7 @@ public class IngredientServiceImpl implements IngredientService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         LocalDate limitDate = today.plusDays(7); //유통기한 임박재료 기준 7일
 
         List<Ingredient> ingredients = ingredientRepository
