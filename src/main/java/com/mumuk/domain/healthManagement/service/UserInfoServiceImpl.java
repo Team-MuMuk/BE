@@ -2,6 +2,7 @@ package com.mumuk.domain.healthManagement.service;
 
 import com.mumuk.domain.healthManagement.dto.request.UserInfoRequest;
 import com.mumuk.domain.healthManagement.dto.response.UserInfoResponse;
+import com.mumuk.domain.healthManagement.entity.Gender;
 import com.mumuk.domain.healthManagement.entity.UserInfo;
 import com.mumuk.domain.healthManagement.repository.UserInfoRepository;
 import com.mumuk.domain.user.entity.User;
@@ -35,7 +36,16 @@ public class UserInfoServiceImpl implements UserInfoService {
                             return newUserinfo;
                         });
 
-        userInfo.setGender(request.getGender());
+        // 예외처리를 위해 둔 코드임. 만약 userInfo의 값이 null이라면, 성별의 기본값인 NONE으로 변경함
+        if (userInfo.getGender()==null) {
+            userInfo.setGender(Gender.NONE);
+        }
+
+        // 사용자 요청에서 gender 입력이 없었다면, gender의 기본값인 NONE 유지, 아닐 경우 요청에 따라 성별 변경
+        if (request.getGender()!=null) {
+            userInfo.setGender(request.getGender());
+        }
+        // 사용자 요청에 따라 userInfo 값 변경
         userInfo.setHeight(request.getHeight());
         userInfo.setWeight(request.getWeight());
 

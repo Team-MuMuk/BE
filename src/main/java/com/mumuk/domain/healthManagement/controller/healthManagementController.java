@@ -14,10 +14,12 @@ import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
+@Slf4j
 public class healthManagementController {
 
     private final AllergyService allergyService;
@@ -33,7 +35,7 @@ public class healthManagementController {
 
     @Operation(summary = "사용자의 신체정보 변경")
     @PatchMapping("/userinfo")
-    public Response<UserInfoResponse.UserInfoRes> putUserInfo(@AuthUser Long userId, @RequestBody @Valid UserInfoRequest.UserInfoReq request) {
+    public Response<UserInfoResponse.UserInfoRes> putUserInfo(@AuthUser Long userId, @Valid @RequestBody UserInfoRequest.UserInfoReq request) {
         UserInfoResponse.UserInfoRes result=userInfoService.setUserInfo(userId, request);
         return Response.ok(ResultCode.USERINFO_PUT_OK, result);
     }
@@ -47,7 +49,7 @@ public class healthManagementController {
 
     @Operation(summary = "사용자의 알러지 정보 변경")
     @PutMapping("/allergies")
-    public Response<AllergyResponse.AllergyListRes> putAllergy(@AuthUser Long userId, @RequestBody @Valid AllergyRequest.SetAllergyReq request) {
+    public Response<AllergyResponse.AllergyListRes> putAllergy(@AuthUser Long userId,@Valid  @RequestBody AllergyRequest.SetAllergyReq request) {
         AllergyResponse.AllergyListRes result=allergyService.setAllergyList(userId, request);
         return Response.ok(ResultCode.ALLERGY_PUT_OK,result);
     }
@@ -61,7 +63,7 @@ public class healthManagementController {
 
     @Operation(summary = "사용자의 건강목표 정보 변경")
     @PutMapping("/health-goals")
-    public Response<HealthGoalResponse.HealthGoalListRes> putHealthGoal(@AuthUser Long userId, @RequestBody @Valid HealthGoalRequest.SetHealthGoalReq request) {
+    public Response<HealthGoalResponse.HealthGoalListRes> putHealthGoal(@AuthUser Long userId, @Valid @RequestBody HealthGoalRequest.SetHealthGoalReq request) {
         HealthGoalResponse.HealthGoalListRes result=healthGoalService.setHealthGoalList(userId, request);
         return Response.ok(ResultCode.HEALTHGOAL_PUT_OK,result);
     }
