@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-public class MypageRequest {
+public class UserRequest {
 
 
     @Getter
@@ -15,6 +15,7 @@ public class MypageRequest {
 
         @NotBlank
         private String name;
+
         @NotBlank
         private String nickName;
 
@@ -23,9 +24,5 @@ public class MypageRequest {
 
         @NotBlank
         private String statusMessage;
-
-
     }
-
-
 }
