@@ -1,6 +1,6 @@
 package com.mumuk.domain.user.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,16 +13,16 @@ public class UserRequest {
     @NoArgsConstructor
     public static class EditProfileReq{ //프로필 정보 등록, 프로필 정보 수정
 
-        @NotBlank
+        @NotNull
         private String name;
 
-        @NotBlank
+        @NotNull
         private String nickName;
 
-        @NotBlank
+        @NotNull
         private String profileImage;
 
-        @NotBlank
+        @NotNull
         private String statusMessage;
     }
 }
