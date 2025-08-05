@@ -40,7 +40,8 @@ public class User extends BaseEntity {
 
     private String statusMessage;
 
-    private boolean agreedToHealthData;
+    @Column(name = "agreed_to_health_data", nullable = false)
+    private boolean agreedToHealthData = false;
 
     @Column(name = "내부 식별을 위한 소셜 id")
     private String socialId;
@@ -214,5 +215,13 @@ public class User extends BaseEntity {
 
     public void agreeToHealthData() {
         this.agreedToHealthData = true;
+    }
+
+    public boolean isAgreedToHealthData() {
+        return agreedToHealthData;
+    }
+
+    public void setAgreedToHealthData(boolean agreedToHealthData) {
+        this.agreedToHealthData = agreedToHealthData;
     }
 }
