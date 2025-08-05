@@ -1,6 +1,6 @@
 package com.mumuk.domain.user.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 public class AuthRequest {
@@ -10,22 +10,22 @@ public class AuthRequest {
     @Setter
     @NoArgsConstructor
     public static class SignUpReq {
-        @NotBlank
+        @NotNull
         private String name;
 
-        @NotBlank
+        @NotNull
         private String nickname;
 
-        @NotBlank
+        @NotNull
         private String phoneNumber;
 
-        @NotBlank
+        @NotNull
         private String loginId;
 
-        @NotBlank
+        @NotNull
         private String password;
 
-        @NotBlank
+        @NotNull
         private String confirmPassword;
     }
 
@@ -33,10 +33,10 @@ public class AuthRequest {
     @Setter
     @NoArgsConstructor
     public static class LogInReq{
-        @NotBlank
+        @NotNull
         private String loginId;
 
-        @NotBlank
+        @NotNull
         private String password;
     }
 
@@ -44,10 +44,10 @@ public class AuthRequest {
     @Setter
     @NoArgsConstructor
     public static class FindIdReq{
-        @NotBlank
+        @NotNull
         private String name;
 
-        @NotBlank
+        @NotNull
         private String phoneNumber;
     }
 
@@ -55,13 +55,13 @@ public class AuthRequest {
     @Setter
     @NoArgsConstructor
     public static class FindPassWordReq{
-        @NotBlank
+        @NotNull
         private String loginId;
 
-        @NotBlank
+        @NotNull
         private String name;
 
-        @NotBlank
+        @NotNull
         private String phoneNumber;
     }
 
@@ -70,7 +70,7 @@ public class AuthRequest {
     @NoArgsConstructor
     public static class CheckCurrentPasswordReq {
 
-        @NotBlank
+        @NotNull
         private String currentPassword;
     }
 
@@ -79,10 +79,10 @@ public class AuthRequest {
     @NoArgsConstructor
     public static class RecoverPassWordReq {
 
-        @NotBlank
+        @NotNull
         private String newPassWord;
 
-        @NotBlank
+        @NotNull
         private String confirmPassWord;
     }
 }

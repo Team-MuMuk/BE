@@ -40,8 +40,11 @@ public class User extends BaseEntity {
 
     private String statusMessage;
 
+    private boolean agreedToHealthData;
+
     @Column(name = "내부 식별을 위한 소셜 id")
     private String socialId;
+
     @Column(length = 300)
     private String refreshToken;
 
@@ -83,6 +86,13 @@ public class User extends BaseEntity {
         user.loginType = loginType;
         user.socialId = socialId;
         return user;
+    }
+
+    public void updateProfile(String name, String nickName, String profileImage, String statusMessage) {
+        this.name = name;
+        this.nickName = nickName;
+        this.profileImage = profileImage;
+        this.statusMessage = statusMessage;
     }
 
     public void updateRefreshToken(String refreshToken) {
@@ -200,5 +210,9 @@ public class User extends BaseEntity {
 
     public void setIngredients(List<Ingredient> ingredients) {
         this.ingredients = ingredients;
+    }
+
+    public void agreeToHealthData() {
+        this.agreedToHealthData = true;
     }
 }

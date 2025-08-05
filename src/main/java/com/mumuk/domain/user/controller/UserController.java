@@ -1,0 +1,45 @@
+package com.mumuk.domain.user.controller;
+
+import com.mumuk.domain.user.dto.request.UserRequest;
+import com.mumuk.domain.user.dto.response.UserResponse;
+import com.mumuk.domain.user.service.UserService;
+import com.mumuk.global.apiPayload.code.ResultCode;
+import com.mumuk.global.apiPayload.response.Response;
+import com.mumuk.global.security.annotation.AuthUser;
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/user")
+@Slf4j
+public class UserController {
+
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @Operation(summary = "프로필 조회", description = "사용자의 프로필 정보를 조회합니다.")
+    @GetMapping("/profile")
+    public Response<UserResponse.ProfileInfoDTO> profileInfo(@AuthUser Long userId) {
+        return Response.ok(userService.profileInfo(userId));
+    }
+
+    @Operation(summary = "프로필 수정", description = "사용자의 프로필 정보를 수정합니다.")
+    @PatchMapping("/profile")
+    public Response<String> editProfile(@AuthUser Long userId, @Valid @RequestBody UserRequest.EditProfileReq req) {
+        userService.editProfile(userId, req);
+        return Response.ok(ResultCode.EDIT_PROFILE_OK, "프로필이 수정되었습니다.");
+    }
+
+    @Operation(summary = "건강 데이터 수집 동의")
+    @PostMapping("/health-consent")
+    public Response<String> agreeToHealthData(@AuthUser Long userId) {
+        userService.agreeToHealthData(userId);
+        return Response.ok(ResultCode.AGREE_HEALTH_DATA_OK, "건강 데이터 수집에 동의하였습니다.");
+    }
+}
