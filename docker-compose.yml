@@ -17,6 +17,9 @@ services:
       - POSTGRESQL_URL=jdbc:postgresql://${PROD_DB_ENDPOINT}:5432/${PROD_DB_NAME}
     networks:
       - mumuk_network
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost" ]
       interval: 30s
