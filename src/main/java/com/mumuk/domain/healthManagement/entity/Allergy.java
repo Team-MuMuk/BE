@@ -1,4 +1,4 @@
-package com.mumuk.domain.allergy.entity;
+package com.mumuk.domain.healthManagement.entity;
 
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.global.common.BaseEntity;
@@ -11,7 +11,6 @@ public class Allergy extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
 
     @Enumerated(EnumType.STRING)
     @Column(name="allergy_type", nullable=false)
@@ -30,13 +29,12 @@ public class Allergy extends BaseEntity {
     }
 
     //getter
-    public Long getId() {return id;};
+    public Long getId() {return id;}
     public AllergyType getAllergyType() {return allergyType;}
-    public User getUser() {return user;};
+    public User getUser() {return user;}
 
     //setter
-    public void setId(Long id) {this.id = id;};
-    public void setAllergyType(AllergyType allergyType) {this.allergyType = allergyType;};
+    public void setId(Long id) {this.id = id;}
+    public void setAllergyType(AllergyType allergyType) {this.allergyType = allergyType;}
     public void setUser(User user) {this.user = user;};
-
 }
