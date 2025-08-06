@@ -15,6 +15,6 @@ public class HealthGoalRequest {
     @Setter
     @NoArgsConstructor
     public static class SetHealthGoalReq {
-        private List<HealthGoalType> healthGoalTypeList ;
+        private List<HealthGoalType> healthGoalTypeList;
     }
 }

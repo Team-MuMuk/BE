@@ -10,8 +10,8 @@ public class UserInfoResponse {
     @AllArgsConstructor
     public static class UserInfoRes {
         private Gender gender;
-        private Long height;
-        private Long weight;
+        private Double height;
+        private Double weight;
     }
 
 }

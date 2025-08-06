@@ -18,10 +18,10 @@ public class UserInfoRequest {
         private Gender gender;
         @NotNull
         @Min(value = 1, message = "키는 1cm 이상이어야 합니다")
-        private Long height;
+        private Double height;
         @NotNull
         @Min(value = 1, message = "몸무게는 1kg 이상이어야 합니다")
-        private Long weight;
+        private Double weight;
     }
 
 

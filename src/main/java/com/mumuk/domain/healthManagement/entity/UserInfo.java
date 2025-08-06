@@ -3,6 +3,9 @@ package com.mumuk.domain.healthManagement.entity;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.global.common.BaseEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 
 @Entity
@@ -17,9 +20,13 @@ public class UserInfo extends BaseEntity {
     private Gender gender=Gender.NONE;
 
     @Column(nullable = false)
-    private Long height;
+    @NotNull
+    @Min(value=1, message = "신장은 1cm 이상이어야 합니다")
+    private Double height;
     @Column(nullable = false)
-    private Long weight;
+    @NotNull
+    @Min(value = 1,message ="체중은 1kg 이상이어야 합니다")
+    private Double weight;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="user_id")
@@ -28,24 +35,25 @@ public class UserInfo extends BaseEntity {
 
     //생성자
     public UserInfo() {};
-    public UserInfo(Long id, Gender gender, Long height, Long weight, User user) {
+    public UserInfo(Long id, Gender gender, Double height, Double weight, User user) {
         this.id = id;
         this.gender = gender;
         this.height = height;
         this.weight = weight;
+        this.user = user;
     }
 
     //getter
     public Long getId() {return id;}
     public Gender getGender() {return gender;}
-    public Long getHeight() {return height;}
-    public Long getWeight() {return weight;}
+    public Double getHeight() {return height;}
+    public Double getWeight() {return weight;}
     public User getUser() {return user;}
 
     //setter
     public void setUser(User user) {this.user = user;}
     public void setGender(Gender gender) {this.gender = gender;}
-    public void setHeight(Long height) {this.height = height;}
-    public void setWeight(Long weight) {this.weight = weight;}
+    public void setHeight(Double height) {this.height = height;}
+    public void setWeight(Double weight) {this.weight = weight;}
 
 }

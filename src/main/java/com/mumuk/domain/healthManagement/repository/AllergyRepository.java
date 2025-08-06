@@ -12,6 +12,5 @@ public interface AllergyRepository extends JpaRepository<Allergy, Long> {
 
     List<Allergy> findByUser(User user);
 
-
     void deleteByUser(User user);
 }

@@ -20,28 +20,27 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api")
 @Slf4j
-public class healthManagementController {
-
+public class HealthManagementController {
     private final AllergyService allergyService;
     private final HealthGoalService healthGoalService;
     private final UserInfoService userInfoService;
 
 
-    public healthManagementController(AllergyService allergyService, HealthGoalService healthGoalService, UserInfoService userInfoService) {
+    public HealthManagementController(AllergyService allergyService, HealthGoalService healthGoalService, UserInfoService userInfoService) {
         this.allergyService = allergyService;
         this.healthGoalService = healthGoalService;
         this.userInfoService = userInfoService;
     }
 
     @Operation(summary = "사용자의 신체정보 변경")
-    @PatchMapping("/userinfo")
+    @PatchMapping("/user-info")
     public Response<UserInfoResponse.UserInfoRes> putUserInfo(@AuthUser Long userId, @Valid @RequestBody UserInfoRequest.UserInfoReq request) {
         UserInfoResponse.UserInfoRes result=userInfoService.setUserInfo(userId, request);
         return Response.ok(ResultCode.USERINFO_PUT_OK, result);
     }
 
     @Operation(summary = "사용자의 신체정보 조회")
-    @GetMapping("/userInfo")
+    @GetMapping("/user-info")
     public Response<UserInfoResponse.UserInfoRes> getUserInfo(@AuthUser Long userId) {
         UserInfoResponse.UserInfoRes result=userInfoService.getUserInfo(userId);
         return Response.ok(ResultCode.USERINFO_GET_OK, result);

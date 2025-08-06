@@ -59,8 +59,8 @@ public enum ResultCode implements BaseCode {
     SEARCH_GET_RECOMMENDED_KEYWORDS_OK(HttpStatus.OK,"SEARCH_400","추천 검색어 조회 성공"),
 
     //HealthManagement Success
-    USERINFO_PUT_OK(HttpStatus.OK,"USERINFO_200","건강목표 변경 성공"),
-    USERINFO_GET_OK(HttpStatus.OK,"USERINFO_200","건강목표 조회 성공"),
+    USERINFO_PUT_OK(HttpStatus.OK,"USERINFO_200","신체정보 변경 성공"),
+    USERINFO_GET_OK(HttpStatus.OK,"USERINFO_200","신체정보 조회 성공"),
     HEALTHGOAL_PUT_OK(HttpStatus.OK,"HEALTHGOAL_200","건강목표 변경 성공"),
     HEALTHGOAL_GET_OK(HttpStatus.OK,"HEALTHGOAL_200","건강목표 조회 성공"),
     ALLERGY_PUT_OK(HttpStatus.OK, "ALLERGY_200","알러지 정보 변경 성공"),
