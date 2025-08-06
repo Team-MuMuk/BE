@@ -2,6 +2,7 @@ package com.mumuk.domain.notification.service;
 
 import com.mumuk.domain.ingredient.entity.DdayFcmSetting;
 import com.mumuk.domain.ingredient.entity.Ingredient;
+import com.mumuk.domain.ingredient.entity.IngredientNotification;
 import com.mumuk.domain.ingredient.repository.IngredientRepository;
 import com.mumuk.domain.notification.entity.Fcm;
 import com.mumuk.domain.user.entity.User;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -46,14 +48,22 @@ public class IngredientExpireScheduler {
 
 
             for (Ingredient ingredient : ingredients) {
-                if (ingredient.getExpireDate() == null || ingredient.getDaySetting() == null) {
+
+                List<IngredientNotification> alarmSettings = ingredient.getDaySettings();
+
+                if (ingredient.getDaySettings() == null || ingredient.getDaySettings().isEmpty()) {
+                    continue;
+                }
+
+                if (alarmSettings == null || alarmSettings.isEmpty() ||
+                        alarmSettings.stream().allMatch(s -> s.getDdayFcmSetting() == DdayFcmSetting.NONE)) {
                     continue;
                 }
 
                 long daysLeft = ChronoUnit.DAYS.between(today, ingredient.getExpireDate());
 
 
-                if (!shouldNotify(ingredient.getDaySetting(), daysLeft)) {
+                if (!shouldNotify(ingredient.getDaySettings(), daysLeft)) {
                     continue;
                 }
 
@@ -64,18 +74,18 @@ public class IngredientExpireScheduler {
 
                 if (sent) {
                     log.info("✅ 알림 전송 완료: 재료={}, 남은일수={}, 설정={}",
-                            ingredient.getName(), daysLeft, ingredient.getDaySetting());
+                            ingredient.getName(), daysLeft, ingredient.getDaySettings());
                 } else {
                     log.info("⚠️ 알림 전송 실패/스킵: 재료={}, 남은일수={}, 설정={}",
-                            ingredient.getName(), daysLeft, ingredient.getDaySetting());
+                            ingredient.getName(), daysLeft, ingredient.getDaySettings());
                 }
             }
         }
     }
 
-    private boolean shouldNotify(List <DdayFcmSetting> daySettingList ,long daysLeft){
+    private boolean shouldNotify(List <IngredientNotification> daySettingList , long daysLeft){
         return daySettingList != null &&
                 daySettingList.stream()
-                        .anyMatch(setting -> setting.getDaysBefore() == daysLeft);
+                        .anyMatch(setting -> setting.getDdayFcmSetting().getDaysBefore() == daysLeft);
     }
 }

@@ -6,6 +6,7 @@ import com.mumuk.domain.ingredient.dto.request.IngredientRequest;
 import com.mumuk.domain.ingredient.dto.response.IngredientResponse;
 import com.mumuk.domain.ingredient.entity.DdayFcmSetting;
 import com.mumuk.domain.ingredient.entity.Ingredient;
+import com.mumuk.domain.ingredient.entity.IngredientNotification;
 import com.mumuk.domain.ingredient.repository.IngredientRepository;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,15 +76,19 @@ public class IngredientServiceImpl implements IngredientService {
             throw new AuthException(ErrorCode.USER_NOT_EQUAL);
         }
 
+        List<IngredientNotification> alarmSetting = req.getDaySetting().stream()
+                .map(setting -> new IngredientNotification(ingredient, setting))
+                .toList(); //추후 수정가능성이 없으므로 toList로 반환.추후 알림설정한 리스트에대해 수정필요할시 .collect(Collectors.toList());
+
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
         if (req.getExpireDate().isBefore(today)) {
             throw new BusinessException(ErrorCode.INVALID_EXPIREDATE);
         }
 
-        if (!req.getDaySetting().contains(DdayFcmSetting.NONE)) {
-            ingredient.setDaySetting(req.getDaySetting());
-        }
+        ingredient.getDaySettings().clear();
+        ingredient.getDaySettings().addAll(alarmSetting); //알림설정 최신화 (NONE 포함조건 불필요)
+
 
         ingredient.setName(req.getName());
         ingredient.setExpireDate(req.getExpireDate());

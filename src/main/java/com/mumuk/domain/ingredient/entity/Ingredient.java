@@ -21,20 +21,16 @@ public class Ingredient extends BaseEntity {
     @Column(name = "유통기한", nullable = false)
     private LocalDate expireDate;
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "재료별 알림 설정", joinColumns = @JoinColumn(name = "ingredient_id"))
-    @Column(name = "디데이 알림 설정")
-    private List<DdayFcmSetting> daySetting; //기본 리스트로 수정 재료 등록시 기본값 NONE 추가
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @OneToMany(mappedBy = "ingredient", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<IngredientNotification> daySettings = new ArrayList<>();
+
     public Ingredient(){
 
     }
-
     // Getter
     public Long getId() {
         return id;
@@ -48,13 +44,9 @@ public class Ingredient extends BaseEntity {
         return expireDate;
     }
 
-    public List<DdayFcmSetting> getDaySetting() {
-        return daySetting;
-    }
+    public User getUser() {return user;}
 
-    public User getUser() {
-        return user;
-    }
+    public List<IngredientNotification> getDaySettings() {return daySettings;}
 
     // Setter
     public void setId(Long id) {
@@ -69,11 +61,7 @@ public class Ingredient extends BaseEntity {
         this.expireDate = expireDate;
     }
 
-    public void setDaySetting(List<DdayFcmSetting> daySetting) {
-        this.daySetting = daySetting;
-    }
+    public void setUser(User user) {this.user = user;}
 
-    public void setUser(User user) {
-        this.user = user;
-    }
+    public void setDaySettings(List<IngredientNotification> daySettings) {this.daySettings = daySettings;}
 }

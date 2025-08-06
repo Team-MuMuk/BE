@@ -3,6 +3,8 @@ package com.mumuk.domain.ingredient.dto.request;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mumuk.domain.ingredient.entity.DdayFcmSetting;
+import com.mumuk.domain.ingredient.entity.Ingredient;
+import com.mumuk.domain.ingredient.entity.IngredientNotification;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 

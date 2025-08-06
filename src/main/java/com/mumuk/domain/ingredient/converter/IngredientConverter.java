@@ -4,11 +4,13 @@ import com.mumuk.domain.ingredient.dto.request.IngredientRequest;
 import com.mumuk.domain.ingredient.dto.response.IngredientResponse;
 import com.mumuk.domain.ingredient.entity.DdayFcmSetting;
 import com.mumuk.domain.ingredient.entity.Ingredient;
+import com.mumuk.domain.ingredient.entity.IngredientNotification;
 import com.mumuk.domain.user.entity.User;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -19,7 +21,9 @@ public class IngredientConverter {
         ingredient.setName(req.getName());
         ingredient.setExpireDate(req.getExpireDate());
         ingredient.setUser(user);
-        ingredient.setDaySetting(List.of(DdayFcmSetting.NONE)); //기본값 NONE 설정
+        ingredient.setDaySettings(
+                List.of(new IngredientNotification(ingredient, DdayFcmSetting.NONE))
+        );//기본값 NONE 리스트 설정.업데이트시 새로운 리스트로 Set 하므로 불변리스트로 코드 간략화
         return ingredient;
 
     }

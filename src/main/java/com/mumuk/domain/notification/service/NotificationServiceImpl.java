@@ -63,6 +63,7 @@ public class NotificationServiceImpl implements NotificationService {
         } else {
             // 새로운 FCM 엔티티 생성
             fcm = new Fcm();
+            fcm.setUser(user);
             fcm.setFcmToken(req.getFcmToken());
             log.info("✅ 새로운 FCM 토큰이 저장되었습니다.");
         }
