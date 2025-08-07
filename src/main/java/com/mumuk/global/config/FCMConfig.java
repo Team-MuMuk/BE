@@ -20,24 +20,18 @@ import java.io.InputStream;
 @RequiredArgsConstructor
 public class FCMConfig {
 
-    @Value("${firebase.admin.sdk.path}")
-    private String firebaseAdminSdkPath;
-
     @PostConstruct
     public void initialize() {
 
-        if (firebaseAdminSdkPath == null || firebaseAdminSdkPath.trim().isEmpty()) {
-            log.error("Firebase Admin SDK 파일 경로가 설정되지 않았습니다");
-                throw new IllegalStateException("Firebase Admin SDK 파일 경로가 필요합니다");
-        }
+        try (InputStream serviceAccount = getClass()
+                .getClassLoader()
+                .getResourceAsStream("secrets/firebase-admin-sdk.json")) {
 
-        File credentialFile = new File(firebaseAdminSdkPath);
-        if (!credentialFile.exists()) {
-            log.error("Firebase Admin SDK 파일이 존재하지 않습니다: {}", firebaseAdminSdkPath);
-            throw new IllegalStateException("Firebase Admin SDK 파일을 찾을 수 없습니다");
-        }
+            if (serviceAccount == null) {
+                log.error("Firebase Admin SDK 파일이 classpath에 존재하지 않습니다.");
+                throw new IllegalStateException("Firebase Admin SDK 파일을 찾을 수 없습니다 (classpath)");
+            }
 
-        try (InputStream serviceAccount = new FileInputStream(firebaseAdminSdkPath)) {
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                     .build();
@@ -50,12 +44,12 @@ public class FCMConfig {
                 log.info("이미 Firebase 초기화 완료");
             }
 
-            } catch (IOException e) {
-                log.error("Firebase Admin SDK 초기화 실패: 인증 파일을 읽을 수 없습니다", e);
-                throw new RuntimeException("Firebase 초기화 실패", e);
-            } catch (Exception e) {
-                log.error("Firebase Admin SDK 초기화 중 예상치 못한 오류 발생", e);
-                throw new RuntimeException("Firebase 초기화 실패", e);
-            }
+        } catch (IOException e) {
+            log.error("Firebase Admin SDK 초기화 실패: 인증 파일을 읽을 수 없습니다", e);
+            throw new RuntimeException("Firebase 초기화 실패", e);
+        } catch (Exception e) {
+            log.error("Firebase Admin SDK 초기화 중 예상치 못한 오류 발생", e);
+            throw new RuntimeException("Firebase 초기화 실패", e);
+        }
     }
 }
