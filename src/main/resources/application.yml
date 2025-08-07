@@ -51,6 +51,10 @@ naver:
     client-id: ${NAVER_BLOG_CLIENT_ID}
     secret-key: ${NAVER_BLOG_SECRET_KEY}
     base-url: https://openapi.naver.com/v1/search/blog.json
+  clova:
+    ocr:
+      invoke-url: ${NAVER_CLOVA_INVOKE_URL}
+      secret-key: ${NAVER_CLOVA_SECRET_KEY}
 
 
 colsms:
