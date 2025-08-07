@@ -8,9 +8,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.HttpHeaders;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
 
 @Component
 public class NaverBlogClient {

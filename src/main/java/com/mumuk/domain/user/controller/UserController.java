@@ -7,7 +7,6 @@ import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -34,12 +33,5 @@ public class UserController {
     public Response<String> editProfile(@AuthUser Long userId, @Valid @RequestBody UserRequest.EditProfileReq req) {
         userService.editProfile(userId, req);
         return Response.ok(ResultCode.EDIT_PROFILE_OK, "프로필이 수정되었습니다.");
-    }
-
-    @Operation(summary = "건강 데이터 수집 동의")
-    @PostMapping("/health-consent")
-    public Response<String> agreeToHealthData(@AuthUser Long userId) {
-        userService.agreeToHealthData(userId);
-        return Response.ok(ResultCode.AGREE_HEALTH_DATA_OK, "건강 데이터 수집에 동의하였습니다.");
     }
 }

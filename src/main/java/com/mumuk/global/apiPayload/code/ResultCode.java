@@ -34,6 +34,7 @@ public enum ResultCode implements BaseCode {
 
     // Health Data Success
     AGREE_HEALTH_DATA_OK(HttpStatus.OK, "USER_HEALTH_200", "건강 데이터 수집 동의 성공"),
+    OCR_HEALTH_TEXT_EXTRACT_OK(HttpStatus.OK, "USER_HEALTH_201", "건강 이미지에서 텍스트 추출 성공"),
 
     // UserRecipe Success
     USER_RECIPE_OK(HttpStatus.OK, "USER_RECIPE_200", "유저의 해당 레시피 조회 정보 저장 성공"),
