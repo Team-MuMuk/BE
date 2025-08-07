@@ -17,6 +17,9 @@ services:
       - POSTGRESQL_URL=jdbc:postgresql://${PROD_DB_ENDPOINT}:5432/${PROD_DB_NAME}
     networks:
       - mumuk_network
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost" ]
       interval: 30s
@@ -43,6 +46,12 @@ services:
       - "6379:6379"
     networks:
       - mumuk_network
+    healthcheck:
+      test: ["CMD","redis-cli","ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
 
   redis-exporter:
     image: oliver006/redis_exporter:v1.61.0
