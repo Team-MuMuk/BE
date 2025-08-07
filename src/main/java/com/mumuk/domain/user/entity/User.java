@@ -40,7 +40,7 @@ public class User extends BaseEntity {
 
     private String statusMessage;
 
-    @Column(name = "agreed_to_health_data", nullable = false)
+    @Column(name = "agreed_to_health_data", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean agreedToHealthData = false;
 
     @Column(name = "내부 식별을 위한 소셜 id")
