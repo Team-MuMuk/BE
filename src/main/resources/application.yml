@@ -75,3 +75,9 @@ management:
     web:
       exposure:
         include: prometheus
+
+
+firebase:
+  admin:
+    sdk:
+      path: ${FIREBASE_ADMIN_SDK_PATH}
