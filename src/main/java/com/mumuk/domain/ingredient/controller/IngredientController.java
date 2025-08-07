@@ -3,7 +3,6 @@ package com.mumuk.domain.ingredient.controller;
 import com.mumuk.domain.ingredient.dto.request.IngredientRequest;
 import com.mumuk.domain.ingredient.dto.response.IngredientResponse;
 import com.mumuk.domain.ingredient.service.IngredientService;
-import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
@@ -66,9 +65,6 @@ public class IngredientController {
     public Response<List<IngredientResponse.ExpireDateManegeRes>> getExpireDateManegeIngredient (@AuthUser Long userId){
 
         List<IngredientResponse.ExpireDateManegeRes> ingredients = ingredientService.getCloseExpireDateIngredients(userId);
-
-return Response.ok(ResultCode.CLOSED_DATE_INGREDIENT_RETRIEVE_OK, ingredients);
+        return Response.ok(ResultCode.CLOSED_DATE_INGREDIENT_RETRIEVE_OK, ingredients);
     }
-
-
 }
