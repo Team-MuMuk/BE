@@ -7,6 +7,7 @@ import com.mumuk.domain.user.dto.request.FCMRequest;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
+@Tag(name = "FCM 푸시 알림 & 유통기한 관련")
 @RequestMapping("/api/notification")
 public class NotificationController {
 

@@ -5,11 +5,13 @@ import com.mumuk.domain.user.dto.response.UserResponse;
 import com.mumuk.domain.user.service.OAuthService;
 import com.mumuk.global.apiPayload.response.Response;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "카카오 & 네이버 소셜 로그인 관련")
 @Slf4j
 public class OAuthController {
 
