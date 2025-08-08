@@ -76,8 +76,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public boolean isPhoneNumberAvailable(String phoneNumber) {
-        String formatted = formatPhoneWithHyphen(phoneNumber);    // 하이픈 있는 형태로 변환
-        return !userRepository.existsByPhoneNumber(formatted);
+        return !userRepository.existsByPhoneNumber(phoneNumber);
     }
 
     @Override
