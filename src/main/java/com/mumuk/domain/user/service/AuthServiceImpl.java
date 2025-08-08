@@ -70,7 +70,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public boolean isNicknameAvailable(String nickname) {
-        return !userRepository.existsByNickname(nickname);
+        return !userRepository.existsByNickName(nickname);
     }
 
     @Override
