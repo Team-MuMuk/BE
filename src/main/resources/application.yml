@@ -35,10 +35,7 @@ app:
   env: local
 
 kakao:
-  native-app-key: ${KAKAO_SECRET_KEY}
   redirect-uri: http://localhost:8080/login/oauth2/code/kakao    # 인가 코드
-  token-uri: https://kauth.kakao.com/oauth/token      # 토큰 발급 요청
-  user-info-uri: https://kapi.kakao.com/v2/user/me    # 유저 정보 조회
 
 naver:
   login:
