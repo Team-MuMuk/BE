@@ -62,6 +62,24 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean isLoginIdAvailable(String loginId) {
+        return !userRepository.existsByLoginId(loginId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isNicknameAvailable(String nickname) {
+        return !userRepository.existsByNickname(nickname);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isPhoneNumberAvailable(String phoneNumber) {
+        return !userRepository.existsByPhoneNumber(phoneNumber);
+    }
+
+    @Override
     @Transactional
     public TokenResponse logIn(AuthRequest.LogInReq request, HttpServletResponse response) {
 
