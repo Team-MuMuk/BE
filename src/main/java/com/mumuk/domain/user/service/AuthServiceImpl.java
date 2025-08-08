@@ -76,7 +76,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public boolean isPhoneNumberAvailable(String phoneNumber) {
-        return !userRepository.existsByPhoneNumber(phoneNumber);
+        String formatted = formatPhoneWithHyphen(phoneNumber);    // 하이픈 있는 형태로 변환
+        return !userRepository.existsByPhoneNumber(formatted);
     }
 
     @Override
@@ -295,5 +296,19 @@ public class AuthServiceImpl implements AuthService {
                 .map(i -> random.nextInt(10))  // 0 ~ 9
                 .mapToObj(String::valueOf)
                 .collect(Collectors.joining());
+    }
+
+    private String formatPhoneWithHyphen(String phoneNumber) {
+
+        if (phoneNumber == null) return null;
+
+        String digits = phoneNumber.replaceAll("\\D", "");
+
+        if (digits.length() == 11) {
+            return digits.replaceFirst("(\\d{3})(\\d{4})(\\d{4})", "$1-$2-$3");
+        } else if (digits.length() == 10) {
+            return digits.replaceFirst("(\\d{3})(\\d{3})(\\d{4})", "$1-$2-$3");
+        }
+        return phoneNumber;
     }
 }
