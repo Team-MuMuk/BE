@@ -49,15 +49,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = extractToken(request);
 
             if (token != null && jwtTokenProvider.validateToken(token)) {
-                String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(token);
-
-                userRepository.findByPhoneNumber(phoneNumber)
-                        .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+                Long user_id = jwtTokenProvider.getUserIdFromToken(token);
 
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
 
                 JwtAuthenticationToken authentication =
-                        new JwtAuthenticationToken(phoneNumber, authorities);
+                        new JwtAuthenticationToken(user_id, authorities);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }else {
