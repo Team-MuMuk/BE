@@ -66,4 +66,19 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     // 제목으로 검색 (대소문자 무시, SimpleRes DTO로 반환)
     @Query("SELECT new com.mumuk.domain.recipe.dto.response.RecipeResponse$SimpleRes(r.id, r.title, r.recipeImage) FROM Recipe r WHERE LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%'))")
     List<RecipeResponse.SimpleRes> findByTitleContainingIgnoreCase(@Param("title") String title);
+
+    // 효율적인 랜덤 샘플링 (DB 레벨에서 한 번의 쿼리로 처리)
+    @Query(value = "SELECT * FROM recipe ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+    List<Recipe> findRandomRecipes(@Param("limit") int limit);
+
+    // PK 범위를 이용한 랜덤 샘플링 (대용량 테이블용 대안)
+    @Query(value = """
+        SELECT * FROM recipe 
+        WHERE id >= (
+            SELECT FLOOR(RAND() * (SELECT MAX(id) FROM recipe)) + 1
+        )
+        ORDER BY id 
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Recipe> findRandomRecipesByPkRange(@Param("limit") int limit);
 }

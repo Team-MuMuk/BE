@@ -24,8 +24,6 @@ import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 import java.util.Map;
@@ -285,52 +283,56 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         return recipesWithScores;
     }
 
-    /**
+        /**
      * DB 레벨에서 랜덤 레시피 샘플링 (성능 최적화)
+     * 
+     * @param sampleSize 샘플링할 레시피 개수
+     * @return 랜덤하게 선택된 레시피 목록
      */
     private List<Recipe> getRandomRecipesForEvaluation(int sampleSize) {
         try {
             // 전체 레시피 수 조회
             long totalCount = recipeRepository.count();
-            
+
             if (totalCount == 0) {
                 return new ArrayList<>();
             }
-            
+
             // 전체 레시피 수가 샘플 크기보다 작으면 모두 반환
             if (totalCount <= sampleSize) {
                 return recipeRepository.findAll();
             }
-            
-            // 랜덤 오프셋을 사용한 샘플링
-            List<Recipe> sampledRecipes = new ArrayList<>();
-            Set<Long> usedOffsets = new HashSet<>();
-            
-            while (sampledRecipes.size() < sampleSize && usedOffsets.size() < totalCount) {
-                // 랜덤 오프셋 생성
-                long randomOffset = (long) (Math.random() * totalCount);
-                
-                if (usedOffsets.add(randomOffset)) {
-                    try {
-                        PageRequest pageRequest = PageRequest.of((int) (randomOffset / PAGE_SIZE), 1);
-                        Page<Recipe> recipePage = recipeRepository.findAll(pageRequest);
-                        
-                        if (!recipePage.getContent().isEmpty()) {
-                            sampledRecipes.add(recipePage.getContent().get(0));
-                        }
-                    } catch (Exception e) {
-                        log.warn("랜덤 샘플링 중 오류 발생: {}", e.getMessage());
-                    }
+
+            // 1차 시도: DB의 RAND() 함수를 사용한 효율적인 랜덤 샘플링
+            try {
+                List<Recipe> randomRecipes = recipeRepository.findRandomRecipes(sampleSize);
+                if (randomRecipes.size() >= sampleSize) {
+                    log.debug("DB RAND() 함수를 사용한 랜덤 샘플링 성공: {}개", randomRecipes.size());
+                    return randomRecipes;
                 }
+            } catch (Exception e) {
+                log.debug("DB RAND() 함수 실패, PK 범위 방식으로 대체: {}", e.getMessage());
             }
-            
-            return sampledRecipes;
-            
-        } catch (Exception e) {
-            log.warn("DB 랜덤 샘플링 실패, 전체 조회로 대체: {}", e.getMessage());
-            // 실패 시 전체 조회 후 메모리에서 샘플링
+
+            // 2차 시도: PK 범위를 이용한 랜덤 샘플링 (대용량 테이블용)
+            try {
+                List<Recipe> randomRecipes = recipeRepository.findRandomRecipesByPkRange(sampleSize);
+                if (randomRecipes.size() >= sampleSize) {
+                    log.debug("PK 범위 랜덤 샘플링 성공: {}개", randomRecipes.size());
+                    return randomRecipes;
+                }
+            } catch (Exception e) {
+                log.debug("PK 범위 랜덤 샘플링 실패, 전체 조회로 대체: {}", e.getMessage());
+            }
+
+            // 3차 시도: 전체 조회 후 메모리에서 샘플링 (fallback)
+            log.warn("DB 레벨 랜덤 샘플링 실패, 전체 조회 후 메모리 샘플링으로 대체");
             List<Recipe> allRecipes = recipeRepository.findAll();
             return sampleRecipesForEvaluation(allRecipes, sampleSize);
+
+        } catch (Exception e) {
+            log.error("레시피 랜덤 샘플링 중 예상치 못한 오류 발생: {}", e.getMessage());
+            return new ArrayList<>();
         }
     }
 
