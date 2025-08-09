@@ -330,7 +330,7 @@ public class RecipeServiceImpl implements RecipeService {
             String bearerToken = request.getHeader("Authorization");
             
             if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-                return bearerToken;
+                return bearerToken.substring(7); // "Bearer " 접두사 제거
             }
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         } catch (Exception e) {
