@@ -79,7 +79,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         User user = getUser(userId);
         List<String> availableIngredients = getUserIngredients(userId);
         List<String> allergyTypes = getUserAllergies(userId);
-        String redisKey = generateRedisKey(userId, availableIngredients);
+        String redisKey = generateRedisKey(userId, availableIngredients, allergyTypes);
         List<RecipeResponse.DetailRes> cachedResult = getCachedRecommendations(redisKey);
         if (cachedResult != null) return cachedResult;
         String prompt = createRecommendationPrompt(availableIngredients, allergyTypes, user);
@@ -120,18 +120,14 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         List<String> availableIngredients = getUserIngredients(userId);
         List<String> allergyTypes = getUserAllergies(userId);
 
-        // 모든 레시피 조회 (48개)
-        List<Recipe> allRecipes = recipeRepository.findAll();
+        // DB 레벨에서 랜덤 샘플링으로 24개 조회
+        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
 
-        if (allRecipes.isEmpty()) {
+        if (sampledRecipes.isEmpty()) {
             log.warn("DB에 레시피가 없습니다.");
             return new ArrayList<>();
         }
 
-        log.info("전체 레시피 수: {}", allRecipes.size());
-
-        // 랜덤 샘플링으로 24개 선택
-        List<Recipe> sampledRecipes = sampleRecipesForEvaluation(allRecipes, 24);
         log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
 
         // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
@@ -159,18 +155,14 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         List<String> allergyTypes = getUserAllergies(userId);
         String healthInfo = getUserHealthInfo(userId);
         
-        // 모든 레시피 조회
-        List<Recipe> allRecipes = recipeRepository.findAll();
+        // DB 레벨에서 랜덤 샘플링으로 24개 조회
+        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
         
-        if (allRecipes.isEmpty()) {
+        if (sampledRecipes.isEmpty()) {
             log.warn("DB에 레시피가 없습니다.");
             return new ArrayList<>();
         }
         
-        log.info("전체 레시피 수: {}", allRecipes.size());
-        
-        // 랜덤 샘플링으로 24개 선택
-        List<Recipe> sampledRecipes = sampleRecipesForEvaluation(allRecipes, 24);
         log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
         
         // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
@@ -299,7 +291,56 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     /**
-     * 레시피 랜덤 샘플링 (성능 최적화)
+     * DB 레벨에서 랜덤 레시피 샘플링 (성능 최적화)
+     */
+    private List<Recipe> getRandomRecipesForEvaluation(int sampleSize) {
+        try {
+            // 전체 레시피 수 조회
+            long totalCount = recipeRepository.count();
+            
+            if (totalCount == 0) {
+                return new ArrayList<>();
+            }
+            
+            // 전체 레시피 수가 샘플 크기보다 작으면 모두 반환
+            if (totalCount <= sampleSize) {
+                return recipeRepository.findAll();
+            }
+            
+            // 랜덤 오프셋을 사용한 샘플링
+            List<Recipe> sampledRecipes = new ArrayList<>();
+            Set<Long> usedOffsets = new HashSet<>();
+            
+            while (sampledRecipes.size() < sampleSize && usedOffsets.size() < totalCount) {
+                // 랜덤 오프셋 생성
+                long randomOffset = (long) (Math.random() * totalCount);
+                
+                if (usedOffsets.add(randomOffset)) {
+                    try {
+                        PageRequest pageRequest = PageRequest.of((int) (randomOffset / PAGE_SIZE), 1);
+                        Page<Recipe> recipePage = recipeRepository.findAll(pageRequest);
+                        
+                        if (!recipePage.getContent().isEmpty()) {
+                            sampledRecipes.add(recipePage.getContent().get(0));
+                        }
+                    } catch (Exception e) {
+                        log.warn("랜덤 샘플링 중 오류 발생: {}", e.getMessage());
+                    }
+                }
+            }
+            
+            return sampledRecipes;
+            
+        } catch (Exception e) {
+            log.warn("DB 랜덤 샘플링 실패, 전체 조회로 대체: {}", e.getMessage());
+            // 실패 시 전체 조회 후 메모리에서 샘플링
+            List<Recipe> allRecipes = recipeRepository.findAll();
+            return sampleRecipesForEvaluation(allRecipes, sampleSize);
+        }
+    }
+
+    /**
+     * 메모리에서 레시피 랜덤 샘플링 (fallback)
      */
     private List<Recipe> sampleRecipesForEvaluation(List<Recipe> recipes, int sampleSize) {
         if (recipes.size() <= sampleSize) {
@@ -533,10 +574,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         }
     }
 
-    private String generateRedisKey(Long userId, List<String> ingredients) {
+    private String generateRedisKey(Long userId, List<String> ingredients, List<String> allergyTypes) {
         String ingredientsStr = String.join(",", ingredients);
+        String allergyStr = allergyTypes.isEmpty() ? "no-allergy" : String.join(",", allergyTypes);
         
-        String key = "recipe:recommend:" + userId + ":" + ingredientsStr;
+        String key = "recipe:recommend:" + userId + ":" + ingredientsStr + ":allergy:" + allergyStr;
         
         if (key.length() > 200) {
             try {
@@ -544,7 +586,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 byte[] hash = digest.digest(key.getBytes(StandardCharsets.UTF_8));
                 return "recipe:recommend:" + userId + ":" + bytesToHex(hash).substring(0, 16);
             } catch (Exception e) {
-                return "recipe:recommend:" + userId + ":" + ingredientsStr.hashCode();
+                return "recipe:recommend:" + userId + ":" + (ingredientsStr + allergyStr).hashCode();
             }
         }
         
