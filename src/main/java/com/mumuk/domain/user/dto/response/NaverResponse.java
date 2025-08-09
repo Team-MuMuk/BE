@@ -7,13 +7,6 @@ public class NaverResponse {
 
     @Getter
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class OAuthToken {
-        private String access_token;
-        private String refresh_token;
-    }
-
-    @Getter
-    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class NaverProfile {
         private String resultcode;
         private String message;

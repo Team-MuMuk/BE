@@ -3,10 +3,13 @@ package com.mumuk.domain.ingredient.dto.request;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mumuk.domain.ingredient.entity.DdayFcmSetting;
+import com.mumuk.domain.ingredient.entity.Ingredient;
+import com.mumuk.domain.ingredient.entity.IngredientNotification;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public class IngredientRequest {
 
@@ -20,12 +23,7 @@ public class IngredientRequest {
 
         @NotNull
         @JsonFormat(pattern = "yyyy-MM-dd")
-        @JsonProperty("expireDate")
         private LocalDate expireDate;
-
-        @NotNull
-        @JsonProperty("daySetting")
-        private DdayFcmSetting daySetting;
     }
 
     @Getter
@@ -41,6 +39,6 @@ public class IngredientRequest {
         private LocalDate expireDate;
 
         @NotNull
-        private DdayFcmSetting daySetting;
+        private List<DdayFcmSetting> daySetting;
     }
 }

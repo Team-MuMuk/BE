@@ -9,6 +9,7 @@ import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "자체 로그인/회원가입 관련")
 @Slf4j
 public class AuthController {
 
@@ -27,11 +29,35 @@ public class AuthController {
     }
 
 
-    @Operation(summary = "회원 가입")
+    @Operation(summary = "회원가입")
     @PostMapping("/sign-up")
     public Response<String> signUp(@Valid @RequestBody AuthRequest.SignUpReq request) {
         authService.signUp(request);
         return Response.ok(ResultCode.USER_SIGNUP_OK, "회원 가입이 완료되었습니다.");
+    }
+
+    @Operation(summary = "로그인 ID 중복 확인", description = "loginId 사용 가능 여부 확인")
+    @GetMapping("/exists/login-id")
+    public Response<String> existsLoginId(@RequestParam("value") String loginId) {
+        boolean available = authService.isLoginIdAvailable(loginId);
+        String message = available ? "사용 가능한 로그인 ID 입니다." : "이미 사용 중인 로그인 ID 입니다.";
+        return Response.ok(ResultCode.USER_CHECK_OK, message);
+    }
+
+    @Operation(summary = "닉네임 중복 확인", description = "nickname 사용 가능 여부 확인")
+    @GetMapping("/exists/nickname")
+    public Response<String> existsNickname(@RequestParam("value") String nickname) {
+        boolean available = authService.isNicknameAvailable(nickname);
+        String message = available ? "사용 가능한 닉네임입니다." : "이미 사용 중인 닉네임입니다.";
+        return Response.ok(ResultCode.USER_CHECK_OK, message);
+    }
+
+    @Operation(summary = "전화번호 중복 확인", description = "phoneNumber 사용 가능 여부 확인")
+    @GetMapping("/exists/phone-number")
+    public Response<String> existsPhoneNumber(@RequestParam("value") String phoneNumber) {
+        boolean available = authService.isPhoneNumberAvailable(phoneNumber);
+        String message = available ? "사용 가능한 전화번호입니다." : "이미 사용 중인 전화번호입니다.";
+        return Response.ok(ResultCode.USER_CHECK_OK, message);
     }
 
     @Operation(summary = "로그인", description = "이메일과 비밀번호 입력을 통해 로그인 후, Access Token 과 Refresh Token 이 반환됩니다.")

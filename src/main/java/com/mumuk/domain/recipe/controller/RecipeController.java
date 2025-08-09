@@ -8,11 +8,13 @@ import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.Valid;
 
 @RestController
+@Tag(name = "레시피 및 카테고리 관련")
 @RequestMapping("/api/recipe")
 public class RecipeController {
 

@@ -8,9 +8,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.HttpHeaders;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
 
 @Component
 public class NaverBlogClient {
@@ -32,8 +29,7 @@ public class NaverBlogClient {
 
 
     public String searchBlog(String query) {
-
-        String url = BASE_URL + "?query=" + URLEncoder.encode(query, StandardCharsets.UTF_8);
+        String url = BASE_URL + "?query=" + query;
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Naver-Client-Id", clientId);
