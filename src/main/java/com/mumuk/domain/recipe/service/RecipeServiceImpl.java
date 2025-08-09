@@ -390,13 +390,23 @@ public class RecipeServiceImpl implements RecipeService {
         } catch (Exception e) {
             log.error("AI 재료 매칭 분석 실패: {}", e.getMessage());
             // AI 실패 시 기본 JSON 형태로 반환
-            return String.format("""
-                {
-                    "match": [],
-                    "mismatch": %s,
-                    "replaceable": []
-                }
-                """, recipeIngredients);
+            try {
+                Map<String, Object> fallback = new HashMap<>();
+                fallback.put("match", List.of());
+                fallback.put("mismatch", recipeIngredients);
+                fallback.put("replaceable", List.of());
+                return objectMapper.writeValueAsString(fallback);
+            } catch (Exception jsonException) {
+                log.error("JSON 생성 실패: {}", jsonException.getMessage());
+                // 최후의 수단으로 간단한 JSON 문자열 반환
+                return String.format("""
+                    {
+                        "match": [],
+                        "mismatch": ["%s"],
+                        "replaceable": []
+                    }
+                    """, String.join("\", \"", recipeIngredients));
+            }
         }
     }
 
