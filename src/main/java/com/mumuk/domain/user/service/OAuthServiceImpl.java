@@ -10,9 +10,11 @@ import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.security.exception.AuthException;
+import com.mumuk.global.security.exception.AuthFailureHandler;
 import com.mumuk.global.security.jwt.JwtTokenProvider;
 import com.mumuk.global.security.oauth.util.KaKaoUtil;
 import com.mumuk.global.security.oauth.util.NaverUtil;
+import com.mumuk.global.security.oauth.util.StateUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,16 +26,15 @@ import org.springframework.beans.factory.annotation.Value;
 @Service
 public class OAuthServiceImpl implements OAuthService {
 
+    private final StateUtil stateUtil;
     private final KaKaoUtil kakaoUtil;
     private final NaverUtil naverUtil;
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
-    @Value("${kakao.redirect-uri}")
-    private String kakaoRedirectUri;
 
-
-    public OAuthServiceImpl(KaKaoUtil kakaoUtil, NaverUtil naverUtil, UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
+    public OAuthServiceImpl(StateUtil stateUtil, KaKaoUtil kakaoUtil, NaverUtil naverUtil, UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
+        this.stateUtil = stateUtil;
         this.kakaoUtil = kakaoUtil;
         this.naverUtil = naverUtil;
         this.userRepository = userRepository;
@@ -43,10 +44,14 @@ public class OAuthServiceImpl implements OAuthService {
 
     @Override
     @Transactional
-    public UserResponse.JoinResultDTO oAuthKaKaoLogin(String accessCode, String state) {
+    public UserResponse.JoinResultDTO oAuthKaKaoLoginWithAccessToken(String kakaoAccessToken, String state) {
 
-        KaKaoResponse.OAuthToken oAuthToken = kakaoUtil.requestToken(accessCode, state, kakaoRedirectUri);
-        KaKaoResponse.KakaoProfile kakaoProfile = kakaoUtil.requestProfile(oAuthToken);
+        if (!stateUtil.isValidUUID(state)) {
+            log.error("[🚨ERROR🚨] 유효하지 않은 state 값 (UUID 아님): {}", state);
+            throw new AuthFailureHandler(ErrorCode.SOCIAL_LOGIN_INVALID_STATE);
+        }
+
+        KaKaoResponse.KakaoProfile kakaoProfile = kakaoUtil.requestProfileWithAccessToken(kakaoAccessToken);
 
         String socialId = String.valueOf(kakaoProfile.getId());
         String email = kakaoProfile.getKakao_account().getEmail();
@@ -80,10 +85,14 @@ public class OAuthServiceImpl implements OAuthService {
 
     @Override
     @Transactional
-    public UserResponse.JoinResultDTO oAuthNaverLogin(String accessCode, String state) {
+    public UserResponse.JoinResultDTO oAuthNaverLogin(String naverAccessToken, String state) {
 
-        NaverResponse.OAuthToken oAuthToken = naverUtil.requestToken(accessCode, state);
-        NaverResponse.NaverProfile naverProfile = naverUtil.requestProfile(oAuthToken);
+        if (!stateUtil.isValidUUID(state)) {
+            log.error("[🚨ERROR🚨] 유효하지 않은 state 값 (UUID 아님): {}", state);
+            throw new AuthFailureHandler(ErrorCode.SOCIAL_LOGIN_INVALID_STATE);
+        }
+
+        NaverResponse.NaverProfile naverProfile = naverUtil.requestProfileWithAccessToken(naverAccessToken);
 
         String socialId = String.valueOf(naverProfile.getResponse().getId());
         String email = naverProfile.getResponse().getEmail();

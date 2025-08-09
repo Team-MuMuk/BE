@@ -26,16 +26,22 @@ public enum ResultCode implements BaseCode {
     USER_WITHDRAW_OK(HttpStatus.NO_CONTENT, "USER_204", "유저 탈퇴 성공"),
     USER_LOGIN_OK(HttpStatus.OK, "USER_200", "유저 로그인 성공"),
     USER_SIGNUP_OK(HttpStatus.CREATED, "USER_201", "유저 회원가입 성공"),
+    USER_CHECK_OK(HttpStatus.OK, "USER_200", "중복 여부 검증 성공"),
     PASSWORD_CHECK_OK(HttpStatus.OK, "USER_200", "올바른 비밀번호를 입력하였습니다."),
 
     SEND_ID_BY_SMS_OK(HttpStatus.NO_CONTENT, "USER_204", "아이디 변경을 위한 SMS 인증 발송 성공"),
     SEND_PW_BY_SMS_OK(HttpStatus.NO_CONTENT, "USER_204", "비밀번호 변경을 위한 SMS 인증 발송 성공"),
     EDIT_PROFILE_OK(HttpStatus.OK, "USER_200", "프로필 수정 성공"),
 
+    // Health Data Success
+    AGREE_HEALTH_DATA_OK(HttpStatus.OK, "USER_HEALTH_200", "건강 데이터 수집 동의 성공"),
+    OCR_HEALTH_TEXT_EXTRACT_OK(HttpStatus.OK, "USER_HEALTH_201", "건강 이미지에서 텍스트 추출 성공"),
+
     // UserRecipe Success
     USER_RECIPE_OK(HttpStatus.OK, "USER_RECIPE_200", "유저의 해당 레시피 조회 정보 저장 성공"),
     RECENT_RECIPE_OK(HttpStatus.OK, "USER_RECIPE_201", "최근 조회한 레시피 불러오기 성공"),
     CLICK_LIKE_OK(HttpStatus.OK, "USER_RECIPE_202", "찜상태 변경 성공"),
+
     //Ingredient Success
     INGREDIENT_REGISTER_OK(HttpStatus.OK, "INGREDIENT_200","재료등록 성공"),
     INGREDIENT_RETRIEVE_OK(HttpStatus.OK, "INGREDIENT_200","등록하신 재료조회 성공"),
@@ -54,9 +60,12 @@ public enum ResultCode implements BaseCode {
     SEARCH_GET_TRENDKEYWORDS_OK(HttpStatus.OK, "SEARCH_400", "인기 검색어 조회 성공"),
     SEARCH_GET_RECOMMENDED_KEYWORDS_OK(HttpStatus.OK,"SEARCH_400","추천 검색어 조회 성공"),
 
-    //Allergy Success
-    ALLERGY_PATCH_OK(HttpStatus.OK, "ALLERGY_200","알러지 정보 변경 성공"),
-    ALLERGY_DELETE_OK(HttpStatus.NO_CONTENT, "ALLERGY_204","알러지 정보 삭제 성공"),
+    //HealthManagement Success
+    USERINFO_PUT_OK(HttpStatus.OK,"USERINFO_200","신체정보 변경 성공"),
+    USERINFO_GET_OK(HttpStatus.OK,"USERINFO_200","신체정보 조회 성공"),
+    HEALTHGOAL_PUT_OK(HttpStatus.OK,"HEALTHGOAL_200","건강목표 변경 성공"),
+    HEALTHGOAL_GET_OK(HttpStatus.OK,"HEALTHGOAL_200","건강목표 조회 성공"),
+    ALLERGY_PUT_OK(HttpStatus.OK, "ALLERGY_200","알러지 정보 변경 성공"),
     ALLERGY_GET_OK(HttpStatus.OK, "ALLERGY_200","알러지 정보 조회 성공");
 
 

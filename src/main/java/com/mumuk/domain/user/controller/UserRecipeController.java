@@ -2,22 +2,22 @@ package com.mumuk.domain.user.controller;
 
 
 
-import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.user.dto.request.UserRecipeRequest;
 import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 
-import com.mumuk.domain.user.dto.response.UserResponse;
 import com.mumuk.domain.user.service.UserRecipeService;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/user-recipe")
+@Tag(name = "최근 & 찜한 레시피 조회 관련")
 @Slf4j
 public class UserRecipeController {
 

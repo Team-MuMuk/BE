@@ -6,8 +6,10 @@ import com.mumuk.domain.user.entity.LoginType;
 import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
-
     void signUp(AuthRequest.SignUpReq request);
+    boolean isLoginIdAvailable(String loginId);
+    boolean isNicknameAvailable(String nickname);
+    boolean isPhoneNumberAvailable(String phoneNumber);
     TokenResponse logIn(AuthRequest.LogInReq request, HttpServletResponse response);
     void logout(String refreshToken, LoginType loginType);
     void withdraw(Long userId);

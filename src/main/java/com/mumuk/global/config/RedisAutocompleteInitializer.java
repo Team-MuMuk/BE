@@ -1,0 +1,38 @@
+package com.mumuk.global.config;
+
+import com.mumuk.domain.recipe.entity.Recipe;
+import com.mumuk.domain.recipe.repository.RecipeRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class RedisAutocompleteInitializer implements CommandLineRunner {
+
+    private static final String ZSET_KEY = "recipetitles";
+    private final RedisTemplate<String, String> redisTemplate;
+    private final RecipeRepository recipeRepository;
+
+    @Override
+    public void run(String... args) throws Exception {
+
+        try {
+            log.info("레디스 데이터 초기화 시작");
+            List<Recipe> allRecipes = recipeRepository.findAll();
+
+            for (Recipe recipe : allRecipes) {
+                redisTemplate.opsForZSet().add(ZSET_KEY, recipe.getTitle(), 0);
+            }
+            log.info("레디스 데이터 초기화 성공");
+        } catch (Exception e) {
+            log.error("레디스 데이터 초기화 실패", e);
+        }
+
+    }
+}

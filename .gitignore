@@ -65,3 +65,6 @@ dist/
 nginx/nginx.conf
 ./gradle
 ./bin
+
+/loki/
+src/main/resources/secrets/firebase-admin-sdk.json
