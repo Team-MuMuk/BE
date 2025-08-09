@@ -60,7 +60,18 @@ public class RecipeConverter {
         return new RecipeResponse.SimpleRes(
                 recipe.getId(),
                 recipe.getTitle(),
-                recipe.getRecipeImage()
+                recipe.getRecipeImage(),
+                false // 기본값은 false
+        );
+    }
+
+    // 엔티티 + 찜 여부 → 간단한 응답 DTO
+    public static RecipeResponse.SimpleRes toSimpleRes(Recipe recipe, Boolean isLiked) {
+        return new RecipeResponse.SimpleRes(
+                recipe.getId(),
+                recipe.getTitle(),
+                recipe.getRecipeImage(),
+                isLiked != null ? isLiked : false
         );
     }
 

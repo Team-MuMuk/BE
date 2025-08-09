@@ -12,6 +12,8 @@ import com.mumuk.domain.recipe.entity.RecipeCategory;
 import com.mumuk.domain.recipe.repository.RecipeRepository;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
+import com.mumuk.domain.user.repository.UserRecipeRepository;
+import com.mumuk.domain.user.entity.UserRecipe;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
 import com.mumuk.global.client.OpenAiClient;
@@ -43,6 +45,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
+    private final UserRecipeRepository userRecipeRepository;
     private final IngredientService ingredientService;
     private final AllergyService allergyService;
     private final RecipeRepository recipeRepository;
@@ -54,12 +57,13 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private static final int MAX_RECOMMENDATIONS = 10; // 최대 추천 개수
 
     public RecipeRecommendServiceImpl(OpenAiClient openAiClient, ObjectMapper objectMapper,
-                                   UserRepository userRepository, IngredientService ingredientService,
-                                   AllergyService allergyService, RecipeRepository recipeRepository,
-                                   RedisTemplate<String, Object> redisTemplate) {
+                                   UserRepository userRepository, UserRecipeRepository userRecipeRepository,
+                                   IngredientService ingredientService, AllergyService allergyService,
+                                   RecipeRepository recipeRepository, RedisTemplate<String, Object> redisTemplate) {
         this.openAiClient = openAiClient;
         this.objectMapper = objectMapper;
         this.userRepository = userRepository;
+        this.userRecipeRepository = userRecipeRepository;
         this.ingredientService = ingredientService;
         this.allergyService = allergyService;
         this.recipeRepository = recipeRepository;
@@ -131,12 +135,21 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
 
         // SimpleRes로 변환하여 반환 (상위 6개만)
-        return recipesWithScores.stream()
+        List<RecipeWithScore> topRecipes = recipesWithScores.stream()
                 .limit(6)
+                .collect(Collectors.toList());
+        
+        List<Long> recipeIds = topRecipes.stream()
+                .map(recipeWithScore -> recipeWithScore.recipe.getId())
+                .collect(Collectors.toList());
+        Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
+        
+        return topRecipes.stream()
                 .map(recipeWithScore -> new RecipeResponse.SimpleRes(
                     recipeWithScore.recipe.getId(),
                     recipeWithScore.recipe.getTitle(),
-                    recipeWithScore.recipe.getRecipeImage()
+                    recipeWithScore.recipe.getRecipeImage(),
+                    likedMap.get(recipeWithScore.recipe.getId())
                 ))
                 .collect(Collectors.toList());
     }
@@ -166,18 +179,27 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
         
         // SimpleRes로 변환하여 반환 (상위 6개만)
-        return recipesWithScores.stream()
+        List<RecipeWithScore> topRecipes = recipesWithScores.stream()
                 .limit(6)
+                .collect(Collectors.toList());
+        
+        List<Long> recipeIds = topRecipes.stream()
+                .map(recipeWithScore -> recipeWithScore.recipe.getId())
+                .collect(Collectors.toList());
+        Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
+        
+        return topRecipes.stream()
                 .map(recipeWithScore -> new RecipeResponse.SimpleRes(
                     recipeWithScore.recipe.getId(),
                     recipeWithScore.recipe.getTitle(),
-                    recipeWithScore.recipe.getRecipeImage()
+                    recipeWithScore.recipe.getRecipeImage(),
+                    likedMap.get(recipeWithScore.recipe.getId())
                 ))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<RecipeResponse.SimpleRes> recommendRecipesByCategories(String categories) {
+    public List<RecipeResponse.SimpleRes> recommendRecipesByCategories(Long userId, String categories) {
         try {
             String[] categoryArray = categories.split(",");
             List<RecipeCategory> recipeCategories = new ArrayList<>();
@@ -197,13 +219,21 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             }
             
             List<Recipe> recipes = recipeRepository.findByCategoriesIn(recipeCategories);
-            
-            return recipes.stream()
+            List<Recipe> limitedRecipes = recipes.stream()
                     .limit(MAX_RECOMMENDATIONS) // 상위 10개만 반환
+                    .collect(Collectors.toList());
+            
+            List<Long> recipeIds = limitedRecipes.stream()
+                    .map(Recipe::getId)
+                    .collect(Collectors.toList());
+            Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
+            
+            return limitedRecipes.stream()
                     .map(recipe -> new RecipeResponse.SimpleRes(
                         recipe.getId(),
                         recipe.getTitle(),
-                        recipe.getRecipeImage()
+                        recipe.getRecipeImage(),
+                        likedMap.get(recipe.getId())
                     ))
                     .collect(Collectors.toList());
         } catch (Exception e) {
@@ -213,7 +243,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     @Override
-    public List<RecipeResponse.SimpleRes> recommendRandomRecipes() {
+    public List<RecipeResponse.SimpleRes> recommendRandomRecipes(Long userId) {
         // 페이징 처리로 성능 최적화
         PageRequest pageRequest = PageRequest.of(0, PAGE_SIZE);
         Page<Recipe> recipePage = recipeRepository.findAll(pageRequest);
@@ -229,12 +259,21 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 랜덤하게 섞기
         Collections.shuffle(allRecipes);
         
-        return allRecipes.stream()
+        List<Recipe> limitedRecipes = allRecipes.stream()
                 .limit(MAX_RECOMMENDATIONS) // 상위 10개만 반환
+                .collect(Collectors.toList());
+        
+        List<Long> recipeIds = limitedRecipes.stream()
+                .map(Recipe::getId)
+                .collect(Collectors.toList());
+        Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
+        
+        return limitedRecipes.stream()
                 .map(recipe -> new RecipeResponse.SimpleRes(
                     recipe.getId(),
                     recipe.getTitle(),
-                    recipe.getRecipeImage()
+                    recipe.getRecipeImage(),
+                    likedMap.get(recipe.getId())
                 ))
                 .collect(Collectors.toList());
     }
@@ -1150,5 +1189,35 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         log.info("최종 파싱 결과: {}", scores);
         return scores;
+    }
+
+    /**
+     * 사용자의 레시피 찜 여부를 일괄 조회합니다.
+     */
+    private Map<Long, Boolean> getUserRecipeLikedMap(Long userId, List<Long> recipeIds) {
+        try {
+            List<UserRecipe> userRecipes = userRecipeRepository.findByUserIdAndRecipeIdIn(userId, recipeIds);
+            Map<Long, Boolean> likedMap = new HashMap<>();
+            
+            // 모든 레시피에 대해 기본값 false 설정
+            for (Long recipeId : recipeIds) {
+                likedMap.put(recipeId, false);
+            }
+            
+            // 찜한 레시피만 true로 업데이트
+            for (UserRecipe userRecipe : userRecipes) {
+                likedMap.put(userRecipe.getRecipe().getId(), userRecipe.getLiked());
+            }
+            
+            return likedMap;
+        } catch (Exception e) {
+            log.warn("사용자 찜 여부 조회 실패: {} - {}", userId, e.getMessage());
+            // 예외 발생 시에도 모든 레시피에 대해 false 반환
+            Map<Long, Boolean> fallbackMap = new HashMap<>();
+            for (Long recipeId : recipeIds) {
+                fallbackMap.put(recipeId, false);
+            }
+            return fallbackMap;
+        }
     }
 } 

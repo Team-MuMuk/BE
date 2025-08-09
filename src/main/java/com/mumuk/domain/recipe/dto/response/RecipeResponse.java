@@ -29,6 +29,7 @@ public class RecipeResponse {
         private Long id;
         private String title;
         private String recipeImage;
+        private Boolean isLiked;
     }
 
     @Getter

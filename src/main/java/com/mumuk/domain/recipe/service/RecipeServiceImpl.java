@@ -5,6 +5,8 @@ import com.mumuk.domain.recipe.dto.request.RecipeRequest;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.repository.RecipeRepository;
+import com.mumuk.domain.user.repository.UserRecipeRepository;
+import com.mumuk.domain.user.entity.UserRecipe;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
 import org.springframework.stereotype.Service;
@@ -41,6 +43,7 @@ public class RecipeServiceImpl implements RecipeService {
     private static final Duration RECIPE_CACHE_TTL = Duration.ofDays(7); // 7일 동안 캐시
 
     private final RecipeRepository recipeRepository;
+    private final UserRecipeRepository userRecipeRepository;
     private final RedisTemplate<String, Object> redisTemplate;
     private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
@@ -49,10 +52,11 @@ public class RecipeServiceImpl implements RecipeService {
     private final AllergyService allergyService;
     private final JwtTokenProvider jwtTokenProvider;
 
-    public RecipeServiceImpl(RecipeRepository recipeRepository, RedisTemplate<String, Object> redisTemplate,
+    public RecipeServiceImpl(RecipeRepository recipeRepository, UserRecipeRepository userRecipeRepository, RedisTemplate<String, Object> redisTemplate,
                            OpenAiClient openAiClient, ObjectMapper objectMapper, UserRepository userRepository,
                            IngredientService ingredientService, AllergyService allergyService, JwtTokenProvider jwtTokenProvider) {
         this.recipeRepository = recipeRepository;
+        this.userRecipeRepository = userRecipeRepository;
         this.redisTemplate = redisTemplate;
         this.openAiClient = openAiClient;
         this.objectMapper = objectMapper;
@@ -168,9 +172,14 @@ public class RecipeServiceImpl implements RecipeService {
     @Override
     @Transactional(readOnly = true)
     public List<RecipeResponse.SimpleRes> getSimpleRecipes() {
+        Long userId = getCurrentUserId();
         List<Recipe> recipes = recipeRepository.findAll();
+        List<Long> recipeIds = recipes.stream()
+                .map(Recipe::getId)
+                .collect(Collectors.toList());
+        Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
         return recipes.stream()
-                .map(RecipeConverter::toSimpleRes)
+                .map(recipe -> RecipeConverter.toSimpleRes(recipe, likedMap.get(recipe.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -563,6 +572,36 @@ public class RecipeServiceImpl implements RecipeService {
         } catch (Exception e) {
             log.warn("JSON 추출 실패: {}", e.getMessage());
             return aiContent;
+        }
+    }
+
+    /**
+     * 사용자의 레시피 찜 여부를 일괄 조회합니다.
+     */
+    private Map<Long, Boolean> getUserRecipeLikedMap(Long userId, List<Long> recipeIds) {
+        try {
+            List<UserRecipe> userRecipes = userRecipeRepository.findByUserIdAndRecipeIdIn(userId, recipeIds);
+            Map<Long, Boolean> likedMap = new HashMap<>();
+            
+            // 모든 레시피에 대해 기본값 false 설정
+            for (Long recipeId : recipeIds) {
+                likedMap.put(recipeId, false);
+            }
+            
+            // 찜한 레시피만 true로 업데이트
+            for (UserRecipe userRecipe : userRecipes) {
+                likedMap.put(userRecipe.getRecipe().getId(), userRecipe.getLiked());
+            }
+            
+            return likedMap;
+        } catch (Exception e) {
+            log.warn("사용자 찜 여부 조회 실패: {} - {}", userId, e.getMessage());
+            // 예외 발생 시에도 모든 레시피에 대해 false 반환
+            Map<Long, Boolean> fallbackMap = new HashMap<>();
+            for (Long recipeId : recipeIds) {
+                fallbackMap.put(recipeId, false);
+            }
+            return fallbackMap;
         }
     }
 }

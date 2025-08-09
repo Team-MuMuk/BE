@@ -51,14 +51,16 @@ public interface RecipeRecommendService {
     
     /**
      * 여러 카테고리별 레시피 추천 (DB 기반)
+     * @param userId 사용자 ID
      * @param categories 레시피 카테고리 목록 (콤마로 구분)
      * @return 해당 카테고리들의 레시피 목록
      */
-    List<RecipeResponse.SimpleRes> recommendRecipesByCategories(String categories);
+    List<RecipeResponse.SimpleRes> recommendRecipesByCategories(Long userId, String categories);
     
     /**
      * 랜덤 레시피 추천 (DB 기반)
+     * @param userId 사용자 ID
      * @return 랜덤하게 선택된 레시피 목록
      */
-    List<RecipeResponse.SimpleRes> recommendRandomRecipes();
+    List<RecipeResponse.SimpleRes> recommendRandomRecipes(Long userId);
 } 
