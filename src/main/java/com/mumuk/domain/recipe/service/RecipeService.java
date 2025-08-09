@@ -13,4 +13,8 @@ public interface RecipeService {
     List<String> findNamesByCategories(String categories);
     List<RecipeResponse.DetailRes> getAllRecipes();
     List<RecipeResponse.SimpleRes> getSimpleRecipes();
+    
+    // 레시피 재료 매칭 기능 (토큰 기반 인증)
+    RecipeResponse.IngredientMatchingRes matchIngredientsByAI(Long recipeId);
+    RecipeResponse.IngredientMatchingRes matchIngredientsSimple(Long recipeId);
 }
