@@ -42,17 +42,30 @@ public class IngredientController {
     }
 
 
-    @Operation(summary = "재료 수정", description = "등록하신 재료의 상세정보를 수정합니다.")
-    @PatchMapping("/{ingredientId}/update")
+    @Operation(summary = "재료의 유통기한 수정", description = "등록하신 재료의 유통기한을 수정합니다.")
+    @PatchMapping("/{ingredientId}/updateExpireDate")
     public Response<String> updateIngredient(
             @PathVariable Long ingredientId,
-            @Valid @RequestBody IngredientRequest.UpdateReq req,
+            @Valid @RequestBody IngredientRequest.UpdateExpireDateReq req,
             @AuthUser Long userId) {
 
 
-        ingredientService.updateIngredient(ingredientId, req, userId);
+        ingredientService.updateIngredientExpireDate(ingredientId, req, userId);
         return Response.ok(ResultCode.INGREDIENT_UPDATE_OK, "재료 수정 완료");
     }
+
+    @Operation(summary = "재료의 알림설정 수정", description = "등록하신 재료의 알림설정기간을 수정합니다.")
+    @PatchMapping("/{ingredientId}/updateDdaySetting")
+    public Response<String> updateIngredient(
+            @PathVariable Long ingredientId,
+            @Valid @RequestBody IngredientRequest.UpdateDdaySettingReq req,
+            @AuthUser Long userId) {
+
+
+        ingredientService.updateIngredientDdaySetting(ingredientId, req, userId);
+        return Response.ok(ResultCode.INGREDIENT_UPDATE_OK, "재료 수정 완료");
+    }
+
 
     @Operation(summary = "재료 삭제", description = "해당 재료를 삭제합니다.")
     @DeleteMapping("/{ingredientId}/delete")
