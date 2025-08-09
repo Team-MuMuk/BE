@@ -1,17 +1,24 @@
 package com.mumuk.domain.recipe.dto.response;
 
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
+@Getter
+@AllArgsConstructor
+public class RecipeNaverShoppingResponse {
 
-public class RecipeCoupangResponse {
+    private List<NaverShopping> naverShoppings;
 
-    private List<Coupang> coupangs;
-
+    @Builder
     @Getter
+    @Setter
     @AllArgsConstructor
-    public static class Coupang{
+    @NoArgsConstructor
+    public static class NaverShopping {
         private String title;
         private String price;
         private String link;
