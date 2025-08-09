@@ -31,7 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final List<String> EXCLUDED_URLS = List.of(
             "/swagger-ui/**", "/v3/api-docs/**", "/api/auth/sign-up", "/api/auth/login", "/api/auth/reissue",
-            "/api/auth/find-id", "/api/auth/find-pw", "/api/auth/kakao/callback","/api/auth/naver/callback"
+            "/api/auth/find-id", "/api/auth/find-pw", "/api/auth/kakao-login","/api/auth/naver-login"
     );
 
     @Override
@@ -49,15 +49,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = extractToken(request);
 
             if (token != null && jwtTokenProvider.validateToken(token)) {
-                String phoneNumber = jwtTokenProvider.getPhoneNumberFromToken(token);
-
-                userRepository.findByPhoneNumber(phoneNumber)
-                        .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+                Long user_id = jwtTokenProvider.getUserIdFromToken(token);
 
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
 
                 JwtAuthenticationToken authentication =
-                        new JwtAuthenticationToken(phoneNumber, authorities);
+                        new JwtAuthenticationToken(user_id, authorities);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }else {

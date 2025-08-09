@@ -28,7 +28,4 @@ naver:
     redirect-uri: ${NAVER_PROD_REDIRECT_URI}
 
 kakao:
-  native-app-key: ${KAKAO_NATIVE_APP_KEY}
   redirect-uri: ${KAKAO_PROD_REDIRECT_URI}
-  token-uri: https://kauth.kakao.com/oauth/token
-  user-info-uri: https://kapi.kakao.com/v2/user/me

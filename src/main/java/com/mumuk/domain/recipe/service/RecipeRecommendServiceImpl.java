@@ -2,11 +2,10 @@ package com.mumuk.domain.recipe.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mumuk.domain.allergy.dto.response.AllergyResponse;
-import com.mumuk.domain.allergy.service.AllergyService;
+import com.mumuk.domain.healthManagement.dto.response.AllergyResponse;
+import com.mumuk.domain.healthManagement.service.AllergyService;
 import com.mumuk.domain.ingredient.dto.response.IngredientResponse;
 import com.mumuk.domain.ingredient.service.IngredientService;
-import com.mumuk.domain.recipe.dto.request.RecipeRequest;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.entity.RecipeCategory;
@@ -19,25 +18,20 @@ import com.mumuk.global.client.OpenAiClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.HashMap;
 import org.springframework.web.reactive.function.client.WebClient;
-// import com.mumuk.domain.recipe.converter.RecipeRecommendConverter; // 삭제
-import com.mumuk.domain.recipe.converter.RecipeConverter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Collections;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -77,10 +71,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     public List<RecipeResponse.DetailRes> recommendAndSaveRecipesByIngredient(Long userId) {
         User user = getUser(userId);
         List<String> availableIngredients = getUserIngredients(userId);
-        String redisKey = generateRedisKey(userId, availableIngredients);
+        List<String> allergyTypes = getUserAllergies(userId);
+        String redisKey = generateRedisKey(userId, availableIngredients, allergyTypes);
         List<RecipeResponse.DetailRes> cachedResult = getCachedRecommendations(redisKey);
         if (cachedResult != null) return cachedResult;
-        String prompt = createRecommendationPrompt(availableIngredients, user);
+        String prompt = createRecommendationPrompt(availableIngredients, allergyTypes, user);
         List<Recipe> savedRecipes = callAIAndSaveRecipes(prompt);
         List<RecipeResponse.DetailRes> result = savedRecipes.stream()
             .map(this::toDetailRes)
@@ -93,7 +88,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     public List<RecipeResponse.DetailRes> recommendByIngredient(Long userId) {
         User user = getUser(userId);
         List<String> availableIngredients = getUserIngredients(userId);
-        String prompt = createRecommendationPrompt(availableIngredients, user);
+        List<String> allergyTypes = getUserAllergies(userId);
+        String prompt = createRecommendationPrompt(availableIngredients, allergyTypes, user);
         List<Recipe> savedRecipes = callAIAndSaveRecipes(prompt);
         List<RecipeResponse.DetailRes> result = savedRecipes.stream()
             .map(this::toDetailRes)
@@ -117,28 +113,26 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         List<String> availableIngredients = getUserIngredients(userId);
         List<String> allergyTypes = getUserAllergies(userId);
 
-        // 페이징 처리로 성능 최적화
-        PageRequest pageRequest = PageRequest.of(0, PAGE_SIZE);
-        Page<Recipe> recipePage = recipeRepository.findAll(pageRequest);
-        List<Recipe> allRecipes = recipePage.getContent();
+        // DB 레벨에서 랜덤 샘플링으로 24개 조회
+        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
 
-        if (allRecipes.isEmpty()) {
+        if (sampledRecipes.isEmpty()) {
             log.warn("DB에 레시피가 없습니다.");
             return new ArrayList<>();
         }
 
-        log.info("처리할 레시피 수: {}", allRecipes.size());
+        log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
 
-        // AI가 각 레시피의 적합도를 평가 (배치 처리로 최적화됨)
+        // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
         List<RecipeWithScore> recipesWithScores = evaluateRecipeSuitabilityByIngredient(
-            allRecipes, availableIngredients, allergyTypes);
+            sampledRecipes, availableIngredients, allergyTypes);
 
         // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
         recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
 
-        // SimpleRes로 변환하여 반환 (상위 10개만)
+        // SimpleRes로 변환하여 반환 (상위 6개만)
         return recipesWithScores.stream()
-                .limit(MAX_RECOMMENDATIONS)
+                .limit(6)
                 .map(recipeWithScore -> new RecipeResponse.SimpleRes(
                     recipeWithScore.recipe.getId(),
                     recipeWithScore.recipe.getTitle(),
@@ -154,28 +148,26 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         List<String> allergyTypes = getUserAllergies(userId);
         String healthInfo = getUserHealthInfo(userId);
         
-        // 페이징 처리로 성능 최적화
-        PageRequest pageRequest = PageRequest.of(0, PAGE_SIZE);
-        Page<Recipe> recipePage = recipeRepository.findAll(pageRequest);
-        List<Recipe> allRecipes = recipePage.getContent();
+        // DB 레벨에서 랜덤 샘플링으로 24개 조회
+        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
         
-        if (allRecipes.isEmpty()) {
+        if (sampledRecipes.isEmpty()) {
             log.warn("DB에 레시피가 없습니다.");
             return new ArrayList<>();
         }
         
-        log.info("처리할 레시피 수: {}", allRecipes.size());
+        log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
         
-        // AI가 각 레시피의 적합도를 평가
+        // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
         List<RecipeWithScore> recipesWithScores = evaluateRecipeSuitabilityByHealth(
-            allRecipes, availableIngredients, allergyTypes, healthInfo);
+            sampledRecipes, availableIngredients, allergyTypes, healthInfo);
         
         // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
         recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
         
-        // SimpleRes로 변환하여 반환 (상위 10개만)
+        // SimpleRes로 변환하여 반환 (상위 6개만)
         return recipesWithScores.stream()
-                .limit(MAX_RECOMMENDATIONS)
+                .limit(6)
                 .map(recipeWithScore -> new RecipeResponse.SimpleRes(
                     recipeWithScore.recipe.getId(),
                     recipeWithScore.recipe.getTitle(),
@@ -247,6 +239,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 .collect(Collectors.toList());
     }
 
+
+
     // 레시피와 점수를 함께 저장하는 내부 클래스
     private static class RecipeWithScore {
         Recipe recipe;
@@ -266,26 +260,95 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                                                        List<String> allergyTypes) {
         List<RecipeWithScore> recipesWithScores = new ArrayList<>();
         
-        // 재료 목록을 5개로 제한
-        List<String> limitedIngredients = availableIngredients.size() > 5 
-            ? availableIngredients.subList(0, 5) 
-            : availableIngredients;
+        // 중복 제거만 수행
+        List<String> uniqueIngredients = new ArrayList<>(new LinkedHashSet<>(availableIngredients));
         
-        log.info("사용자 보유 재료: {}", String.join(", ", limitedIngredients));
+        log.info("=== 적합도 평가 시작 ===");
+        log.info("사용자 보유 재료: {}", String.join(", ", uniqueIngredients));
+        log.info("사용자 알레르기 정보: {}", allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+        log.info("전체 레시피 수: {}", recipes.size());
         
-        // 배치 크기 제한 (성능 최적화)
-        for (int i = 0; i < recipes.size(); i += BATCH_SIZE) {
-            List<Recipe> batch = recipes.subList(i, Math.min(i + BATCH_SIZE, recipes.size()));
-            try {
-                // 배치 처리
-                recipesWithScores.addAll(processBatch(batch, limitedIngredients, allergyTypes));
-            } catch (Exception e) {
-                log.warn("배치 처리 실패, 개별 처리로 전환: {}", e.getMessage());
-                recipesWithScores.addAll(processIndividual(batch, limitedIngredients, allergyTypes));
-            }
+        // 모든 레시피 평가 (24개)
+        log.info("평가할 레시피 수: {}", recipes.size());
+        
+        try {
+            // 배치 처리
+            recipesWithScores.addAll(processBatch(recipes, uniqueIngredients, allergyTypes));
+        } catch (Exception e) {
+            log.warn("배치 처리 실패, 개별 처리로 전환: {}", e.getMessage());
+            recipesWithScores.addAll(processIndividual(recipes, uniqueIngredients, allergyTypes));
         }
         
+        log.info("=== 적합도 평가 완료 ===");
         return recipesWithScores;
+    }
+
+        /**
+     * DB 레벨에서 랜덤 레시피 샘플링 (성능 최적화)
+     * 
+     * @param sampleSize 샘플링할 레시피 개수
+     * @return 랜덤하게 선택된 레시피 목록
+     */
+    private List<Recipe> getRandomRecipesForEvaluation(int sampleSize) {
+        try {
+            // 전체 레시피 수 조회
+            long totalCount = recipeRepository.count();
+
+            if (totalCount == 0) {
+                return new ArrayList<>();
+            }
+
+            // 전체 레시피 수가 샘플 크기보다 작으면 모두 반환
+            if (totalCount <= sampleSize) {
+                return recipeRepository.findAll();
+            }
+
+            // 1차 시도: DB의 RAND() 함수를 사용한 효율적인 랜덤 샘플링
+            try {
+                List<Recipe> randomRecipes = recipeRepository.findRandomRecipes(sampleSize);
+                if (randomRecipes.size() >= sampleSize) {
+                    log.debug("DB RAND() 함수를 사용한 랜덤 샘플링 성공: {}개", randomRecipes.size());
+                    return randomRecipes;
+                }
+            } catch (Exception e) {
+                log.debug("DB RAND() 함수 실패, PK 범위 방식으로 대체: {}", e.getMessage());
+            }
+
+            // 2차 시도: PK 범위를 이용한 랜덤 샘플링 (대용량 테이블용)
+            try {
+                List<Recipe> randomRecipes = recipeRepository.findRandomRecipesByPkRange(sampleSize);
+                if (randomRecipes.size() >= sampleSize) {
+                    log.debug("PK 범위 랜덤 샘플링 성공: {}개", randomRecipes.size());
+                    return randomRecipes;
+                }
+            } catch (Exception e) {
+                log.debug("PK 범위 랜덤 샘플링 실패, 전체 조회로 대체: {}", e.getMessage());
+            }
+
+            // 3차 시도: 전체 조회 후 메모리에서 샘플링 (fallback)
+            log.warn("DB 레벨 랜덤 샘플링 실패, 전체 조회 후 메모리 샘플링으로 대체");
+            List<Recipe> allRecipes = recipeRepository.findAll();
+            return sampleRecipesForEvaluation(allRecipes, sampleSize);
+
+        } catch (Exception e) {
+            log.error("레시피 랜덤 샘플링 중 예상치 못한 오류 발생: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 메모리에서 레시피 랜덤 샘플링 (fallback)
+     */
+    private List<Recipe> sampleRecipesForEvaluation(List<Recipe> recipes, int sampleSize) {
+        if (recipes.size() <= sampleSize) {
+            return recipes; // 샘플 크기보다 작으면 모두 사용
+        }
+        
+        // 랜덤 샘플링
+        List<Recipe> shuffled = new ArrayList<>(recipes);
+        Collections.shuffle(shuffled);
+        
+        return shuffled.subList(0, sampleSize);
     }
 
     /**
@@ -295,6 +358,10 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                              List<String> availableIngredients, 
                                              List<String> allergyTypes) {
         List<RecipeWithScore> recipesWithScores = new ArrayList<>();
+        
+        log.info("배치 처리 시작 - 사용자 재료: {}, 알레르기: {}", 
+                String.join(", ", availableIngredients), 
+                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
         
         try {
             // 배치 처리: 모든 레시피를 한 번에 AI에게 전달
@@ -335,6 +402,10 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                                   List<String> allergyTypes) {
         List<RecipeWithScore> recipesWithScores = new ArrayList<>();
         
+        log.info("개별 처리 시작 - 사용자 재료: {}, 알레르기: {}", 
+                String.join(", ", availableIngredients), 
+                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+        
         for (Recipe recipe : recipes) {
             try {
                 log.info("레시피 '{}' 재료: {}", recipe.getTitle(), recipe.getIngredients());
@@ -367,19 +438,23 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                                                    String healthInfo) {
         List<RecipeWithScore> recipesWithScores = new ArrayList<>();
         
-        // 재료 목록을 5개로 제한
-        List<String> limitedIngredients = availableIngredients.size() > 5 
-            ? availableIngredients.subList(0, 5) 
-            : availableIngredients;
+        // 중복 제거만 수행
+        List<String> uniqueIngredients = new ArrayList<>(new LinkedHashSet<>(availableIngredients));
         
-        log.info("사용자 보유 재료: {}", String.join(", ", limitedIngredients));
+        log.info("=== 건강 정보 기반 적합도 평가 시작 ===");
+        log.info("사용자 보유 재료: {}", String.join(", ", uniqueIngredients));
+        log.info("사용자 알레르기 정보: {}", allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
         log.info("사용자 건강 정보: {}", healthInfo);
+        log.info("전체 레시피 수: {}", recipes.size());
+        
+        // 모든 레시피 평가 (24개)
+        log.info("평가할 레시피 수: {}", recipes.size());
         
         for (Recipe recipe : recipes) {
             try {
                 log.info("레시피 '{}' 재료: {}", recipe.getTitle(), recipe.getIngredients());
                 
-                String prompt = createHealthSuitabilityPrompt(recipe, limitedIngredients, allergyTypes, healthInfo);
+                String prompt = createHealthSuitabilityPrompt(recipe, uniqueIngredients, allergyTypes, healthInfo);
                 double score = callAIForSuitabilityScore(prompt);
                 
                 log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
@@ -397,6 +472,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             }
         }
         
+        log.info("=== 건강 정보 기반 적합도 평가 완료 ===");
         return recipesWithScores;
     }
 
@@ -406,26 +482,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private String createIngredientSuitabilityPrompt(Recipe recipe, 
                                                    List<String> availableIngredients, 
                                                    List<String> allergyTypes) {
-        StringBuilder promptBuilder = new StringBuilder();
-        
-        promptBuilder.append("사용자가 가지고 있는 재료: ").append(String.join(", ", availableIngredients)).append("\n")
-            .append("레시피 제목: ").append(recipe.getTitle()).append("\n")
-            .append("레시피 재료: ").append(recipe.getIngredients()).append("\n\n")
-            .append("위 정보를 바탕으로 다음 기준으로 적합도를 평가해주세요:\n")
-            .append("1. 사용자 재료와 레시피 재료의 일치도 (주요 재료가 일치하면 높은 점수)\n")
-            .append("2. 대체 가능한 재료 고려 (예: 삼겹살↔목살, 고등어↔생선, 백합↔조개류)\n")
-            .append("3. 알레르기 성분이 포함되어 있으면 0점\n")
-            .append("4. 사용자 재료로 만들 수 있는 정도 (재료가 많을수록 높은 점수)\n\n")
-            .append("점수 기준:\n")
-            .append("- 9-10점: 사용자 재료로 완벽하게 만들 수 있음\n")
-            .append("- 7-8점: 주요 재료가 일치하고 대체 가능\n")
-            .append("- 5-6점: 일부 재료만 일치하지만 가능함\n")
-            .append("- 3-4점: 재료가 부족하지만 기본 재료는 있음\n")
-            .append("- 1-2점: 거의 재료가 없음\n")
-            .append("- 0점: 알레르기 성분 포함\n\n")
-            .append("적합도 점수만 숫자로 응답해주세요 (예: 8.5)");
-        
-        return promptBuilder.toString();
+        return "사용자가 가지고 있는 재료: " + String.join(", ", availableIngredients) + "\n" +
+               buildAllergyPrompt(allergyTypes) +
+               "레시피 제목: " + recipe.getTitle() + "\n" +
+               "레시피 재료: " + recipe.getIngredients() + "\n\n" +
+               buildSuitabilityPromptCommon();
     }
 
     /**
@@ -438,6 +499,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         StringBuilder promptBuilder = new StringBuilder();
         
         promptBuilder.append("사용자가 가지고 있는 재료: ").append(String.join(", ", availableIngredients)).append("\n")
+            .append(buildAllergyPrompt(allergyTypes))
             .append("사용자 건강 정보: ").append(healthInfo).append("\n")
             .append("레시피 제목: ").append(recipe.getTitle()).append("\n")
             .append("레시피 재료: ").append(recipe.getIngredients()).append("\n")
@@ -509,10 +571,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         }
     }
 
-    private String generateRedisKey(Long userId, List<String> ingredients) {
+    private String generateRedisKey(Long userId, List<String> ingredients, List<String> allergyTypes) {
         String ingredientsStr = String.join(",", ingredients);
+        String allergyStr = allergyTypes.isEmpty() ? "no-allergy" : String.join(",", allergyTypes);
         
-        String key = "recipe:recommend:" + userId + ":" + ingredientsStr;
+        String key = "recipe:recommend:" + userId + ":" + ingredientsStr + ":allergy:" + allergyStr;
         
         if (key.length() > 200) {
             try {
@@ -520,7 +583,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 byte[] hash = digest.digest(key.getBytes(StandardCharsets.UTF_8));
                 return "recipe:recommend:" + userId + ":" + bytesToHex(hash).substring(0, 16);
             } catch (Exception e) {
-                return "recipe:recommend:" + userId + ":" + ingredientsStr.hashCode();
+                return "recipe:recommend:" + userId + ":" + (ingredientsStr + allergyStr).hashCode();
             }
         }
         
@@ -560,56 +623,9 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     private String createRecommendationPrompt(List<String> availableIngredients, 
+                                           List<String> allergyTypes, 
                                            User user) {
-        StringBuilder promptBuilder = new StringBuilder();
-        
-        // 재료 목록을 5개로 제한 (성능과 품질의 균형)
-        List<String> limitedIngredients = availableIngredients.size() > 5 
-            ? availableIngredients.subList(0, 5) 
-            : availableIngredients;
-        
-        promptBuilder.append("사용자가 보유한 식재료 목록을 기반으로, 실존하는 요리를 추천해줘.\n\n")
-            .append("※ 요리 선택 기준:\n")
-            .append("- 실제 존재하는 보편적인 요리만 추천 (억지 조합 금지)\n")
-            .append("- 요리명은 검색으로 조리법을 찾을 수 있을 정도로 대중적이고 보편적\n")
-            .append("- 예시: 된장찌개 O, 미나리 된장찌개 O, 돼지고기 앞다리살 감자 상추 된장찌개 X\n")
-            .append("- 사용자 냉장고 재료를 기반으로 추천하되, 많이 들어가는 것보다 실제 보편적 레시피임이 중요\n\n")
-            .append("※ 재료 포함 기준:\n")
-            .append("- 요리에 필요한 모든 보편적인 재료를 포함 (선택사항은 제외)\n")
-            .append("- 예시: 제육볶음 → 고추장, 설탕, 간장, 식용유, 앞다리살, 양파, 당근 (보편적)\n")
-            .append("- 예시: 배추, 깻잎, 치킨스톡, 다시마, 로즈마리, 바질 등은 선택사항이므로 제외\n")
-            .append("- 재료명은 최대한 한국어로 표기 (네기 X → 양파 O)\n")
-            .append("- 기본 조미료: 소금, 후추, 식용유, 간장, 고추장, 설탕\n")
-            .append("- 특수한 양념이나 허브는 필수적인 것만 포함 (로즈마리, 바질, 오레가노, 치킨스톡 등)\n\n")
-            .append("※ 카테고리 선택:\n")
-            .append("- 각 요리의 특성에 맞는 카테고리를 적절하게 선택, 여러개 선택 가능\n")
-            .append("- 마땅히 없다면 OTHER 선택\n\n")
-            .append("※ 추천 결과는 다음 JSON 형식으로 출력해줘:\n")
-            .append("{\n")
-            .append("  \"recommendations\": [\n")
-            .append("    {\n")
-            .append("      \"title\": \"레시피 제목\",\n")
-            .append("      \"description\": \"레시피 설명\",\n")
-            .append("      \"ingredients\": \"재료1, 재료2, 재료3\",\n")
-            .append("      \"category\": \"BODY_WEIGHT_MANAGEMENT,HEALTH_MANAGEMENT\",\n")
-            .append("      \"cookingTime\": 30,\n")
-            .append("      \"calories\": 300,\n")
-            .append("      \"protein\": 20,\n")
-            .append("      \"carbohydrate\": 30,\n")
-            .append("      \"fat\": 10\n")
-            .append("    }\n")
-            .append("  ]\n")
-            .append("}\n\n")
-            .append("※ 사용 가능한 카테고리: BODY_WEIGHT_MANAGEMENT, HEALTH_MANAGEMENT, WEIGHT_LOSS, MUSCLE_GAIN, SUGAR_REDUCTION, BLOOD_PRESSURE, CHOLESTEROL, DIGESTION, OTHER\n\n")
-            .append("※ summary는 UI 상단에 한 줄로 보여줄 예정이므로 간결하고 매력적으로 작성해줘. 예: '바삭한 계란전으로 든든한 한끼 완성!'\n\n")
-            .append("※ 사용자가 보유한 식재료 목록:\n")
-            .append(String.join(", ", limitedIngredients)).append("\n\n")
-            .append("위 재료들을 활용하여 만들 수 있는 보편적인 요리를 4가지 추천해줘.");
-
-        String prompt = promptBuilder.toString();
-        log.info("프롬프트 길이: {} characters", prompt.length());
-        
-        return prompt;
+        return buildRecipePostPromptIngredient(availableIngredients, allergyTypes);
     }
 
     private List<Recipe> callAIAndSaveRecipes(String prompt) {
@@ -619,49 +635,46 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 throw new BusinessException(ErrorCode.OPENAI_INVALID_RESPONSE);
             }
 
+            // OpenAI API 응답에서 content 추출
             JsonNode root = objectMapper.readTree(response);
-            JsonNode choicesNode = root.path("choices");
-            if (choicesNode.isMissingNode() || !choicesNode.isArray() || choicesNode.size() == 0) {
-                throw new BusinessException(ErrorCode.OPENAI_NO_CHOICES);
-            }
-            
-            String aiContent = choicesNode.get(0).path("message").path("content").asText();
+            String aiContent = root.path("choices").path(0).path("message").path("content").asText();
             if (aiContent.isEmpty()) {
                 throw new BusinessException(ErrorCode.OPENAI_MISSING_CONTENT);
             }
             
-            String jsonContent = extractJsonFromResponse(aiContent);
-            if (jsonContent.isEmpty()) {
-                throw new BusinessException(ErrorCode.OPENAI_JSON_PARSE_ERROR);
-            }
+            log.info("AI 원본 응답: {}", aiContent);
             
+            // AI 응답에서 JSON 부분 추출 (코드블록 제거)
+            String jsonContent = extractJsonFromAIResponse(aiContent);
+            log.info("추출된 JSON: {}", jsonContent);
+            
+            // AI 응답을 JSON으로 파싱
             JsonNode recommendationsRoot = objectMapper.readTree(jsonContent);
             JsonNode recommendationsNode = recommendationsRoot.path("recommendations");
             if (recommendationsNode.isMissingNode() || !recommendationsNode.isArray()) {
                 throw new BusinessException(ErrorCode.OPENAI_INVALID_RESPONSE);
             }
             
-            List<Recipe> nonDuplicateRecipes = new ArrayList<>();
+            List<Recipe> recipes = new ArrayList<>();
             
             for (JsonNode rec : recommendationsNode) {
                 try {
-                    Recipe recipe = parseAndValidateRecipe(rec);
+                    Recipe recipe = parseRecipeFromJson(rec);
                     if (recipe != null && !isDuplicateRecipe(recipe)) {
-                        nonDuplicateRecipes.add(recipe);
+                        Recipe savedRecipe = recipeRepository.save(recipe);
+                        recipes.add(savedRecipe);
+                        log.info("레시피 저장 성공: {}", recipe.getTitle());
                     }
                 } catch (Exception e) {
-                    log.warn("레시피 파싱 실패: {}", e.getMessage());
+                    log.warn("레시피 파싱/저장 실패: {}", e.getMessage());
                 }
             }
             
-            if (nonDuplicateRecipes.isEmpty()) {
+            if (recipes.isEmpty()) {
                 throw new BusinessException(ErrorCode.OPENAI_EMPTY_RECOMMENDATIONS);
             }
             
-            // 중복되지 않는 레시피들을 DB에 저장
-            List<Recipe> savedRecipes = saveNonDuplicateRecipes(nonDuplicateRecipes);
-            
-            return savedRecipes;
+            return recipes;
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -671,38 +684,50 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     /**
-     * AI 응답에서 JSON 부분만 추출하는 메서드 (정규표현식 기반 간결화)
+     * AI 응답에서 JSON 부분 추출 (코드블록, 마크다운 등 제거)
      */
-    private String extractJsonFromResponse(String aiContent) {
-        // ```json ... ``` 또는 ``` ... ``` 코드블록 추출
-        Pattern codeBlockPattern = Pattern.compile("```(?:json)?\\s*([\\s\\S]*?)\\s*```", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = codeBlockPattern.matcher(aiContent);
-        if (matcher.find()) {
-            return matcher.group(1).trim();
+    private String extractJsonFromAIResponse(String aiContent) {
+        // ```json ... ``` 또는 ``` ... ``` 코드블록 제거
+        String content = aiContent.trim();
+        
+        // 코드블록 패턴 제거
+        if (content.startsWith("```json")) {
+            content = content.substring(7);
+        } else if (content.startsWith("```")) {
+            content = content.substring(3);
         }
-        // 중괄호로 감싸진 JSON 추출
-        int start = aiContent.indexOf("{");
-        int end = aiContent.lastIndexOf("}");
-        if (start >= 0 && end > start) {
-            return aiContent.substring(start, end + 1).trim();
+        
+        if (content.endsWith("```")) {
+            content = content.substring(0, content.length() - 3);
         }
-        // 그 외에는 전체 반환
-        return aiContent.trim();
+        
+        content = content.trim();
+        
+        // 중괄호로 시작하고 끝나는 JSON 찾기
+        int startBrace = content.indexOf("{");
+        int endBrace = content.lastIndexOf("}");
+        
+        if (startBrace >= 0 && endBrace > startBrace) {
+            return content.substring(startBrace, endBrace + 1);
+        }
+        
+        // JSON을 찾을 수 없으면 원본 반환
+        return content;
     }
 
     /**
-     * AI 응답에서 레시피 정보를 파싱하고 검증하는 메서드
+     * JSON에서 레시피 정보를 직접 파싱 (간소화)
      */
-    private Recipe parseAndValidateRecipe(JsonNode rec) {
+    private Recipe parseRecipeFromJson(JsonNode rec) {
         try {
             String title = rec.path("title").asText();
             String description = rec.path("description").asText();
             String category = rec.path("category").asText();
-            String ingredients = parseIngredients(rec.path("ingredients"));
+            String ingredients = rec.path("ingredients").asText();
             
             // 필수 필드 검증
             if (title.isEmpty() || description.isEmpty() || ingredients.isEmpty() || category.isEmpty()) {
-                log.warn("필수 필드 누락 - title: {}, category: {}, ingredients: {}", title, category, ingredients);
+                log.warn("필수 필드 누락 - title: {}, category: {}", title, category);
                 return null;
             }
             
@@ -726,102 +751,13 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     /**
-     * 레시피 중복 검사 (Redis → DB 순서)
+     * 레시피 중복 검사 (간소화 - DB만 사용)
      */
     private boolean isDuplicateRecipe(Recipe recipe) {
-        // 1. Redis로 중복 검증 (빠른 검증)
-        if (isRecipeTitleExistsInRedis(recipe.getTitle())) {
-            log.info("Redis에서 중복 레시피 발견: {}", recipe.getTitle());
-            return true;
-        }
-        
-        // 2. DB로 중복 검증 (정확한 검증)
-        boolean existsInDB = recipeRepository.existsByTitle(recipe.getTitle());
-        if (existsInDB) {
-            log.info("DB에서 중복 레시피 발견: {}", recipe.getTitle());
-        }
-        return existsInDB;
+        return recipeRepository.existsByTitle(recipe.getTitle());
     }
 
-    /**
-     * 중복되지 않는 레시피들을 DB에 저장하고 Redis에 캐싱
-     */
-    private List<Recipe> saveNonDuplicateRecipes(List<Recipe> nonDuplicateRecipes) {
-        List<Recipe> savedRecipes = new ArrayList<>();
-        
-        for (Recipe recipe : nonDuplicateRecipes) {
-            try {
-                Recipe savedRecipe = recipeRepository.save(recipe);
-                savedRecipes.add(savedRecipe);
-                log.info("레시피 저장 성공: {}", recipe.getTitle());
-                
-                // 저장 성공 시 Redis에 제목만 캐싱
-                cacheRecipeTitleToRedis(savedRecipe);
-                
-            } catch (Exception e) {
-                log.warn("레시피 저장 실패: {} - {}", recipe.getTitle(), e.getMessage());
-            }
-        }
-        
-        return savedRecipes;
-    }
 
-    /**
-     * 레시피 제목을 Redis에 캐싱 (중복 방지 + 검색용)
-     */
-    private void cacheRecipeTitleToRedis(Recipe recipe) {
-        try {
-            // ZSet 하나로 중복 방지 + 자동완성 모두 처리
-            redisTemplate.opsForZSet().add("recipetitles", recipe.getTitle().toLowerCase(), 0);
-            
-            log.info("레시피 제목 Redis 캐싱 성공: {} (ZSet 통합)", recipe.getTitle());
-        } catch (Exception e) {
-            log.warn("레시피 제목 Redis 캐싱 실패: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * 레시피 제목으로 중복 검사 (Redis)
-     */
-    private boolean isRecipeTitleExistsInRedis(String title) {
-        try {
-            // ZSet에서 제목 검색 (소문자로 통일)
-            Double score = redisTemplate.opsForZSet().score("recipetitles", title.toLowerCase());
-            return score != null;
-        } catch (Exception e) {
-            log.warn("Redis 중복 검사 실패: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * 레시피 제목으로 검색 (Redis)
-     */
-    private Long findRecipeIdByTitleFromRedis(String title) {
-        try {
-            String searchKey = "recipe:search:" + title.toLowerCase();
-            Object cached = redisTemplate.opsForValue().get(searchKey);
-            return cached != null ? (Long) cached : null;
-        } catch (Exception e) {
-            log.warn("Redis 검색 실패: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 재료 정보를 파싱하는 메서드
-     */
-    private String parseIngredients(JsonNode ingredientsNode) {
-        if (ingredientsNode.isArray()) {
-            List<String> ingredientsList = new ArrayList<>();
-            for (JsonNode ingredient : ingredientsNode) {
-                ingredientsList.add(ingredient.asText());
-            }
-            return String.join(", ", ingredientsList);
-        } else {
-            return ingredientsNode.asText();
-        }
-    }
 
     /**
      * 카테고리 정보를 파싱하는 메서드
@@ -977,24 +913,31 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     private String buildRandomPrompt() {
-        return "다양하고 맛있는 보편적인 요리를 추천해줘.\n\n" +
-               "※ 요리 선택 기준:\n" +
+        return buildRecipePostPromptRandom();
+    }
+
+    /**
+     * 공통 프롬프트 부분 생성
+     */
+    private String buildRecipePostPromptCommon() {
+        return "※ 레시피 선택 기준:\n" +
                "- 실제 존재하는 보편적인 요리만 추천 (억지 조합 금지)\n" +
                "- 요리명은 검색으로 조리법을 찾을 수 있을 정도로 대중적이고 보편적\n" +
                "- 예시: 된장찌개 O, 미나리 된장찌개 O, 돼지고기 앞다리살 감자 상추 된장찌개 X\n" +
                "- 한국 요리, 중국 요리, 일본 요리, 서양 요리, 동남아 요리 등 다양한 문화권의 요리 포함\n" +
                "- 메인 요리, 반찬, 국물 요리, 볶음 요리, 구이 요리 등 다양한 조리법 포함\n" +
-               "- 고기 요리, 생선 요리, 채식 요리, 면 요리 등 다양한 재료 활용\n\n" +
+               "- 고기 요리, 생선 요리, 채식 요리, 면 요리 등 다양한 재료 활용\n" +
+               "- 레시피 이름에 재료는 2개 이하로 포함, 면(파스타, 우동 등), 밥(덮밥, 볶음밥 등)의 경우 3개까지 가능 (토마토 바질 파스타 O, 고추장 돼지고기 볶음 O, 고추장 양파 돼지고기 볶음 X)\n" +
                "※ 재료 포함 기준:\n" +
-               "- 요리에 필요한 모든 보편적인 재료를 포함 (선택사항은 제외)\n" +
                "- 예시: 제육볶음 → 고추장, 설탕, 간장, 식용유, 앞다리살, 양파, 당근 (보편적)\n" +
                "- 예시: 배추, 깻잎, 치킨스톡, 다시마, 로즈마리, 바질 등은 선택사항이므로 제외\n" +
-               "- 재료명은 반드시 한국어로 표기 (네기 X → 양파 O, 대파 X → 파 O)\n" +
-               "- 기본 조미료: 소금, 후추, 식용유, 간장, 고추장, 설탕, 마늘, 파, 양파, 당근\n" +
-               "- 특수한 양념이나 허브는 제외 (로즈마리, 바질, 오레가노, 치킨스톡 등)\n\n" +
+               "- 재료명은 최대한 한국어로 표기 (네기 X → 양파 O, 어니언 X → 양파 O)\n" +
+               "- 레시피 이름과 재료, 설명 모두 순수 한글로만 구성 (스파게티 O, 스파게티 네ап리타나 X\n" +
+               "- 기본 조미료: 소금, 후추, 식용유, 간장, 설탕\n" +
+               "- 기본 조미료나 허브, 기타조미료는 필수가 아니면 제외 (로즈마리, 바질, 오레가노, 치킨스톡, 굴소스 등)\n\n" +
                "※ 카테고리 선택:\n" +
-               "- 각 요리의 특성에 맞는 카테고리를 적절하게 선택, 여러개 선택 가능\n" +
-               "- 마땅히 없다면 OTHER 선택\n\n" +
+               "- 각 요리의 특성에 맞는 카테고리를 적절하게 선택, 여러개 선택 가능, 애매하다 싶으면 추가\n" +
+               "- 마땅히 없다면 OTHER 선택 (OTHER은 유일해야 함함)\n\n" +
                "※ 추천 결과는 다음 JSON 형식으로 출력해줘:\n" +
                "{\n" +
                "  \"recommendations\": [\n" +
@@ -1012,8 +955,95 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                "  ]\n" +
                "}\n\n" +
                "※ 사용 가능한 카테고리: BODY_WEIGHT_MANAGEMENT, HEALTH_MANAGEMENT, WEIGHT_LOSS, MUSCLE_GAIN, SUGAR_REDUCTION, BLOOD_PRESSURE, CHOLESTEROL, DIGESTION, OTHER\n\n" +
-               "※ summary는 UI 상단에 한 줄로 보여줄 예정이므로 간결하고 매력적으로 작성해줘. 예: '바삭한 계란전으로 든든한 한끼 완성!'\n\n" +
-               "총 8개의 다양한 보편적인 요리를 추천해줘. 중복되지 않는 다양한 요리를 선택해주세요.";
+               "※ summary는 UI 상단에 한 줄로 보여줄 예정이므로 간결하고 매력적으로 작성해줘. 예: '바삭한 계란전으로 든든한 한끼 완성!'";
+    }
+
+    /**
+     * 알러지 정보 프롬프트 생성 (공통)
+     */
+    private String buildAllergyPrompt(List<String> allergyTypes) {
+        if (allergyTypes == null || allergyTypes.isEmpty()) {
+            return "※ 사용자 알레르기 정보: 없음 (알레르기 제한 없음)\n";
+        }
+        
+        return "※ 사용자 알레르기 정보: " + String.join(", ", allergyTypes) + "\n" +
+               "※ 중요: 위 알레르기 성분이 포함된 요리는 절대 추천하지 마세요.\n";
+    }
+
+    /**
+     * 재료 기반 프롬프트 생성
+     */
+    private String buildRecipePostPromptIngredient(List<String> availableIngredients, 
+                                                   List<String> allergyTypes) {
+        StringBuilder promptBuilder = new StringBuilder();
+        
+        // 중복 제거만 수행
+        List<String> uniqueIngredients = new ArrayList<>(new LinkedHashSet<>(availableIngredients));
+        
+        promptBuilder.append("사용자가 보유한 식재료 목록을 기반으로, 실존하는 요리를 추천해줘.\n\n")
+            .append(buildRecipePostPromptCommon())
+            .append("\n\n※ 사용자가 보유한 식재료 목록:\n")
+            .append(String.join(", ", uniqueIngredients)).append("\n\n")
+            .append(buildAllergyPrompt(allergyTypes))
+            .append("\n위 재료들을 활용하여 만들 수 있는 보편적인 요리를 4가지 추천해줘.");
+
+        String prompt = promptBuilder.toString();
+        log.info("프롬프트 길이: {} characters", prompt.length());
+        log.info("전달된 재료: {} (중복제거 후: {}개)", String.join(", ", uniqueIngredients), uniqueIngredients.size());
+        log.info("전달된 알레르기: {}", allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+        
+        return prompt;
+    }
+
+    /**
+     * 랜덤 프롬프트 생성
+     */
+    private String buildRecipePostPromptRandom() {
+        return "다양한 요리 레시피를 추천해줘.\n\n" +
+               buildRecipePostPromptCommon() +
+               "\n\n※ 알레르기 주의사항:\n" +
+               "- 일반적인 알레르기 유발 성분(우유, 계란, 대두, 밀, 땅콩, 견과류, 조개류, 생선 등)이 포함된 요리도 추천 가능\n" +
+               "- 사용자가 개별적으로 알레르기 정보를 확인하고 선택하도록 안내\n\n" +
+               "총 8개의 다양한 보편적인 요리를 추천해줘.";
+    }
+
+    /**
+     * 적합도 평가 공통 프롬프트 생성
+     */
+    private String buildSuitabilityPromptCommon() {
+        return "위 정보를 바탕으로 다음 기준으로 적합도를 평가해줘:\n" +
+               "1. 사용자 재료와 레시피 재료의 일치도 (주요 재료가 일치하면 높은 점수)\n" +
+               "2. 대체 가능한 재료 고려 (예: 삼겹살↔목살, 고등어↔생선, 백합↔조개류)\n" +
+               "3. 알레르기 성분이 포함되어 있으면 반드시 0점 (사용자 알레르기 정보가 있을 때만 적용)\n" +
+               "4. 사용자 재료로 만들 수 있는 정도 (재료가 많을수록 높은 점수)\n\n" +
+               "점수 기준:\n" +
+               "- 9-10점: 사용자 재료로 완벽하게 만들 수 있음\n" +
+               "- 7-8점: 주요 재료가 일치하고 대체 가능\n" +
+               "- 5-6점: 일부 재료만 일치하지만 가능함\n" +
+               "- 3-4점: 재료가 부족하지만 기본 재료는 있음\n" +
+               "- 1-2점: 거의 재료가 없음\n" +
+               "- 0점: 사용자 알레르기 성분 포함 (절대 추천 불가)\n\n" +
+
+               "적합도 점수만 숫자로 응답해줘 (예: 8.5)";
+    }
+
+    /**
+     * 건강 정보 기반 적합도 평가 공통 프롬프트 생성
+     */
+    private String buildHealthSuitabilityPromptCommon() {
+        return "위 정보를 바탕으로 다음 기준으로 적합도를 평가해줘:\n" +
+               "1. 사용자 재료와 레시피 재료의 일치도\n" +
+               "2. 건강 정보에 따른 영양 적합성\n" +
+               "3. 대체 가능한 재료 고려\n" +
+               "4. 알레르기 성분이 포함되어 있으면 0점 (사용자 알레르기 정보가 있을 때만 적용)\n\n" +
+               "점수 기준:\n" +
+               "- 9-10점: 재료도 완벽하고 건강에도 좋음\n" +
+               "- 7-8점: 재료가 일치하고 건강에 적합함\n" +
+               "- 5-6점: 재료는 가능하고 건강상 보통\n" +
+               "- 3-4점: 재료가 부족하거나 건강상 부적합\n" +
+               "- 1-2점: 재료도 부족하고 건강상 부적합\n" +
+               "- 0점: 사용자 알레르기 성분 포함\n\n" +
+               "적합도 점수만 숫자로 응답해주세요 (예: 8.5)";
     }
 
     /**
@@ -1027,8 +1057,9 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         StringBuilder promptBuilder = new StringBuilder();
         
-        promptBuilder.append("사용자가 가지고 있는 재료: ").append(String.join(", ", availableIngredients)).append("\n\n")
-            .append("다음 레시피들의 적합도를 평가해주세요:\n\n");
+        promptBuilder.append("사용자가 가지고 있는 재료: ").append(String.join(", ", availableIngredients)).append("\n")
+            .append(buildAllergyPrompt(allergyTypes))
+            .append("다음 레시피들의 적합도를 평가해줘:\n\n");
         
         int currentLength = promptBuilder.length();
         for (Recipe recipe : recipes) {
@@ -1045,19 +1076,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             currentLength += recipeText.length();
         }
         
-        promptBuilder.append("평가 기준:\n")
-            .append("1. 사용자 재료와 레시피 재료의 일치도 (주요 재료가 일치하면 높은 점수)\n")
-            .append("2. 대체 가능한 재료 고려 (예: 삼겹살↔목살, 고등어↔생선, 백합↔조개류)\n")
-            .append("3. 알레르기 성분이 포함되어 있으면 0점\n")
-            .append("4. 사용자 재료로 만들 수 있는 정도 (재료가 많을수록 높은 점수)\n\n")
-            .append("점수 기준:\n")
-            .append("- 9-10점: 사용자 재료로 완벽하게 만들 수 있음\n")
-            .append("- 7-8점: 주요 재료가 일치하고 대체 가능\n")
-            .append("- 5-6점: 일부 재료만 일치하지만 가능함\n")
-            .append("- 3-4점: 재료가 부족하지만 기본 재료는 있음\n")
-            .append("- 1-2점: 거의 재료가 없음\n")
-            .append("- 0점: 알레르기 성분 포함\n\n")
-            .append("반드시 다음 JSON 형태로만 응답해주세요:\n")
+        promptBuilder.append(buildSuitabilityPromptCommon().replace("위 정보를 바탕으로", "평가 기준:")).append("\n\n")
+            .append("반드시 다음 JSON 형태로만 응답해줘:\n")
             .append("{\n")
             .append("  \"scores\": {\n");
         
@@ -1085,44 +1105,36 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     /**
-     * 배치 응답에서 점수 파싱
+     * 배치 응답에서 점수 파싱 (간소화)
      */
     private Map<String, Double> parseBatchScores(String response, List<Recipe> recipes) {
         Map<String, Double> scores = new HashMap<>();
         
-        log.info("배치 응답 전체: {}", response);
-        
         try {
-            // OpenAI API 표준 응답에서 content 추출
+            // OpenAI API 응답에서 content 추출
             JsonNode jsonNode = objectMapper.readTree(response);
             String aiContent = jsonNode.path("choices").path(0).path("message").path("content").asText();
+            
             log.info("AI 응답 내용: {}", aiContent);
             
-            // AI 응답에서 JSON 부분 추출
-            String jsonContent = extractJsonFromResponse(aiContent);
-            log.info("추출된 JSON 내용: {}", jsonContent);
+            // AI 응답에서 JSON 부분 추출 (코드블록 제거)
+            String jsonContent = extractJsonFromAIResponse(aiContent);
+            log.info("추출된 JSON: {}", jsonContent);
             
-            if (!jsonContent.isEmpty() && jsonContent.startsWith("{")) {
-                JsonNode scoresJson = objectMapper.readTree(jsonContent);
-                JsonNode scoresNode = scoresJson.path("scores");
+            // AI 응답을 JSON으로 파싱
+            JsonNode scoresJson = objectMapper.readTree(jsonContent);
+            JsonNode scoresNode = scoresJson.path("scores");
+            
+            if (!scoresNode.isMissingNode()) {
+                log.info("점수 노드 발견: {}", scoresNode.toString());
                 
-                if (!scoresNode.isMissingNode()) {
-                    log.info("scores 노드 내용: {}", scoresNode.toString());
-                    
-                    for (Recipe recipe : recipes) {
-                        double score = scoresNode.path(recipe.getTitle()).asDouble(5.0);
-                        scores.put(recipe.getTitle(), score);
-                        log.info("레시피 '{}' 점수 파싱: {}", recipe.getTitle(), score);
-                    }
-                } else {
-                    log.warn("AI 응답에 scores 노드가 없습니다.");
-                    // 모든 레시피에 기본 점수 부여
-                    for (Recipe recipe : recipes) {
-                        scores.put(recipe.getTitle(), 5.0);
-                    }
+                for (Recipe recipe : recipes) {
+                    double score = scoresNode.path(recipe.getTitle()).asDouble(5.0);
+                    scores.put(recipe.getTitle(), score);
+                    log.info("레시피 '{}' 점수: {}", recipe.getTitle(), score);
                 }
             } else {
-                log.warn("AI 응답에서 JSON을 추출할 수 없습니다.");
+                log.warn("scores 노드를 찾을 수 없습니다.");
                 // 모든 레시피에 기본 점수 부여
                 for (Recipe recipe : recipes) {
                     scores.put(recipe.getTitle(), 5.0);

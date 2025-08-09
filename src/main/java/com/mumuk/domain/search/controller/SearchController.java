@@ -10,6 +10,7 @@ import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/search")
+@Tag(name = "레시피 검색 및 추천/최근/인기 검색어 관련")
 public class SearchController {
 
     private final AutocompleteService autocompleteService;
@@ -38,7 +40,6 @@ public class SearchController {
     @GetMapping("/recipes")
     public Response<List<UserRecipeResponse.RecentRecipeDTO>> showResultList(@AuthUser Long userId, @RequestParam String keyword) {
         List<UserRecipeResponse.RecentRecipeDTO> resultList= searchService.SearchRecipeList(userId, keyword);
-        recentSearchService.saveRecentSearch(userId, keyword);
         return Response.ok(ResultCode.SEARCH_RECIPE_OK, resultList);
     }
 

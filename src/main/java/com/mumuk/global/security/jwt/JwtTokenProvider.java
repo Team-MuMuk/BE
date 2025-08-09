@@ -120,20 +120,6 @@ public class JwtTokenProvider {
         return jwtParser.parseClaimsJws(token).getBody();
     }
 
-    public String getPhoneNumberFromToken(String token) {
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7).trim();
-        }
-
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-
-        return claims.getSubject(); // subject 에 phoneNumber 가 들어 있음
-    }
-
     public Claims getClaimsFromToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7).trim();

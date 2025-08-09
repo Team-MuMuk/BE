@@ -14,8 +14,8 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "레시피 추천 관련")
 @RequestMapping("/api/recipe/recommend")
-@Tag(name = "recipe-recommend-controller", description = "레시피 추천 API")
 public class RecipeRecommendController {
     private final RecipeRecommendService recommendService;
 
@@ -60,4 +60,6 @@ public class RecipeRecommendController {
         List<RecipeResponse.SimpleRes> result = recommendService.recommendRandomRecipes();
         return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
     }
+
+
 } 

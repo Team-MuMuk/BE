@@ -7,13 +7,6 @@ public class KaKaoResponse {
 
     @Getter
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class OAuthToken {
-        private String access_token;
-        private String refresh_token;
-    }
-
-    @Getter
-    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class KakaoProfile {
         private Long id; // 소셜 ID
 

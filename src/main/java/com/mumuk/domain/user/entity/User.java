@@ -21,7 +21,7 @@ public class User extends BaseEntity {
     private LoginType loginType = LoginType.LOCAL;
 
     @Column(name = "알림 동의 여부", nullable = false)
-    private Boolean isFcmAgreed = false;
+    private Boolean fcmAgreed = false;
 
     private String profileImage;
 
@@ -40,8 +40,12 @@ public class User extends BaseEntity {
 
     private String statusMessage;
 
+    @Column(name = "agreed_to_health_data", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean agreedToHealthData = false;
+
     @Column(name = "내부 식별을 위한 소셜 id")
     private String socialId;
+
     @Column(length = 300)
     private String refreshToken;
 
@@ -85,6 +89,13 @@ public class User extends BaseEntity {
         return user;
     }
 
+    public void updateProfile(String name, String nickName, String profileImage, String statusMessage) {
+        this.name = name;
+        this.nickName = nickName;
+        this.profileImage = profileImage;
+        this.statusMessage = statusMessage;
+    }
+
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
     }
@@ -98,8 +109,8 @@ public class User extends BaseEntity {
         return loginType;
     }
 
-    public Boolean getIsFcmAgreed() {
-        return isFcmAgreed;
+    public Boolean getFcmAgreed() {
+        return fcmAgreed;
     }
 
     public String getProfileImage() {
@@ -139,8 +150,8 @@ public class User extends BaseEntity {
         this.loginType = loginType;
     }
 
-    public void setIsFcmAgreed(Boolean isFcmAgreed) {
-        this.isFcmAgreed = isFcmAgreed;
+    public void setFcmAgreed(Boolean fcmAgreed) {
+        this.fcmAgreed = fcmAgreed;
     }
 
     public void setProfileImage(String profileImage) {
@@ -200,5 +211,17 @@ public class User extends BaseEntity {
 
     public void setIngredients(List<Ingredient> ingredients) {
         this.ingredients = ingredients;
+    }
+
+    public void agreeToHealthData() {
+        this.agreedToHealthData = true;
+    }
+
+    public boolean isAgreedToHealthData() {
+        return agreedToHealthData;
+    }
+
+    public void setAgreedToHealthData(boolean agreedToHealthData) {
+        this.agreedToHealthData = agreedToHealthData;
     }
 }
