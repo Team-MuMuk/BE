@@ -60,4 +60,6 @@ public class RecipeRecommendController {
         List<RecipeResponse.SimpleRes> result = recommendService.recommendRandomRecipes();
         return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
     }
+
+
 } 
