@@ -64,7 +64,30 @@ public class IngredientServiceImpl implements IngredientService {
 
     @Transactional
     @Override
-    public void updateIngredient(Long ingredientId, IngredientRequest.UpdateReq req, Long userId) {
+    public void updateIngredientExpireDate(Long ingredientId, IngredientRequest.UpdateExpireDateReq req, Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INGREDIENT_NOT_FOUND));
+
+        if (!ingredient.getUser().getId().equals(user.getId())) {
+            throw new AuthException(ErrorCode.USER_NOT_EQUAL);
+        }
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+
+        if (req.getExpireDate().isBefore(today)) {
+            throw new BusinessException(ErrorCode.INVALID_EXPIREDATE);
+        }
+
+        ingredient.setExpireDate(req.getExpireDate());
+        ingredientRepository.save(ingredient);
+    }
+
+    @Transactional
+    @Override
+    public void updateIngredientDdaySetting(Long ingredientId, IngredientRequest.UpdateDdaySettingReq req, Long userId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
@@ -80,18 +103,8 @@ public class IngredientServiceImpl implements IngredientService {
                 .map(setting -> new IngredientNotification(ingredient, setting))
                 .toList(); //추후 수정가능성이 없으므로 toList로 반환.추후 알림설정한 리스트에대해 수정필요할시 .collect(Collectors.toList());
 
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
-
-        if (req.getExpireDate().isBefore(today)) {
-            throw new BusinessException(ErrorCode.INVALID_EXPIREDATE);
-        }
-
         ingredient.getDaySettings().clear();
         ingredient.getDaySettings().addAll(alarmSetting); //알림설정 최신화 (NONE 포함조건 불필요)
-
-
-        ingredient.setName(req.getName());
-        ingredient.setExpireDate(req.getExpireDate());
         ingredientRepository.save(ingredient);
     }
 
