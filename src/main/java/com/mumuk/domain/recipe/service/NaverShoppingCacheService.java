@@ -1,7 +1,6 @@
 package com.mumuk.domain.recipe.service;
 
 import com.mumuk.domain.recipe.dto.response.RecipeNaverShoppingResponse;
-import org.openqa.selenium.WebDriver;
 
 import java.util.List;
 
