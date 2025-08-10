@@ -22,10 +22,8 @@ import java.time.Duration;
 import com.mumuk.global.client.OpenAiClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.domain.ingredient.service.IngredientService;
 import com.mumuk.domain.ingredient.dto.response.IngredientResponse;
-import com.mumuk.domain.healthManagement.service.AllergyService;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -46,21 +44,17 @@ public class RecipeServiceImpl implements RecipeService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
-    private final UserRepository userRepository;
     private final IngredientService ingredientService;
-    private final AllergyService allergyService;
 
     public RecipeServiceImpl(RecipeRepository recipeRepository, UserRecipeRepository userRecipeRepository, RedisTemplate<String, Object> redisTemplate,
-                           OpenAiClient openAiClient, ObjectMapper objectMapper, UserRepository userRepository,
-                           IngredientService ingredientService, AllergyService allergyService) {
+                           OpenAiClient openAiClient, ObjectMapper objectMapper,
+                           IngredientService ingredientService) {
         this.recipeRepository = recipeRepository;
         this.userRecipeRepository = userRecipeRepository;
         this.redisTemplate = redisTemplate;
         this.openAiClient = openAiClient;
         this.objectMapper = objectMapper;
-        this.userRepository = userRepository;
         this.ingredientService = ingredientService;
-        this.allergyService = allergyService;
     }
 
     @Override
@@ -577,7 +571,17 @@ public class RecipeServiceImpl implements RecipeService {
                     .map(s -> s.trim().toLowerCase(Locale.ROOT))
                     .collect(Collectors.toSet());
             
-            Set<String> replaceableRiSet = replaceable.stream()
+            // 1) match와 중복되는 replaceable 제거 + 2) recipeIngredient 기준으로 replaceable dedup(첫 항목 유지)
+            java.util.Map<String, RecipeResponse.ReplaceableIngredient> uniqueRepl = new java.util.LinkedHashMap<>();
+            for (RecipeResponse.ReplaceableIngredient r : replaceable) {
+                if (r == null || r.getRecipeIngredient() == null) continue;
+                String k = r.getRecipeIngredient().trim().toLowerCase(Locale.ROOT);
+                if (matchSet.contains(k)) continue; // match에 있으면 제외
+                uniqueRepl.putIfAbsent(k, r);
+            }
+            List<RecipeResponse.ReplaceableIngredient> replaceableFiltered = new ArrayList<>(uniqueRepl.values());
+            
+            Set<String> replaceableRiSet = replaceableFiltered.stream()
                     .map(RecipeResponse.ReplaceableIngredient::getRecipeIngredient)
                     .filter(Objects::nonNull)
                     .map(s -> s.trim().toLowerCase(Locale.ROOT))
@@ -612,7 +616,7 @@ public class RecipeServiceImpl implements RecipeService {
                 recipe.getId(), recipe.getTitle(), 
                 match.stream().distinct().collect(Collectors.toList()), 
                 mismatchFiltered, 
-                replaceable
+                replaceableFiltered
             );
         } catch (Exception e) {
             log.error("AI 분석 결과 파싱 실패: {}", e.getMessage());
