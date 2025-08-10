@@ -20,9 +20,6 @@ import java.util.stream.Collectors;
 @Service
 public class TrendSearchServiceImpl implements TrendSearchService {
     private static final String CACHEKEY = "trend_recipe";
-
-    // 1시간 단위로 스케줄링!! 스케줄링 어노테이션이 있음
-
     private final String KEY_PREFIX= "trend_keywords";
     private final RedisTemplate<String, String> redisTemplate;
 
