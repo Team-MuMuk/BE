@@ -34,10 +34,12 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public List<UserRecipeResponse.RecentRecipeDTO> SearchRecipeList(Long userId, String keyword) {
 
-        // 검색어가 존재한다면, 해당 검색어 조회수를 1 추가
-        if (!(keyword == null || keyword.isBlank())) {
-            trendSearchService.increaseKeywordCount(keyword);
+        // 입력값 null 또는 blank 검사
+        if (keyword == null || keyword.isBlank()) {
+            throw new GlobalException(ErrorCode.INVALID_INPUT);
         }
+        // 검색어가 유효하면 조회수 증가
+        trendSearchService.increaseKeywordCount(keyword);
         // 키워드를 바탕으로 결과값 반환
         List<Recipe> recipes = recipeRepository.findByTitleContainingIgnoreCase(keyword);
 
@@ -58,7 +60,7 @@ public class SearchServiceImpl implements SearchService {
                 .map(recipe -> {
                     // 좋아요 여부 입력받기
                     UserRecipe userRecipe = userRecipeMap.get(recipe.getId());
-                    boolean isLiked = (userRecipe != null) && userRecipe.getLiked();
+                    boolean isLiked = userRecipe != null && Boolean.TRUE.equals(userRecipe.getLiked());
                     return new UserRecipeResponse.RecentRecipeDTO(recipe.getId(), recipe.getTitle(), recipe.getRecipeImage(), isLiked);
                 }).collect(Collectors.toList());
 

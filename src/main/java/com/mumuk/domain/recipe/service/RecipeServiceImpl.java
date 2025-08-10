@@ -171,8 +171,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RecipeResponse.SimpleRes> getSimpleRecipes() {
-        Long userId = getCurrentUserId();
+    public List<RecipeResponse.SimpleRes> getSimpleRecipes(Long userId) {
         List<Recipe> recipes = recipeRepository.findAll();
         List<Long> recipeIds = recipes.stream()
                 .map(Recipe::getId)
@@ -334,12 +333,14 @@ public class RecipeServiceImpl implements RecipeService {
      */
     private String extractTokenFromRequest() {
         try {
-            // HttpServletRequest를 가져오기 위해 RequestContextHolder 사용
-            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
-            String bearerToken = request.getHeader("Authorization");
-            
-            if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-                return bearerToken.substring(7); // "Bearer " 접두사 제거
+            // RequestContextHolder에서 RequestAttributes 확인
+            if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes) {
+                HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+                String bearerToken = request.getHeader("Authorization");
+                
+                if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+                    return bearerToken.substring(7); // "Bearer " 접두사 제거
+                }
             }
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         } catch (Exception e) {
@@ -486,7 +487,7 @@ public class RecipeServiceImpl implements RecipeService {
             return openAiClient.chat(prompt).block();
         } catch (Exception e) {
             log.error("AI 호출 실패: {}", e.getMessage());
-            throw new RuntimeException("AI 분석을 수행할 수 없습니다.", e);
+            throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
         }
     }
 

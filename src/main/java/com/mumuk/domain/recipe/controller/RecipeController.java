@@ -75,8 +75,8 @@ public class RecipeController {
 
     @Operation(summary = "레시피 간단 목록 조회")
     @GetMapping("/simple")
-    public Response<List<RecipeResponse.SimpleRes>> getSimpleRecipes() {
-        List<RecipeResponse.SimpleRes> recipes = recipeService.getSimpleRecipes();
+    public Response<List<RecipeResponse.SimpleRes>> getSimpleRecipes(@AuthUser Long userId) {
+        List<RecipeResponse.SimpleRes> recipes = recipeService.getSimpleRecipes(userId);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, recipes);
     }
 

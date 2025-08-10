@@ -1193,9 +1193,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
 
     /**
      * 사용자의 레시피 찜 여부를 일괄 조회합니다.
+     * 기존 메서드 활용하여 최적화
      */
     private Map<Long, Boolean> getUserRecipeLikedMap(Long userId, List<Long> recipeIds) {
         try {
+            // 기존 findByUserIdAndRecipeIdIn 메서드 사용 (이미 @EntityGraph로 최적화됨)
             List<UserRecipe> userRecipes = userRecipeRepository.findByUserIdAndRecipeIdIn(userId, recipeIds);
             Map<Long, Boolean> likedMap = new HashMap<>();
             
@@ -1206,7 +1208,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             
             // 찜한 레시피만 true로 업데이트
             for (UserRecipe userRecipe : userRecipes) {
-                likedMap.put(userRecipe.getRecipe().getId(), userRecipe.getLiked());
+                likedMap.put(userRecipe.getRecipe().getId(), Boolean.TRUE.equals(userRecipe.getLiked()));
             }
             
             return likedMap;
