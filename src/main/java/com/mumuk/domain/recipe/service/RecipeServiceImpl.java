@@ -26,17 +26,13 @@ import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.domain.ingredient.service.IngredientService;
 import com.mumuk.domain.ingredient.dto.response.IngredientResponse;
 import com.mumuk.domain.healthManagement.service.AllergyService;
-import com.mumuk.global.security.jwt.JwtTokenProvider;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Objects;
 
 @Service
 public class RecipeServiceImpl implements RecipeService {
@@ -52,11 +48,10 @@ public class RecipeServiceImpl implements RecipeService {
     private final UserRepository userRepository;
     private final IngredientService ingredientService;
     private final AllergyService allergyService;
-    private final JwtTokenProvider jwtTokenProvider;
 
     public RecipeServiceImpl(RecipeRepository recipeRepository, UserRecipeRepository userRecipeRepository, RedisTemplate<String, Object> redisTemplate,
                            OpenAiClient openAiClient, ObjectMapper objectMapper, UserRepository userRepository,
-                           IngredientService ingredientService, AllergyService allergyService, JwtTokenProvider jwtTokenProvider) {
+                           IngredientService ingredientService, AllergyService allergyService) {
         this.recipeRepository = recipeRepository;
         this.userRecipeRepository = userRecipeRepository;
         this.redisTemplate = redisTemplate;
@@ -65,7 +60,6 @@ public class RecipeServiceImpl implements RecipeService {
         this.userRepository = userRepository;
         this.ingredientService = ingredientService;
         this.allergyService = allergyService;
-        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @Override
@@ -322,44 +316,7 @@ public class RecipeServiceImpl implements RecipeService {
         return result;
     }
 
-    /**
-     * 현재 인증된 사용자의 ID를 가져옵니다.
-     */
-    private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-        
-        // JWT 토큰에서 직접 userId 추출
-        try {
-            String token = extractTokenFromRequest();
-            return jwtTokenProvider.getUserIdFromToken(token);
-        } catch (Exception e) {
-            log.error("사용자 ID 추출 실패: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-    }
-    
-    /**
-     * 현재 요청에서 JWT 토큰을 추출합니다.
-     */
-    private String extractTokenFromRequest() {
-        try {
-            // RequestContextHolder에서 RequestAttributes 확인
-            if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes) {
-                HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
-                String bearerToken = request.getHeader("Authorization");
-                
-                if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-                    return bearerToken.substring(7); // "Bearer " 접두사 제거
-                }
-            }
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        } catch (Exception e) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-    }
+
 
     /**
      * 사용자의 냉장고 재료 목록을 조회합니다.
@@ -369,7 +326,11 @@ public class RecipeServiceImpl implements RecipeService {
             // IngredientService를 통해 사용자의 재료 목록 조회
             List<IngredientResponse.RetrieveRes> ingredients = ingredientService.getAllIngredient(userId);
             return ingredients.stream()
+                    .filter(Objects::nonNull)
                     .map(IngredientResponse.RetrieveRes::getName)
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.warn("사용자 재료 조회 실패: {} - {}", userId, e.getMessage());
@@ -400,6 +361,13 @@ public class RecipeServiceImpl implements RecipeService {
         try {
             String prompt = buildIngredientMatchingPrompt(userIngredients, recipeIngredients);
             String response = callAI(prompt);
+            if (response == null || response.isBlank()) {
+                Map<String, Object> fallback = new HashMap<>();
+                fallback.put("match", List.of());
+                fallback.put("mismatch", recipeIngredients);
+                fallback.put("replaceable", List.of());
+                return objectMapper.writeValueAsString(fallback);
+            }
             return response;
         } catch (Exception e) {
             log.error("AI 재료 매칭 분석 실패: {}", e.getMessage());
@@ -512,22 +480,39 @@ public class RecipeServiceImpl implements RecipeService {
             String jsonPart = extractJsonFromAIResponse(aiAnalysis);
             JsonNode root = objectMapper.readTree(jsonPart);
             
+            // 레시피 재료 집합(정규화)
+            List<String> recipeIngredients = parseIngredients(recipe.getIngredients());
+            Set<String> recipeSet = recipeIngredients.stream()
+                    .filter(s -> s != null)
+                    .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
+
             // match 배열 파싱
             List<String> match = new ArrayList<>();
             if (root.has("match") && root.get("match").isArray()) {
                 root.get("match").forEach(n -> {
-                    if (n.isTextual()) match.add(n.asText());
+                    if (n.isTextual()) {
+                        String v = n.asText();
+                        if (v != null && recipeSet.contains(v.trim().toLowerCase(Locale.ROOT))) {
+                            match.add(v);
+                        }
+                    }
                 });
             }
-            
+
             // mismatch 배열 파싱
             List<String> mismatch = new ArrayList<>();
             if (root.has("mismatch") && root.get("mismatch").isArray()) {
                 root.get("mismatch").forEach(n -> {
-                    if (n.isTextual()) mismatch.add(n.asText());
+                    if (n.isTextual()) {
+                        String v = n.asText();
+                        if (v != null && recipeSet.contains(v.trim().toLowerCase(Locale.ROOT))) {
+                            mismatch.add(v);
+                        }
+                    }
                 });
             }
-            
+
             // replaceable 배열 파싱
             List<RecipeResponse.ReplaceableIngredient> replaceable = new ArrayList<>();
             if (root.has("replaceable") && root.get("replaceable").isArray()) {
@@ -535,7 +520,8 @@ public class RecipeServiceImpl implements RecipeService {
                     if (n.has("recipeIngredient") && n.has("userIngredient")) {
                         String ri = n.get("recipeIngredient").asText(null);
                         String ui = n.get("userIngredient").asText(null);
-                        if (ri != null && ui != null) {
+                        if (ri != null && ui != null
+                                && recipeSet.contains(ri.trim().toLowerCase(Locale.ROOT))) {
                             replaceable.add(new RecipeResponse.ReplaceableIngredient(ri, ui));
                         }
                     }
