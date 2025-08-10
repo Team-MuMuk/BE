@@ -307,9 +307,13 @@ public class RecipeServiceImpl implements RecipeService {
         String aiAnalysis = analyzeIngredientsWithAI(userIngredients, recipeIngredients);
         log.info("AI 분석 결과: {}", aiAnalysis);
         
-        // 결과를 Redis에 캐싱
-        redisTemplate.opsForValue().set(cacheKey, aiAnalysis, AI_MATCH_CACHE_TTL);
-        
+                // 결과를 Redis에 캐싱 (fallback 결과는 캐시하지 않음)
+        if (!isFallbackAIResult(aiAnalysis, recipeIngredients)) {
+            redisTemplate.opsForValue().set(cacheKey, aiAnalysis, AI_MATCH_CACHE_TTL);
+        } else {
+            log.info("AI fallback 결과는 캐시하지 않습니다. key={}", cacheKey);
+        }
+
         // AI 분석 결과 파싱
         RecipeResponse.IngredientMatchingRes result = parseAIAnalysis(recipe, aiAnalysis, normUserSet);
         
@@ -482,10 +486,29 @@ public class RecipeServiceImpl implements RecipeService {
      */
     private String callAI(String prompt) {
         try {
-            return openAiClient.chat(prompt).block();
+            return openAiClient.chat(prompt).block(java.time.Duration.ofSeconds(15));
         } catch (Exception e) {
-            log.error("AI 호출 실패: {}", e.getMessage());
+            log.error("AI 호출 실패", e); // 스택트레이스 포함 로깅
             throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
+        }
+    }
+
+    /**
+     * AI가 실패해 생성한 fallback JSON인지 판별
+     */
+    private boolean isFallbackAIResult(String json, List<String> recipeIngredients) {
+        try {
+            JsonNode root = objectMapper.readTree(json);
+            boolean matchEmpty = root.has("match") && root.get("match").isArray() && root.get("match").isEmpty();
+            boolean replEmpty = root.has("replaceable") && root.get("replaceable").isArray() && root.get("replaceable").isEmpty();
+            if (!(matchEmpty && replEmpty) || !root.has("mismatch") || !root.get("mismatch").isArray()) return false;
+            // mismatch가 레시피 재료와 동일한지(순서 무관) 확인
+            Set<String> mis = new HashSet<>();
+            root.get("mismatch").forEach(n -> { if (n.isTextual()) mis.add(n.asText()); });
+            Set<String> ri = recipeIngredients.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+            return mis.equals(ri);
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -571,6 +594,19 @@ public class RecipeServiceImpl implements RecipeService {
                     })
                     .distinct()
                     .collect(Collectors.toList());
+
+            // 누락 재료 보정: match/repl/mismatch 어디에도 없는 레시피 재료는 mismatch에 편입
+            Set<String> mismatchNorm = mismatchFiltered.stream()
+                    .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
+            for (String ri : recipeIngredients) {
+                if (ri == null || ri.isBlank()) continue;
+                String k = ri.trim().toLowerCase(Locale.ROOT);
+                if (!matchSet.contains(k) && !replaceableRiSet.contains(k) && !mismatchNorm.contains(k)) {
+                    mismatchFiltered.add(ri);
+                    mismatchNorm.add(k);
+                }
+            }
 
             return new RecipeResponse.IngredientMatchingRes(
                 recipe.getId(), recipe.getTitle(), 
