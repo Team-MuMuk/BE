@@ -1,0 +1,79 @@
+{
+  "title": "k6 InfluxDB Overview",
+  "schemaVersion": 38,
+  "version": 2,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "graph",
+      "title": "RPS (http_reqs / 10s)",
+      "datasource": "InfluxDB-k6",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT sum(\"value\") FROM \"http_reqs\" WHERE $timeFilter GROUP BY time(10s) fill(null)"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "lines": true
+    },
+    {
+      "id": 2,
+      "type": "graph",
+      "title": "Response Time p95 (http_req_duration)",
+      "datasource": "InfluxDB-k6",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT percentile(\"value\",95) FROM \"http_req_duration\" WHERE $timeFilter GROUP BY time(10s) fill(null)"
+        }
+      ],
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "lines": true
+    },
+    {
+      "id": 3,
+      "type": "graph",
+      "title": "Fail Rate (http_req_failed)",
+      "datasource": "InfluxDB-k6",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"value\") FROM \"http_req_failed\" WHERE $timeFilter GROUP BY time(10s) fill(null)"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "lines": true
+    },
+    {
+      "id": 4,
+      "type": "graph",
+      "title": "Signup / Login p95 (custom)",
+      "datasource": "InfluxDB-k6",
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT percentile(\"value\",95) FROM \"signup_duration\" WHERE $timeFilter GROUP BY time(10s) fill(null)"
+        },
+        {
+          "refId": "B",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT percentile(\"value\",95) FROM \"login_duration\" WHERE $timeFilter GROUP BY time(10s) fill(null)"
+        }
+      ],
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "lines": true
+    }
+  ]
+}
