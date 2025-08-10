@@ -1,11 +1,37 @@
 version: '3'
 
+# docker compose up -d influxdb grafana
 services:
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    environment:
+      - INFLUXDB_DB=k6
+    volumes:
+      - ./influxdb-data:/var/lib/influxdb
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    depends_on:
+      - influxdb
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=1234
+    networks:
+      - monitoring
+
   k6:
     image: grafana/k6
     container_name: k6
     volumes:
-      - ./k6:/scripts
+      - ./k6:/k6
     networks:
       - monitoring
 
