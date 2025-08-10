@@ -39,6 +39,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     private static final Logger log = LoggerFactory.getLogger(RecipeServiceImpl.class);
     private static final Duration RECIPE_CACHE_TTL = Duration.ofDays(7); // 7일 동안 캐시
+    private static final Duration AI_MATCH_CACHE_TTL = Duration.ofHours(6); // AI 매칭 결과 캐시 TTL
 
     private final RecipeRepository recipeRepository;
     private final UserRecipeRepository userRecipeRepository;
@@ -276,8 +277,21 @@ public class RecipeServiceImpl implements RecipeService {
         log.info("사용자 재료: {}", userIngredients);
         log.info("레시피 재료: {}", recipeIngredients);
         
-        // Redis 캐싱 키 생성
-        String cacheKey = String.format("ai-match:%d:%d:%d", userId, recipeId, userIngredients.hashCode());
+        // 정규화된 재료 목록 생성 (소문자, trim, 정렬)
+        List<String> normUser = userIngredients.stream()
+                .filter(s -> s != null)
+                .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                .sorted()
+                .collect(Collectors.toList());
+        List<String> normRecipe = recipeIngredients.stream()
+                .filter(s -> s != null)
+                .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                .sorted()
+                .collect(Collectors.toList());
+        
+        // Redis 캐싱 키 생성 (정규화된 재료 해시 포함)
+        String cacheKey = String.format("ai-match:%d:%d:%d:%d",
+                userId, recipeId, normUser.hashCode(), normRecipe.hashCode());
         
         // 캐시된 결과 확인
         String cachedResult = (String) redisTemplate.opsForValue().get(cacheKey);
@@ -290,8 +304,8 @@ public class RecipeServiceImpl implements RecipeService {
         String aiAnalysis = analyzeIngredientsWithAI(userIngredients, recipeIngredients);
         log.info("AI 분석 결과: {}", aiAnalysis);
         
-        // 결과를 Redis에 캐싱 (6시간)
-        redisTemplate.opsForValue().set(cacheKey, aiAnalysis, Duration.ofHours(6));
+        // 결과를 Redis에 캐싱
+        redisTemplate.opsForValue().set(cacheKey, aiAnalysis, AI_MATCH_CACHE_TTL);
         
         // AI 분석 결과 파싱
         RecipeResponse.IngredientMatchingRes result = parseAIAnalysis(recipe, aiAnalysis);
@@ -513,7 +527,7 @@ public class RecipeServiceImpl implements RecipeService {
                 });
             }
 
-            // replaceable 배열 파싱
+                        // replaceable 배열 파싱
             List<RecipeResponse.ReplaceableIngredient> replaceable = new ArrayList<>();
             if (root.has("replaceable") && root.get("replaceable").isArray()) {
                 root.get("replaceable").forEach(n -> {
@@ -527,9 +541,31 @@ public class RecipeServiceImpl implements RecipeService {
                     }
                 });
             }
-            
+
+            // 중복 제거 및 상호 배타성 보장
+            List<String> matchDedup = match.stream().distinct().collect(Collectors.toList());
+            Set<String> matchNorm = matchDedup.stream()
+                    .filter(Objects::nonNull)
+                    .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
+            Set<String> replaceableRiNorm = replaceable.stream()
+                    .map(RecipeResponse.ReplaceableIngredient::getRecipeIngredient)
+                    .filter(Objects::nonNull)
+                    .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
+            List<String> mismatchFiltered = mismatch.stream()
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .filter(s -> {
+                        String k = s.toLowerCase(Locale.ROOT);
+                        return !matchNorm.contains(k) && !replaceableRiNorm.contains(k);
+                    })
+                    .distinct()
+                    .collect(Collectors.toList());
+
             return new RecipeResponse.IngredientMatchingRes(
-                recipe.getId(), recipe.getTitle(), match, mismatch, replaceable
+                recipe.getId(), recipe.getTitle(), matchDedup, mismatchFiltered, replaceable
             );
         } catch (Exception e) {
             log.error("AI 분석 결과 파싱 실패: {}", e.getMessage());
