@@ -29,11 +29,29 @@ public class RecipeResponse {
         private Long id;
         private String title;
         private String recipeImage;
+        private Boolean isLiked;
     }
 
     @Getter
     @AllArgsConstructor
     public static class SimpleResList {
         private List<SimpleRes> simpleResList;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class IngredientMatchingRes {
+        private Long recipeId;
+        private String recipeTitle;
+        private List<String> match;
+        private List<String> mismatch;
+        private List<ReplaceableIngredient> replaceable;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class ReplaceableIngredient {
+        private String recipeIngredient;
+        private String userIngredient;
     }
 }

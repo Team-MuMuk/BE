@@ -75,8 +75,22 @@ public class RecipeController {
 
     @Operation(summary = "레시피 간단 목록 조회")
     @GetMapping("/simple")
-    public Response<List<RecipeResponse.SimpleRes>> getSimpleRecipes() {
-        List<RecipeResponse.SimpleRes> recipes = recipeService.getSimpleRecipes();
+    public Response<List<RecipeResponse.SimpleRes>> getSimpleRecipes(@AuthUser Long userId) {
+        List<RecipeResponse.SimpleRes> recipes = recipeService.getSimpleRecipes(userId);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, recipes);
+    }
+
+    @Operation(summary = "AI 기반 재료 매칭")
+    @GetMapping("/{recipeId}/ingredients/match/ai")
+    public Response<RecipeResponse.IngredientMatchingRes> matchIngredientsByAI(@AuthUser Long userId, @PathVariable Long recipeId) {
+        RecipeResponse.IngredientMatchingRes result = recipeService.matchIngredientsByAI(userId, recipeId);
+        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
+    }
+
+    @Operation(summary = "단순 재료 매칭")
+    @GetMapping("/{recipeId}/ingredients/match/simple")
+    public Response<RecipeResponse.IngredientMatchingRes> matchIngredientsSimple(@AuthUser Long userId, @PathVariable Long recipeId) {
+        RecipeResponse.IngredientMatchingRes result = recipeService.matchIngredientsSimple(userId, recipeId);
+        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
     }
 }
