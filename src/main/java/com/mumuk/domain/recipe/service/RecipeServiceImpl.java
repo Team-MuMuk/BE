@@ -21,6 +21,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import java.time.Duration;
 import com.mumuk.global.client.OpenAiClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.domain.ingredient.service.IngredientService;
 import com.mumuk.domain.ingredient.dto.response.IngredientResponse;
@@ -35,6 +36,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Locale;
 
 @Service
 public class RecipeServiceImpl implements RecipeService {
@@ -268,8 +270,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional(readOnly = true)
-    public RecipeResponse.IngredientMatchingRes matchIngredientsByAI(Long recipeId) {
-        Long userId = getCurrentUserId();
+    public RecipeResponse.IngredientMatchingRes matchIngredientsByAI(Long userId, Long recipeId) {
         log.info("AI 기반 재료 매칭 시작: 사용자 ID: {}, 레시피 ID: {}", userId, recipeId);
         
         Recipe recipe = recipeRepository.findById(recipeId)
@@ -281,9 +282,22 @@ public class RecipeServiceImpl implements RecipeService {
         log.info("사용자 재료: {}", userIngredients);
         log.info("레시피 재료: {}", recipeIngredients);
         
+        // Redis 캐싱 키 생성
+        String cacheKey = String.format("ai-match:%d:%d:%d", userId, recipeId, userIngredients.hashCode());
+        
+        // 캐시된 결과 확인
+        String cachedResult = (String) redisTemplate.opsForValue().get(cacheKey);
+        if (cachedResult != null) {
+            log.info("캐시된 AI 분석 결과 사용");
+            return parseAIAnalysis(recipe, cachedResult);
+        }
+        
         // AI 분석 요청
         String aiAnalysis = analyzeIngredientsWithAI(userIngredients, recipeIngredients);
         log.info("AI 분석 결과: {}", aiAnalysis);
+        
+        // 결과를 Redis에 캐싱 (6시간)
+        redisTemplate.opsForValue().set(cacheKey, aiAnalysis, Duration.ofHours(6));
         
         // AI 분석 결과 파싱
         RecipeResponse.IngredientMatchingRes result = parseAIAnalysis(recipe, aiAnalysis);
@@ -293,8 +307,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional(readOnly = true)
-    public RecipeResponse.IngredientMatchingRes matchIngredientsSimple(Long recipeId) {
-        Long userId = getCurrentUserId();
+    public RecipeResponse.IngredientMatchingRes matchIngredientsSimple(Long userId, Long recipeId) {
         log.info("단순 재료 매칭 시작: 사용자 ID: {}, 레시피 ID: {}", userId, recipeId);
         
         Recipe recipe = recipeRepository.findById(recipeId)
@@ -497,30 +510,36 @@ public class RecipeServiceImpl implements RecipeService {
     private RecipeResponse.IngredientMatchingRes parseAIAnalysis(Recipe recipe, String aiAnalysis) {
         try {
             String jsonPart = extractJsonFromAIResponse(aiAnalysis);
-            Map<String, Object> analysisMap = objectMapper.readValue(jsonPart, Map.class);
+            JsonNode root = objectMapper.readTree(jsonPart);
             
             // match 배열 파싱
             List<String> match = new ArrayList<>();
-            if (analysisMap.containsKey("match")) {
-                match = (List<String>) analysisMap.get("match");
+            if (root.has("match") && root.get("match").isArray()) {
+                root.get("match").forEach(n -> {
+                    if (n.isTextual()) match.add(n.asText());
+                });
             }
             
             // mismatch 배열 파싱
             List<String> mismatch = new ArrayList<>();
-            if (analysisMap.containsKey("mismatch")) {
-                mismatch = (List<String>) analysisMap.get("mismatch");
+            if (root.has("mismatch") && root.get("mismatch").isArray()) {
+                root.get("mismatch").forEach(n -> {
+                    if (n.isTextual()) mismatch.add(n.asText());
+                });
             }
             
             // replaceable 배열 파싱
             List<RecipeResponse.ReplaceableIngredient> replaceable = new ArrayList<>();
-            if (analysisMap.containsKey("replaceable")) {
-                List<Map<String, Object>> replaceableList = (List<Map<String, Object>>) analysisMap.get("replaceable");
-                                 for (Map<String, Object> item : replaceableList) {
-                     replaceable.add(new RecipeResponse.ReplaceableIngredient(
-                         (String) item.get("recipeIngredient"),
-                         (String) item.get("userIngredient")
-                     ));
-                 }
+            if (root.has("replaceable") && root.get("replaceable").isArray()) {
+                root.get("replaceable").forEach(n -> {
+                    if (n.has("recipeIngredient") && n.has("userIngredient")) {
+                        String ri = n.get("recipeIngredient").asText(null);
+                        String ui = n.get("userIngredient").asText(null);
+                        if (ri != null && ui != null) {
+                            replaceable.add(new RecipeResponse.ReplaceableIngredient(ri, ui));
+                        }
+                    }
+                });
             }
             
             return new RecipeResponse.IngredientMatchingRes(
@@ -541,18 +560,16 @@ public class RecipeServiceImpl implements RecipeService {
         List<String> match = new ArrayList<>();
         List<String> mismatch = new ArrayList<>();
         
+        Set<String> userSet = userIngredients.stream()
+                .filter(s -> s != null)
+                .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                .collect(Collectors.toSet());
+        
         for (String recipeIngredient : recipeIngredients) {
-            boolean found = false;
-            
-            for (String userIngredient : userIngredients) {
-                if (recipeIngredient.equals(userIngredient)) {
-                    match.add(recipeIngredient);
-                    found = true;
-                    break;
-                }
-            }
-            
-            if (!found) {
+            String key = recipeIngredient == null ? "" : recipeIngredient.trim().toLowerCase(Locale.ROOT);
+            if (userSet.contains(key)) {
+                match.add(recipeIngredient);
+            } else {
                 mismatch.add(recipeIngredient);
             }
         }
@@ -601,7 +618,7 @@ public class RecipeServiceImpl implements RecipeService {
             
             // 찜한 레시피만 true로 업데이트
             for (UserRecipe userRecipe : userRecipes) {
-                likedMap.put(userRecipe.getRecipe().getId(), userRecipe.getLiked());
+                likedMap.put(userRecipe.getRecipe().getId(), Boolean.TRUE.equals(userRecipe.getLiked()));
             }
             
             return likedMap;

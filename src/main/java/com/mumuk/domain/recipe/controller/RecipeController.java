@@ -82,15 +82,15 @@ public class RecipeController {
 
     @Operation(summary = "AI 기반 재료 매칭")
     @GetMapping("/{recipeId}/ingredients/match/ai")
-    public Response<RecipeResponse.IngredientMatchingRes> matchIngredientsByAI(@PathVariable Long recipeId) {
-        RecipeResponse.IngredientMatchingRes result = recipeService.matchIngredientsByAI(recipeId);
+    public Response<RecipeResponse.IngredientMatchingRes> matchIngredientsByAI(@AuthUser Long userId, @PathVariable Long recipeId) {
+        RecipeResponse.IngredientMatchingRes result = recipeService.matchIngredientsByAI(userId, recipeId);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
     }
 
     @Operation(summary = "단순 재료 매칭")
     @GetMapping("/{recipeId}/ingredients/match/simple")
-    public Response<RecipeResponse.IngredientMatchingRes> matchIngredientsSimple(@PathVariable Long recipeId) {
-        RecipeResponse.IngredientMatchingRes result = recipeService.matchIngredientsSimple(recipeId);
+    public Response<RecipeResponse.IngredientMatchingRes> matchIngredientsSimple(@AuthUser Long userId, @PathVariable Long recipeId) {
+        RecipeResponse.IngredientMatchingRes result = recipeService.matchIngredientsSimple(userId, recipeId);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
     }
 }

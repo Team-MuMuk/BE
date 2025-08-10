@@ -15,6 +15,6 @@ public interface RecipeService {
     List<RecipeResponse.SimpleRes> getSimpleRecipes(Long userId);
     
     // 레시피 재료 매칭 기능 (토큰 기반 인증)
-    RecipeResponse.IngredientMatchingRes matchIngredientsByAI(Long recipeId);
-    RecipeResponse.IngredientMatchingRes matchIngredientsSimple(Long recipeId);
+    RecipeResponse.IngredientMatchingRes matchIngredientsByAI(Long userId, Long recipeId);
+    RecipeResponse.IngredientMatchingRes matchIngredientsSimple(Long userId, Long recipeId);
 }
