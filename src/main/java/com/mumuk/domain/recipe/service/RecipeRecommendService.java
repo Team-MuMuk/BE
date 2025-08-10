@@ -63,4 +63,28 @@ public interface RecipeRecommendService {
      * @return 랜덤하게 선택된 레시피 목록
      */
     List<RecipeResponse.SimpleRes> recommendRandomRecipes(Long userId);
+
+    /**
+     * OCR 기반 레시피 추천 (적합도 점수 기반)
+     * @param userId 사용자 ID
+     * @return 적합도 점수로 정렬된 레시피 목록
+     * @throws BusinessException AI 추천 실패 시
+     */
+    List<RecipeResponse.SimpleRes> recommendRecipesByOcr(Long userId);
+
+    /**
+     * HealthGoal 기반 레시피 추천 (적합도 점수 기반)
+     * @param userId 사용자 ID
+     * @return 적합도 점수로 정렬된 레시피 목록
+     * @throws BusinessException AI 추천 실패 시
+     */
+    List<RecipeResponse.SimpleRes> recommendRecipesByHealthGoal(Long userId);
+
+    /**
+     * 재료 + OCR + HealthGoal 통합 레시피 추천 (적합도 점수 기반)
+     * @param userId 사용자 ID
+     * @return 적합도 점수로 정렬된 레시피 목록
+     * @throws BusinessException AI 추천 실패 시
+     */
+    List<RecipeResponse.SimpleRes> recommendRecipesByCombined(Long userId);
 } 

@@ -61,5 +61,25 @@ public class RecipeRecommendController {
         return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
     }
 
+    @Operation(summary = "OCR 기반 레시피 추천")
+    @GetMapping("/ocr")
+    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByOcr(@AuthUser Long userId) {
+        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByOcr(userId);
+        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
+    }
+
+    @Operation(summary = "HealthGoal 기반 레시피 추천")
+    @GetMapping("/health-goal")
+    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByHealthGoal(@AuthUser Long userId) {
+        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByHealthGoal(userId);
+        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
+    }
+
+    @Operation(summary = "재료 + OCR + HealthGoal 통합 레시피 추천")
+    @GetMapping("/combined")
+    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByCombined(@AuthUser Long userId) {
+        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByCombined(userId);
+        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
+    }
 
 } 

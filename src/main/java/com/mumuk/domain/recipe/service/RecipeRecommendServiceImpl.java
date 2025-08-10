@@ -1,5 +1,6 @@
 package com.mumuk.domain.recipe.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mumuk.domain.healthManagement.dto.response.AllergyResponse;
@@ -37,6 +38,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import com.mumuk.domain.ocr.entity.UserHealthData;
+import com.mumuk.domain.ocr.repository.UserHealthDataRepository;
+import com.mumuk.domain.healthManagement.service.HealthGoalService;
 
 @Slf4j
 @Service
@@ -50,6 +54,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private final AllergyService allergyService;
     private final RecipeRepository recipeRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UserHealthDataRepository userHealthDataRepository;
+    private final HealthGoalService healthGoalService;
 
     private static final Duration RECIPE_CACHE_TTL = Duration.ofDays(7); // 7일 동안 캐시
     private static final int BATCH_SIZE = 20; // 배치 처리 크기
@@ -59,7 +65,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     public RecipeRecommendServiceImpl(OpenAiClient openAiClient, ObjectMapper objectMapper,
                                    UserRepository userRepository, UserRecipeRepository userRecipeRepository,
                                    IngredientService ingredientService, AllergyService allergyService,
-                                   RecipeRepository recipeRepository, RedisTemplate<String, Object> redisTemplate) {
+                                   RecipeRepository recipeRepository, RedisTemplate<String, Object> redisTemplate,
+                                   UserHealthDataRepository userHealthDataRepository, HealthGoalService healthGoalService) {
         this.openAiClient = openAiClient;
         this.objectMapper = objectMapper;
         this.userRepository = userRepository;
@@ -68,6 +75,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         this.allergyService = allergyService;
         this.recipeRepository = recipeRepository;
         this.redisTemplate = redisTemplate;
+        this.userHealthDataRepository = userHealthDataRepository;
+        this.healthGoalService = healthGoalService;
     }
 
     // 1. recommendAndSaveRecipes는 전체 흐름만 담당하도록 정리
@@ -278,7 +287,180 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * OCR 기반 레시피 추천
+     */
+    @Override
+    public List<RecipeResponse.SimpleRes> recommendRecipesByOcr(Long userId) {
+        log.info("OCR 기반 레시피 추천 시작 - userId: {}", userId);
+        
+        // 사용자 정보 조회
+        User user = getUser(userId);
+        List<String> availableIngredients = getUserIngredients(userId);
+        List<String> allergyTypes = getUserAllergies(userId);
+        
+        // OCR 건강 데이터 조회
+        Map<String, String> ocrHealthData = getLatestOcrHealthData(userId);
+        
+        if (ocrHealthData == null || ocrHealthData.isEmpty()) {
+            log.warn("사용자의 OCR 건강 데이터가 없습니다. 기본 재료 기반 추천으로 대체합니다.");
+            return recommendRecipesByIngredient(userId);
+        }
+        
+        // OCR 데이터를 기반으로 건강 정보 생성
+        String healthInfo = buildOcrHealthInfo(ocrHealthData);
+        
+        // DB 레벨에서 랜덤 샘플링으로 24개 조회
+        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
+        
+        if (sampledRecipes.isEmpty()) {
+            log.warn("DB에 레시피가 없습니다.");
+            return new ArrayList<>();
+        }
+        
+        log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
+        
+        // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
+        List<RecipeWithScore> recipesWithScores = evaluateRecipeSuitabilityByHealth(
+            sampledRecipes, availableIngredients, allergyTypes, healthInfo);
+        
+        // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
+        recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
+        
+        // SimpleRes로 변환하여 반환 (상위 6개만)
+        List<RecipeWithScore> topRecipes = recipesWithScores.stream()
+                .limit(6)
+                .collect(Collectors.toList());
+        
+        List<Long> recipeIds = topRecipes.stream()
+                .map(recipeWithScore -> recipeWithScore.recipe.getId())
+                .collect(Collectors.toList());
+        Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
+        
+        log.info("OCR 기반 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
+        return topRecipes.stream()
+                .map(recipeWithScore -> new RecipeResponse.SimpleRes(
+                    recipeWithScore.recipe.getId(),
+                    recipeWithScore.recipe.getTitle(),
+                    recipeWithScore.recipe.getRecipeImage(),
+                    likedMap.get(recipeWithScore.recipe.getId())
+                ))
+                .collect(Collectors.toList());
+    }
 
+    /**
+     * HealthGoal 기반 레시피 추천
+     */
+    @Override
+    public List<RecipeResponse.SimpleRes> recommendRecipesByHealthGoal(Long userId) {
+        log.info("HealthGoal 기반 레시피 추천 시작 - userId: {}", userId);
+        
+        // 사용자 정보 조회
+        User user = getUser(userId);
+        List<String> availableIngredients = getUserIngredients(userId);
+        List<String> allergyTypes = getUserAllergies(userId);
+        
+        // HealthGoal 정보 조회
+        List<String> healthGoals = getUserHealthGoals(userId);
+        
+        if (healthGoals == null || healthGoals.isEmpty()) {
+            log.warn("사용자의 HealthGoal이 설정되지 않았습니다. 기본 재료 기반 추천으로 대체합니다.");
+            return recommendRecipesByIngredient(userId);
+        }
+        
+        // DB 레벨에서 랜덤 샘플링으로 24개 조회
+        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
+        
+        if (sampledRecipes.isEmpty()) {
+            log.warn("DB에 레시피가 없습니다.");
+            return new ArrayList<>();
+        }
+        
+        log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
+        
+        // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
+        List<RecipeWithScore> scoredRecipes = evaluateRecipeSuitabilityByHealthGoal(
+            sampledRecipes, availableIngredients, allergyTypes, healthGoals);
+        
+        // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
+        scoredRecipes.sort((a, b) -> Double.compare(b.score, a.score));
+        
+        // SimpleRes로 변환하여 반환 (상위 6개만)
+        List<RecipeWithScore> topRecipes = scoredRecipes.stream()
+                .limit(6)
+                .collect(Collectors.toList());
+        
+        List<Long> recipeIds = topRecipes.stream()
+                .map(recipeWithScore -> recipeWithScore.recipe.getId())
+                .collect(Collectors.toList());
+        Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
+        
+        log.info("HealthGoal 기반 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
+        return topRecipes.stream()
+                .map(recipeWithScore -> new RecipeResponse.SimpleRes(
+                    recipeWithScore.recipe.getId(),
+                    recipeWithScore.recipe.getTitle(),
+                    recipeWithScore.recipe.getRecipeImage(),
+                    likedMap.get(recipeWithScore.recipe.getId())
+                ))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 재료 + OCR + HealthGoal 통합 레시피 추천
+     */
+    @Override
+    public List<RecipeResponse.SimpleRes> recommendRecipesByCombined(Long userId) {
+        log.info("통합 레시피 추천 시작 - userId: {}", userId);
+        
+        // 사용자 정보 조회
+        User user = getUser(userId);
+        List<String> availableIngredients = getUserIngredients(userId);
+        List<String> allergyTypes = getUserAllergies(userId);
+        
+        // OCR 건강 데이터 조회
+        Map<String, String> ocrHealthData = getLatestOcrHealthData(userId);
+        
+        // HealthGoal 정보 조회
+        List<String> healthGoals = getUserHealthGoals(userId);
+        
+        // DB 레벨에서 랜덤 샘플링으로 24개 조회
+        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
+        
+        if (sampledRecipes.isEmpty()) {
+            log.warn("DB에 레시피가 없습니다.");
+            return new ArrayList<>();
+        }
+        
+        log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
+        
+        // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
+        List<RecipeWithScore> scoredRecipes = evaluateRecipeSuitabilityByCombined(
+            sampledRecipes, availableIngredients, allergyTypes, ocrHealthData, healthGoals);
+        
+        // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
+        scoredRecipes.sort((a, b) -> Double.compare(b.score, a.score));
+        
+        // SimpleRes로 변환하여 반환 (상위 6개만)
+        List<RecipeWithScore> topRecipes = scoredRecipes.stream()
+                .limit(6)
+                .collect(Collectors.toList());
+        
+        List<Long> recipeIds = topRecipes.stream()
+                .map(recipeWithScore -> recipeWithScore.recipe.getId())
+                .collect(Collectors.toList());
+        Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
+        
+        log.info("통합 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
+        return topRecipes.stream()
+                .map(recipeWithScore -> new RecipeResponse.SimpleRes(
+                    recipeWithScore.recipe.getId(),
+                    recipeWithScore.recipe.getTitle(),
+                    recipeWithScore.recipe.getRecipeImage(),
+                    likedMap.get(recipeWithScore.recipe.getId())
+                ))
+                .collect(Collectors.toList());
+    }
 
     // 레시피와 점수를 함께 저장하는 내부 클래스
     private static class RecipeWithScore {
@@ -342,15 +524,15 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 return recipeRepository.findAll();
             }
 
-            // 1차 시도: DB의 RAND() 함수를 사용한 효율적인 랜덤 샘플링
+            // 1차 시도: DB의 RANDOM() 함수를 사용한 효율적인 랜덤 샘플링
             try {
                 List<Recipe> randomRecipes = recipeRepository.findRandomRecipes(sampleSize);
                 if (randomRecipes.size() >= sampleSize) {
-                    log.debug("DB RAND() 함수를 사용한 랜덤 샘플링 성공: {}개", randomRecipes.size());
+                    log.debug("DB RANDOM() 함수를 사용한 랜덤 샘플링 성공: {}개", randomRecipes.size());
                     return randomRecipes;
                 }
             } catch (Exception e) {
-                log.debug("DB RAND() 함수 실패, PK 범위 방식으로 대체: {}", e.getMessage());
+                log.debug("DB RANDOM() 함수 실패, PK 범위 방식으로 대체: {}", e.getMessage());
             }
 
             // 2차 시도: PK 범위를 이용한 랜덤 샘플링 (대용량 테이블용)
@@ -469,6 +651,88 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     /**
+     * 건강 정보 기반 배치 처리 메서드
+     */
+    private List<RecipeWithScore> processBatchByHealth(List<Recipe> recipes, 
+                                                     List<String> availableIngredients, 
+                                                     List<String> allergyTypes, 
+                                                     String healthInfo) {
+        List<RecipeWithScore> recipesWithScores = new ArrayList<>();
+        
+        log.info("건강 정보 기반 배치 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강정보: {}", 
+                String.join(", ", availableIngredients), 
+                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
+                healthInfo);
+        
+        try {
+            // 배치 처리: 모든 레시피를 한 번에 AI에게 전달
+            String batchPrompt = createBatchHealthSuitabilityPrompt(recipes, availableIngredients, allergyTypes, healthInfo);
+            log.info("건강 정보 기반 배치 프롬프트 생성 완료");
+            
+            String batchResponse = callAI(batchPrompt);
+            log.info("AI 배치 응답: {}", batchResponse);
+            
+            // AI 응답에서 각 레시피의 점수 파싱
+            Map<String, Double> scores = parseBatchHealthScores(batchResponse, recipes);
+            log.info("파싱된 점수: {}", scores);
+            
+            for (Recipe recipe : recipes) {
+                double score = scores.getOrDefault(recipe.getTitle(), 5.0);
+                log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
+                
+                if (score > 0) {
+                    recipesWithScores.add(new RecipeWithScore(recipe, score));
+                } else {
+                    log.info("레시피 {} 제외됨 (AI가 알레르기 충돌로 판단)", recipe.getTitle());
+                }
+            }
+            
+        } catch (Exception e) {
+            log.warn("건강 정보 기반 배치 적합도 평가 실패: {}", e.getMessage());
+            throw e; // 상위에서 개별 처리로 전환하도록 예외 재발생
+        }
+        
+        return recipesWithScores;
+    }
+
+    /**
+     * 건강 정보 기반 개별 처리 메서드
+     */
+    private List<RecipeWithScore> processIndividualByHealth(List<Recipe> recipes, 
+                                                          List<String> availableIngredients, 
+                                                          List<String> allergyTypes, 
+                                                          String healthInfo) {
+        List<RecipeWithScore> recipesWithScores = new ArrayList<>();
+        
+        log.info("건강 정보 기반 개별 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강정보: {}", 
+                String.join(", ", availableIngredients), 
+                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
+                healthInfo);
+        
+        for (Recipe recipe : recipes) {
+            try {
+                log.info("레시피 '{}' 재료: {}", recipe.getTitle(), recipe.getIngredients());
+                
+                String prompt = createHealthSuitabilityPrompt(recipe, availableIngredients, allergyTypes, healthInfo);
+                double score = callAIForSuitabilityScore(prompt);
+                
+                log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
+                
+                if (score > 0) {
+                    recipesWithScores.add(new RecipeWithScore(recipe, score));
+                } else {
+                    log.info("레시피 {} 제외됨 (AI가 알레르기 충돌로 판단)", recipe.getTitle());
+                }
+            } catch (Exception e) {
+                log.warn("레시피 {} 적합도 평가 실패: {}", recipe.getTitle(), e.getMessage());
+                recipesWithScores.add(new RecipeWithScore(recipe, 5.0));
+            }
+        }
+        
+        return recipesWithScores;
+    }
+
+    /**
      * 건강 정보 기반 레시피 적합도 평가
      */
     private List<RecipeWithScore> evaluateRecipeSuitabilityByHealth(List<Recipe> recipes, 
@@ -489,26 +753,12 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 모든 레시피 평가 (24개)
         log.info("평가할 레시피 수: {}", recipes.size());
         
-        for (Recipe recipe : recipes) {
-            try {
-                log.info("레시피 '{}' 재료: {}", recipe.getTitle(), recipe.getIngredients());
-                
-                String prompt = createHealthSuitabilityPrompt(recipe, uniqueIngredients, allergyTypes, healthInfo);
-                double score = callAIForSuitabilityScore(prompt);
-                
-                log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
-                
-                // AI가 0점을 주면 알레르기 충돌로 간주하여 제외
-                if (score > 0) {
-                    recipesWithScores.add(new RecipeWithScore(recipe, score));
-                } else {
-                    log.info("레시피 {} 제외됨 (AI가 알레르기 충돌로 판단)", recipe.getTitle());
-                }
-            } catch (Exception e) {
-                log.warn("레시피 {} 적합도 평가 실패: {}", recipe.getTitle(), e.getMessage());
-                // 평가 실패 시 기본 점수 5.0 부여
-                recipesWithScores.add(new RecipeWithScore(recipe, 5.0));
-            }
+        try {
+            // 배치 처리
+            recipesWithScores.addAll(processBatchByHealth(recipes, uniqueIngredients, allergyTypes, healthInfo));
+        } catch (Exception e) {
+            log.warn("배치 처리 실패, 개별 처리로 전환: {}", e.getMessage());
+            recipesWithScores.addAll(processIndividualByHealth(recipes, uniqueIngredients, allergyTypes, healthInfo));
         }
         
         log.info("=== 건강 정보 기반 적합도 평가 완료 ===");
@@ -933,6 +1183,9 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         }
     }
 
+    /**
+     * Recipe를 DetailRes로 변환
+     */
     private RecipeResponse.DetailRes toDetailRes(Recipe recipe) {
         return new RecipeResponse.DetailRes(
             recipe.getId(),
@@ -945,7 +1198,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             recipe.getCarbohydrate(),
             recipe.getFat(),
             recipe.getCategories().stream()
-                .map(RecipeCategory::name)
+                .map(RecipeCategory::getName)
                 .collect(Collectors.toList()),
             recipe.getIngredients()
         );
@@ -1221,5 +1474,723 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             }
             return fallbackMap;
         }
+    }
+
+    /**
+     * 최신 OCR 건강 데이터 조회
+     */
+    private Map<String, String> getLatestOcrHealthData(Long userId) {
+        try {
+            // UserHealthDataRepository를 통해 최신 OCR 데이터 조회
+            List<UserHealthData> userHealthDataList = userHealthDataRepository.findByUserIdOrderByCreatedAtDesc(userId);
+            if (!userHealthDataList.isEmpty()) {
+                return userHealthDataList.get(0).getExtractedData();
+            }
+            return new HashMap<>();
+        } catch (Exception e) {
+            log.warn("OCR 건강 데이터 조회 실패: {}", e.getMessage());
+            return new HashMap<>();
+        }
+    }
+
+    /**
+     * OCR 건강 데이터를 기반으로 건강 정보 문자열 생성
+     */
+    private String buildOcrHealthInfo(Map<String, String> ocrHealthData) {
+        if (ocrHealthData == null || ocrHealthData.isEmpty()) {
+            return "건강 정보 없음";
+        }
+        
+        StringBuilder healthInfo = new StringBuilder("현재 건강 상태:\n");
+        ocrHealthData.forEach((key, value) -> {
+            if (value != null && !value.trim().isEmpty()) {
+                healthInfo.append("- ").append(key).append(": ").append(value).append("\n");
+            }
+        });
+        
+        return healthInfo.toString();
+    }
+
+    /**
+     * 사용자 HealthGoal 목록 조회
+     */
+    private List<String> getUserHealthGoals(Long userId) {
+        try {
+            // HealthGoalService를 통해 사용자의 건강 목표 조회
+            var healthGoalResponse = healthGoalService.getHealthGoalList(userId);
+            if (healthGoalResponse != null && healthGoalResponse.getHealthGoalList() != null) {
+                return healthGoalResponse.getHealthGoalList().stream()
+                    .map(goal -> goal.getHealthGoalType().name())
+                    .collect(Collectors.toList());
+            }
+            return new ArrayList<>();
+        } catch (Exception e) {
+            log.warn("HealthGoal 조회 실패: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * HealthGoal 기반 적합도 평가
+     */
+    private List<RecipeWithScore> evaluateRecipeSuitabilityByHealthGoal(List<Recipe> recipes,
+                                                                      List<String> availableIngredients,
+                                                                      List<String> allergyTypes,
+                                                                      List<String> healthGoals) {
+        List<RecipeWithScore> recipesWithScores = new ArrayList<>();
+        
+        log.info("=== HealthGoal 기반 적합도 평가 시작 ===");
+        log.info("사용자 보유 재료: {}", String.join(", ", availableIngredients));
+        log.info("사용자 알레르기 정보: {}", allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+        log.info("사용자 건강 목표: {}", String.join(", ", healthGoals));
+        log.info("전체 레시피 수: {}", recipes.size());
+        
+        try {
+            // 배치 처리
+            recipesWithScores.addAll(processBatchByHealthGoal(recipes, availableIngredients, allergyTypes, healthGoals));
+        } catch (Exception e) {
+            log.warn("배치 처리 실패, 개별 처리로 전환: {}", e.getMessage());
+            recipesWithScores.addAll(processIndividualByHealthGoal(recipes, availableIngredients, allergyTypes, healthGoals));
+        }
+        
+        log.info("=== HealthGoal 기반 적합도 평가 완료 ===");
+        return recipesWithScores;
+    }
+
+    /**
+     * 통합 적합도 평가 (재료 + OCR + HealthGoal)
+     */
+    private List<RecipeWithScore> evaluateRecipeSuitabilityByCombined(List<Recipe> recipes,
+                                                                    List<String> availableIngredients,
+                                                                    List<String> allergyTypes,
+                                                                    Map<String, String> ocrHealthData,
+                                                                    List<String> healthGoals) {
+        List<RecipeWithScore> recipesWithScores = new ArrayList<>();
+        
+        log.info("=== 통합 적합도 평가 시작 ===");
+        log.info("사용자 보유 재료: {}", String.join(", ", availableIngredients));
+        log.info("사용자 알레르기 정보: {}", allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+        log.info("OCR 건강 데이터: {}", ocrHealthData != null ? ocrHealthData.size() + "개 항목" : "없음");
+        log.info("사용자 건강 목표: {}", String.join(", ", healthGoals));
+        log.info("전체 레시피 수: {}", recipes.size());
+        
+        try {
+            // 배치 처리
+            recipesWithScores.addAll(processBatchByCombined(recipes, availableIngredients, allergyTypes, ocrHealthData, healthGoals));
+        } catch (Exception e) {
+            log.warn("배치 처리 실패, 개별 처리로 전환: {}", e.getMessage());
+            recipesWithScores.addAll(processIndividualByCombined(recipes, availableIngredients, allergyTypes, ocrHealthData, healthGoals));
+        }
+        
+        log.info("=== 통합 적합도 평가 완료 ===");
+        return recipesWithScores;
+    }
+
+    /**
+     * HealthGoal 기반 배치 처리 메서드
+     */
+    private List<RecipeWithScore> processBatchByHealthGoal(List<Recipe> recipes, 
+                                                          List<String> availableIngredients, 
+                                                          List<String> allergyTypes, 
+                                                          List<String> healthGoals) {
+        List<RecipeWithScore> recipesWithScores = new ArrayList<>();
+        
+        log.info("HealthGoal 기반 배치 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강목표: {}", 
+                String.join(", ", availableIngredients), 
+                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
+                String.join(", ", healthGoals));
+        
+        try {
+            // 배치 처리: 모든 레시피를 한 번에 AI에게 전달
+            String batchPrompt = createBatchHealthGoalSuitabilityPrompt(recipes, availableIngredients, allergyTypes, healthGoals);
+            log.info("HealthGoal 기반 배치 프롬프트 생성 완료");
+            
+            String batchResponse = callAI(batchPrompt);
+            log.info("AI 배치 응답: {}", batchResponse);
+            
+            // AI 응답에서 각 레시피의 점수 파싱
+            Map<String, Double> scores = parseBatchHealthGoalScores(batchResponse, recipes);
+            log.info("파싱된 점수: {}", scores);
+            
+            for (Recipe recipe : recipes) {
+                double score = scores.getOrDefault(recipe.getTitle(), 5.0);
+                log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
+                
+                if (score > 0) {
+                    recipesWithScores.add(new RecipeWithScore(recipe, score));
+                } else {
+                    log.info("레시피 {} 제외됨 (AI가 알레르기 충돌로 판단)", recipe.getTitle());
+                }
+            }
+            
+        } catch (Exception e) {
+            log.warn("HealthGoal 기반 배치 적합도 평가 실패: {}", e.getMessage());
+            throw e; // 상위에서 개별 처리로 전환하도록 예외 재발생
+        }
+        
+        return recipesWithScores;
+    }
+
+    /**
+     * HealthGoal 기반 개별 처리 메서드
+     */
+    private List<RecipeWithScore> processIndividualByHealthGoal(List<Recipe> recipes, 
+                                                              List<String> availableIngredients, 
+                                                              List<String> allergyTypes, 
+                                                              List<String> healthGoals) {
+        List<RecipeWithScore> recipesWithScores = new ArrayList<>();
+        
+        log.info("HealthGoal 기반 개별 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강목표: {}", 
+                String.join(", ", availableIngredients), 
+                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
+                String.join(", ", healthGoals));
+        
+        for (Recipe recipe : recipes) {
+            try {
+                log.info("레시피 '{}' 재료: {}", recipe.getTitle(), recipe.getIngredients());
+                
+                String prompt = createHealthGoalSuitabilityPrompt(recipe, availableIngredients, allergyTypes, healthGoals);
+                double score = callAIForSuitabilityScore(prompt);
+                
+                log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
+                
+                if (score > 0) {
+                    recipesWithScores.add(new RecipeWithScore(recipe, score));
+                } else {
+                    log.info("레시피 {} 제외됨 (AI가 알레르기 충돌로 판단)", recipe.getTitle());
+                }
+            } catch (Exception e) {
+                log.warn("레시피 {} 적합도 평가 실패: {}", recipe.getTitle(), e.getMessage());
+                recipesWithScores.add(new RecipeWithScore(recipe, 5.0));
+            }
+        }
+        
+        return recipesWithScores;
+    }
+
+    /**
+     * HealthGoal 기반 적합도 평가 프롬프트 생성
+     */
+    private String createHealthGoalSuitabilityPrompt(Recipe recipe,
+                                                   List<String> availableIngredients,
+                                                   List<String> allergyTypes,
+                                                   List<String> healthGoals) {
+        StringBuilder promptBuilder = new StringBuilder();
+        
+        promptBuilder.append("레시피 정보:\n")
+            .append("- 제목: ").append(recipe.getTitle()).append("\n")
+            .append("- 재료: ").append(recipe.getIngredients()).append("\n")
+            .append("- 설명: ").append(recipe.getDescription()).append("\n\n");
+        
+        promptBuilder.append("사용자 정보:\n")
+            .append("- 보유 재료: ").append(String.join(", ", availableIngredients)).append("\n")
+            .append("- 알레르기: ").append(allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes)).append("\n")
+            .append("- 건강 목표: ").append(String.join(", ", healthGoals)).append("\n\n");
+        
+        promptBuilder.append(buildHealthGoalSuitabilityPromptCommon());
+        
+        return promptBuilder.toString();
+    }
+
+    /**
+     * 통합 적합도 평가 프롬프트 생성
+     */
+    private String createCombinedSuitabilityPrompt(Recipe recipe,
+                                                 List<String> availableIngredients,
+                                                 List<String> allergyTypes,
+                                                 Map<String, String> ocrHealthData,
+                                                 List<String> healthGoals) {
+        StringBuilder promptBuilder = new StringBuilder();
+        
+        promptBuilder.append("레시피 정보:\n")
+            .append("- 제목: ").append(recipe.getTitle()).append("\n")
+            .append("- 재료: ").append(recipe.getIngredients()).append("\n")
+            .append("- 설명: ").append(recipe.getDescription()).append("\n\n");
+        
+        promptBuilder.append("사용자 정보:\n")
+            .append("- 보유 재료: ").append(String.join(", ", availableIngredients)).append("\n")
+            .append("- 알레르기: ").append(allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes)).append("\n");
+        
+        if (ocrHealthData != null && !ocrHealthData.isEmpty()) {
+            promptBuilder.append("- 현재 건강 상태:\n");
+            ocrHealthData.forEach((key, value) -> {
+                if (value != null && !value.trim().isEmpty()) {
+                    promptBuilder.append("  * ").append(key).append(": ").append(value).append("\n");
+                }
+            });
+        }
+        
+        if (healthGoals != null && !healthGoals.isEmpty()) {
+            promptBuilder.append("- 건강 목표: ").append(String.join(", ", healthGoals)).append("\n");
+        }
+        
+        promptBuilder.append("\n").append(buildCombinedSuitabilityPromptCommon());
+        
+        return promptBuilder.toString();
+    }
+
+    /**
+     * HealthGoal 기반 적합도 평가 공통 프롬프트 생성
+     */
+    private String buildHealthGoalSuitabilityPromptCommon() {
+        return "위 정보를 바탕으로 다음 기준으로 적합도를 평가해줘:\n" +
+               "1. 사용자 재료와 레시피 재료의 일치도\n" +
+               "2. 건강 목표 달성에 도움이 되는 정도\n" +
+               "3. 대체 가능한 재료 고려\n" +
+               "4. 알레르기 성분이 포함되어 있으면 0점\n\n" +
+               "점수 기준:\n" +
+               "- 9-10점: 재료도 완벽하고 건강 목표에 최적\n" +
+               "- 7-8점: 재료가 일치하고 건강 목표에 적합\n" +
+               "- 5-6점: 재료는 가능하고 건강 목표에 보통\n" +
+               "- 3-4점: 재료가 부족하거나 건강 목표에 부적합\n" +
+               "- 1-2점: 재료도 부족하고 건강 목표에 부적합\n" +
+               "- 0점: 사용자 알레르기 성분 포함\n\n" +
+               "적합도 점수만 숫자로 응답해주세요 (예: 8.5)";
+    }
+
+    /**
+     * 통합 적합도 평가 공통 프롬프트 생성
+     */
+    private String buildCombinedSuitabilityPromptCommon() {
+        return "위 정보를 바탕으로 다음 기준으로 적합도를 평가해줘:\n" +
+               "1. 사용자 재료와 레시피 재료의 일치도\n" +
+               "2. 현재 건강 상태에 적합한 정도\n" +
+               "3. 건강 목표 달성에 도움이 되는 정도\n" +
+               "4. 대체 가능한 재료 고려\n" +
+               "5. 알레르기 성분이 포함되어 있으면 0점\n\n" +
+               "점수 기준:\n" +
+               "- 9-10점: 재료도 완벽하고 건강 상태와 목표에 최적\n" +
+               "- 7-8점: 재료가 일치하고 건강 상태와 목표에 적합\n" +
+               "- 5-6점: 재료는 가능하고 건강 상태와 목표에 보통\n" +
+               "- 3-4점: 재료가 부족하거나 건강 상태와 목표에 부적합\n" +
+               "- 1-2점: 재료도 부족하고 건강 상태와 목표에 부적합\n" +
+               "- 0점: 사용자 알레르기 성분 포함\n\n" +
+               "적합도 점수만 숫자로 응답해주세요 (예: 8.5)";
+    }
+
+    /**
+     * Recipe를 SimpleRes로 변환
+     */
+    private RecipeResponse.SimpleRes toSimpleRes(Recipe recipe) {
+        return new RecipeResponse.SimpleRes(
+            recipe.getId(),
+            recipe.getTitle(),
+            recipe.getRecipeImage(),
+            null // isLiked는 별도로 설정해야 함
+        );
+    }
+
+    /**
+     * 건강 정보 기반 배치 프롬프트 생성
+     */
+    private String createBatchHealthSuitabilityPrompt(List<Recipe> recipes, 
+                                                    List<String> availableIngredients, 
+                                                    List<String> allergyTypes, 
+                                                    String healthInfo) {
+        // OpenAI 토큰 제한 고려 (대략 1토큰 = 4글자)
+        int maxPromptLength = 12000; // 약 3000 토큰
+        
+        StringBuilder promptBuilder = new StringBuilder();
+        
+        promptBuilder.append("사용자가 가지고 있는 재료: ").append(String.join(", ", availableIngredients)).append("\n")
+            .append(buildAllergyPrompt(allergyTypes))
+            .append("사용자 건강 정보: ").append(healthInfo).append("\n")
+            .append("다음 레시피들의 건강 적합도를 평가해줘:\n\n");
+        
+        int currentLength = promptBuilder.length();
+        for (Recipe recipe : recipes) {
+            String recipeText = "레시피: " + recipe.getTitle() + "\n" +
+                               "재료: " + recipe.getIngredients() + "\n\n";
+            
+            if (currentLength + recipeText.length() > maxPromptLength) {
+                log.warn("프롬프트 크기 제한 초과, {} 개 레시피만 처리", 
+                        recipes.indexOf(recipe));
+                break;
+            }
+            
+            promptBuilder.append(recipeText);
+            currentLength += recipeText.length();
+        }
+        
+        promptBuilder.append(buildHealthSuitabilityPromptCommon().replace("위 정보를 바탕으로", "평가 기준:")).append("\n\n")
+            .append("반드시 다음 JSON 형태로만 응답해줘:\n")
+            .append("{\n")
+            .append("  \"scores\": {\n");
+        
+        // 실제 처리된 레시피만 JSON에 포함
+        int processedCount = 0;
+        for (Recipe recipe : recipes) {
+            if (processedCount >= Math.min(recipes.size(), 
+                (maxPromptLength - currentLength) / 50)) { // 대략적인 레시피당 길이
+                break;
+            }
+            promptBuilder.append("    \"").append(recipe.getTitle()).append("\": 점수");
+            if (processedCount < Math.min(recipes.size() - 1, 
+                (maxPromptLength - currentLength) / 50 - 1)) {
+                promptBuilder.append(",");
+            }
+            promptBuilder.append("\n");
+            processedCount++;
+        }
+        
+        promptBuilder.append("  }\n")
+            .append("}\n\n")
+            .append("다른 설명이나 텍스트 없이 JSON만 응답해주세요.");
+        
+        return promptBuilder.toString();
+    }
+
+    /**
+     * 건강 정보 기반 배치 응답에서 점수 파싱
+     */
+    private Map<String, Double> parseBatchHealthScores(String response, List<Recipe> recipes) {
+        Map<String, Double> scores = new HashMap<>();
+        
+        try {
+            // OpenAI API 응답에서 content 추출
+            JsonNode jsonNode = objectMapper.readTree(response);
+            String aiContent = jsonNode.path("choices").path(0).path("message").path("content").asText();
+            
+            log.info("AI 응답 내용: {}", aiContent);
+            
+            // AI 응답에서 JSON 부분 추출 (코드블록 제거)
+            String jsonContent = extractJsonFromAIResponse(aiContent);
+            log.info("추출된 JSON: {}", jsonContent);
+            
+            // AI 응답을 JSON으로 파싱
+            JsonNode scoresJson = objectMapper.readTree(jsonContent);
+            JsonNode scoresNode = scoresJson.path("scores");
+            
+            if (!scoresNode.isMissingNode()) {
+                log.info("점수 노드 발견: {}", scoresNode.toString());
+                
+                for (Recipe recipe : recipes) {
+                    double score = scoresNode.path(recipe.getTitle()).asDouble(5.0);
+                    scores.put(recipe.getTitle(), score);
+                    log.info("레시피 '{}' 건강 적합도 점수: {}", recipe.getTitle(), score);
+                }
+            } else {
+                log.warn("scores 노드를 찾을 수 없습니다.");
+                // 모든 레시피에 기본 점수 부여
+                for (Recipe recipe : recipes) {
+                    scores.put(recipe.getTitle(), 5.0);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("건강 정보 기반 배치 점수 파싱 실패: {}", e.getMessage());
+            // 파싱 실패 시 모든 레시피에 기본 점수 부여
+            for (Recipe recipe : recipes) {
+                scores.put(recipe.getTitle(), 5.0);
+            }
+        }
+        
+        log.info("최종 건강 정보 기반 파싱 결과: {}", scores);
+        return scores;
+    }
+
+    /**
+     * 통합 정보 기반 배치 처리
+     */
+    private List<RecipeWithScore> processBatchByCombined(List<Recipe> recipes, 
+                                                        List<String> availableIngredients, 
+                                                        List<String> allergyTypes, 
+                                                        Map<String, String> ocrHealthData, 
+                                                        List<String> healthGoals) {
+        List<RecipeWithScore> recipesWithScores = new ArrayList<>();
+        
+        log.info("통합 정보 기반 배치 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강목표: {}", 
+                String.join(", ", availableIngredients), 
+                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
+                healthGoals.isEmpty() ? "없음" : String.join(", ", healthGoals));
+        
+        try {
+            // 배치 처리: 모든 레시피를 한 번에 AI에게 전달
+            String batchPrompt = createBatchCombinedSuitabilityPrompt(recipes, availableIngredients, allergyTypes, ocrHealthData, healthGoals);
+            log.info("통합 정보 기반 배치 프롬프트 생성 완료");
+            
+            String batchResponse = callAI(batchPrompt);
+            log.info("AI 배치 응답: {}", batchResponse);
+            
+            // AI 응답에서 각 레시피의 점수 파싱
+            Map<String, Double> scores = parseBatchCombinedScores(batchResponse, recipes);
+            log.info("파싱된 점수: {}", scores);
+            
+            for (Recipe recipe : recipes) {
+                double score = scores.getOrDefault(recipe.getTitle(), 5.0);
+                if (score > 0) {
+                    recipesWithScores.add(new RecipeWithScore(recipe, score));
+                    log.info("레시피 '{}' 통합 적합도 점수: {}", recipe.getTitle(), score);
+                } else {
+                    log.info("레시피 {} 제외됨 (AI가 부적합으로 판단)", recipe.getTitle());
+                }
+            }
+            
+            log.info("통합 정보 기반 배치 처리 완료 - {} 개 레시피 처리됨", recipesWithScores.size());
+            
+        } catch (Exception e) {
+            log.warn("통합 정보 기반 배치 처리 실패: {}", e.getMessage());
+            // 배치 처리 실패 시 개별 처리로 전환
+            recipesWithScores.addAll(processIndividualByCombined(recipes, availableIngredients, allergyTypes, ocrHealthData, healthGoals));
+        }
+        
+        return recipesWithScores;
+    }
+
+    /**
+     * 통합 정보 기반 개별 처리
+     */
+    private List<RecipeWithScore> processIndividualByCombined(List<Recipe> recipes, 
+                                                             List<String> availableIngredients, 
+                                                             List<String> allergyTypes, 
+                                                             Map<String, String> ocrHealthData, 
+                                                             List<String> healthGoals) {
+        List<RecipeWithScore> recipesWithScores = new ArrayList<>();
+        
+        log.info("통합 정보 기반 개별 처리 시작 - {} 개 레시피", recipes.size());
+        
+        for (Recipe recipe : recipes) {
+            try {
+                String prompt = createCombinedSuitabilityPrompt(recipe, availableIngredients, allergyTypes, ocrHealthData, healthGoals);
+                double score = callAIForSuitabilityScore(prompt);
+                
+                log.info("레시피 '{}' 통합 적합도 점수: {}", recipe.getTitle(), score);
+                
+                if (score > 0) {
+                    recipesWithScores.add(new RecipeWithScore(recipe, score));
+                } else {
+                    log.info("레시피 {} 제외됨 (AI가 부적합으로 판단)", recipe.getTitle());
+                }
+            } catch (Exception e) {
+                log.warn("레시피 {} 통합 적합도 평가 실패: {}", recipe.getTitle(), e.getMessage());
+                recipesWithScores.add(new RecipeWithScore(recipe, 5.0));
+            }
+        }
+        
+        return recipesWithScores;
+    }
+
+    /**
+     * 통합 정보 기반 배치 프롬프트 생성
+     */
+    private String createBatchCombinedSuitabilityPrompt(List<Recipe> recipes, 
+                                                      List<String> availableIngredients, 
+                                                      List<String> allergyTypes, 
+                                                      Map<String, String> ocrHealthData, 
+                                                      List<String> healthGoals) {
+        // OpenAI 토큰 제한 고려 (대략 1토큰 = 4글자)
+        int maxPromptLength = 12000; // 약 3000 토큰
+        
+        StringBuilder promptBuilder = new StringBuilder();
+        
+        promptBuilder.append("사용자가 가지고 있는 재료: ").append(String.join(", ", availableIngredients)).append("\n")
+            .append(buildAllergyPrompt(allergyTypes));
+        
+        if (!ocrHealthData.isEmpty()) {
+            promptBuilder.append("사용자 건강 데이터: ").append(buildOcrHealthInfo(ocrHealthData)).append("\n");
+        }
+        
+        if (!healthGoals.isEmpty()) {
+            promptBuilder.append("사용자 건강 목표: ").append(String.join(", ", healthGoals)).append("\n");
+        }
+        
+        promptBuilder.append("다음 레시피들의 통합 적합도를 평가해줘:\n\n");
+        
+        int currentLength = promptBuilder.length();
+        for (Recipe recipe : recipes) {
+            String recipeText = "레시피: " + recipe.getTitle() + "\n" +
+                               "재료: " + recipe.getIngredients() + "\n\n";
+            
+            if (currentLength + recipeText.length() > maxPromptLength) {
+                log.warn("프롬프트 크기 제한 초과, {} 개 레시피만 처리", 
+                        recipes.indexOf(recipe));
+                break;
+            }
+            
+            promptBuilder.append(recipeText);
+            currentLength += recipeText.length();
+        }
+        
+        promptBuilder.append(buildCombinedSuitabilityPromptCommon().replace("위 정보를 바탕으로", "평가 기준:")).append("\n\n")
+            .append("반드시 다음 JSON 형태로만 응답해줘:\n")
+            .append("{\n")
+            .append("  \"scores\": {\n");
+        
+        // 실제 처리된 레시피만 JSON에 포함
+        int processedCount = 0;
+        for (Recipe recipe : recipes) {
+            if (processedCount >= Math.min(recipes.size(), 
+                (maxPromptLength - currentLength) / 50)) { // 대략적인 레시피당 길이
+                break;
+            }
+            promptBuilder.append("    \"").append(recipe.getTitle()).append("\": 점수");
+            if (processedCount < Math.min(recipes.size() - 1, 
+                (maxPromptLength - currentLength) / 50 - 1)) {
+                promptBuilder.append(",");
+            }
+            promptBuilder.append("\n");
+            processedCount++;
+        }
+        
+        promptBuilder.append("  }\n")
+            .append("}\n\n")
+            .append("다른 설명이나 텍스트 없이 JSON만 응답해주세요.");
+        
+        return promptBuilder.toString();
+    }
+
+    /**
+     * 통합 정보 기반 배치 응답에서 점수 파싱
+     */
+    private Map<String, Double> parseBatchCombinedScores(String response, List<Recipe> recipes) {
+        Map<String, Double> scores = new HashMap<>();
+        
+        try {
+            // OpenAI API 응답에서 content 추출
+            JsonNode jsonNode = objectMapper.readTree(response);
+            String aiContent = jsonNode.path("choices").path(0).path("message").path("content").asText();
+            
+            log.info("AI 응답 내용: {}", aiContent);
+            
+            // AI 응답에서 JSON 부분 추출 (코드블록 제거)
+            String jsonContent = extractJsonFromAIResponse(aiContent);
+            log.info("추출된 JSON: {}", jsonContent);
+            
+            // AI 응답을 JSON으로 파싱
+            JsonNode scoresJson = objectMapper.readTree(jsonContent);
+            JsonNode scoresNode = scoresJson.path("scores");
+            
+            if (!scoresNode.isMissingNode()) {
+                log.info("점수 노드 발견: {}", scoresNode.toString());
+                
+                for (Recipe recipe : recipes) {
+                    double score = scoresNode.path(recipe.getTitle()).asDouble(5.0);
+                    scores.put(recipe.getTitle(), score);
+                    log.info("레시피 '{}' 통합 적합도 점수: {}", recipe.getTitle(), score);
+                }
+            } else {
+                log.warn("scores 노드를 찾을 수 없습니다.");
+                // 모든 레시피에 기본 점수 부여
+                for (Recipe recipe : recipes) {
+                    scores.put(recipe.getTitle(), 5.0);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("통합 정보 기반 배치 점수 파싱 실패: {}", e.getMessage());
+            // 파싱 실패 시 모든 레시피에 기본 점수 부여
+            for (Recipe recipe : recipes) {
+                scores.put(recipe.getTitle(), 5.0);
+            }
+        }
+        
+        log.info("최종 통합 정보 기반 파싱 결과: {}", scores);
+        return scores;
+    }
+
+    /**
+     * HealthGoal 기반 배치 프롬프트 생성
+     */
+    private String createBatchHealthGoalSuitabilityPrompt(List<Recipe> recipes, 
+                                                        List<String> availableIngredients, 
+                                                        List<String> allergyTypes, 
+                                                        List<String> healthGoals) {
+        // OpenAI 토큰 제한 고려 (대략 1토큰 = 4글자)
+        int maxPromptLength = 12000; // 약 3000 토큰
+        
+        StringBuilder promptBuilder = new StringBuilder();
+        
+        promptBuilder.append("사용자가 가지고 있는 재료: ").append(String.join(", ", availableIngredients)).append("\n")
+            .append(buildAllergyPrompt(allergyTypes))
+            .append("사용자 건강 목표: ").append(String.join(", ", healthGoals)).append("\n")
+            .append("다음 레시피들의 건강 목표 적합도를 평가해줘:\n\n");
+        
+        int currentLength = promptBuilder.length();
+        for (Recipe recipe : recipes) {
+            String recipeText = "레시피: " + recipe.getTitle() + "\n" +
+                               "재료: " + recipe.getIngredients() + "\n\n";
+            
+            if (currentLength + recipeText.length() > maxPromptLength) {
+                log.warn("프롬프트 크기 제한 초과, {} 개 레시피만 처리", 
+                        recipes.indexOf(recipe));
+                break;
+            }
+            
+            promptBuilder.append(recipeText);
+            currentLength += recipeText.length();
+        }
+        
+        promptBuilder.append(buildHealthGoalSuitabilityPromptCommon().replace("위 정보를 바탕으로", "평가 기준:")).append("\n\n")
+            .append("반드시 다음 JSON 형태로만 응답해줘:\n")
+            .append("{\n")
+            .append("  \"scores\": {\n");
+        
+        // 실제 처리된 레시피만 JSON에 포함
+        int processedCount = 0;
+        for (Recipe recipe : recipes) {
+            if (processedCount >= Math.min(recipes.size(), 
+                (maxPromptLength - currentLength) / 50)) { // 대략적인 레시피당 길이
+                break;
+            }
+            promptBuilder.append("    \"").append(recipe.getTitle()).append("\": 점수");
+            if (processedCount < Math.min(recipes.size() - 1, 
+                (maxPromptLength - currentLength) / 50 - 1)) {
+                promptBuilder.append(",");
+            }
+            promptBuilder.append("\n");
+            processedCount++;
+        }
+        
+        promptBuilder.append("  }\n")
+            .append("}\n\n")
+            .append("다른 설명이나 텍스트 없이 JSON만 응답해주세요.");
+        
+        return promptBuilder.toString();
+    }
+
+    /**
+     * HealthGoal 기반 배치 응답에서 점수 파싱
+     */
+    private Map<String, Double> parseBatchHealthGoalScores(String response, List<Recipe> recipes) {
+        Map<String, Double> scores = new HashMap<>();
+        
+        try {
+            // OpenAI API 응답에서 content 추출
+            JsonNode jsonNode = objectMapper.readTree(response);
+            String aiContent = jsonNode.path("choices").path(0).path("message").path("content").asText();
+            
+            log.info("AI 응답 내용: {}", aiContent);
+            
+            // AI 응답에서 JSON 부분 추출 (코드블록 제거)
+            String jsonContent = extractJsonFromAIResponse(aiContent);
+            log.info("추출된 JSON: {}", jsonContent);
+            
+            // AI 응답을 JSON으로 파싱
+            JsonNode scoresJson = objectMapper.readTree(jsonContent);
+            JsonNode scoresNode = scoresJson.path("scores");
+            
+            if (!scoresNode.isMissingNode()) {
+                log.info("점수 노드 발견: {}", scoresNode.toString());
+                
+                for (Recipe recipe : recipes) {
+                    double score = scoresNode.path(recipe.getTitle()).asDouble(5.0);
+                    scores.put(recipe.getTitle(), score);
+                    log.info("레시피 '{}' 건강 목표 적합도 점수: {}", recipe.getTitle(), score);
+                }
+            } else {
+                log.warn("scores 노드를 찾을 수 없습니다.");
+                // 모든 레시피에 기본 점수 부여
+                for (Recipe recipe : recipes) {
+                    scores.put(recipe.getTitle(), 5.0);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("HealthGoal 기반 배치 점수 파싱 실패: {}", e.getMessage());
+            // 파싱 실패 시 모든 레시피에 기본 점수 부여
+            for (Recipe recipe : recipes) {
+                scores.put(recipe.getTitle(), 5.0);
+            }
+        }
+        
+        log.info("최종 HealthGoal 기반 파싱 결과: {}", scores);
+        return scores;
     }
 } 
