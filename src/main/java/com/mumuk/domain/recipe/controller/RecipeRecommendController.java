@@ -49,15 +49,15 @@ public class RecipeRecommendController {
 
     @Operation(summary = "카테고리들에 해당하는 레시피 추천")
     @GetMapping("/categories/{categories}")
-    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByCategories(@PathVariable String categories) {
-        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByCategories(categories);
+    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByCategories(@AuthUser Long userId, @PathVariable String categories) {
+        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByCategories(userId, categories);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
     }
 
     @Operation(summary = "랜덤 레시피 추천")
     @GetMapping("/random")
-    public Response<List<RecipeResponse.SimpleRes>> recommendRandomRecipes() {
-        List<RecipeResponse.SimpleRes> result = recommendService.recommendRandomRecipes();
+    public Response<List<RecipeResponse.SimpleRes>> recommendRandomRecipes(@AuthUser Long userId) {
+        List<RecipeResponse.SimpleRes> result = recommendService.recommendRandomRecipes(userId);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
     }
 

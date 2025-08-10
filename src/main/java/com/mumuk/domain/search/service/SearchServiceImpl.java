@@ -1,6 +1,7 @@
 package com.mumuk.domain.search.service;
 
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
+import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.repository.RecipeRepository;
 import com.mumuk.domain.recipe.service.RecipeService;
 import com.mumuk.domain.user.dto.response.UserRecipeResponse;
@@ -33,12 +34,14 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public List<UserRecipeResponse.RecentRecipeDTO> SearchRecipeList(Long userId, String keyword) {
 
-        // 검색어가 존재한다면, 해당 검색어 조회수를 1 추가
-        if (!(keyword == null || keyword.isBlank())) {
-            trendSearchService.increaseKeywordCount(keyword);
+        // 입력값 null 또는 blank 검사
+        if (keyword == null || keyword.isBlank()) {
+            throw new GlobalException(ErrorCode.INVALID_INPUT);
         }
+        // 검색어가 유효하면 조회수 증가
+        trendSearchService.increaseKeywordCount(keyword);
         // 키워드를 바탕으로 결과값 반환
-        List<RecipeResponse.SimpleRes> recipes= recipeRepository.findByTitleContainingIgnoreCase(keyword);
+        List<Recipe> recipes = recipeRepository.findByTitleContainingIgnoreCase(keyword);
 
         // 레시피가 없는 경우 예외 던지기
         if (recipes.isEmpty()) {
@@ -46,7 +49,7 @@ public class SearchServiceImpl implements SearchService {
         }
 
         // 찜하기 여부를 불러오기 위해, 검색결과에서 반환받은 레시피 id를 바탕으로 userRecipe 생성
-        List<UserRecipe> userRecipes =userRecipeRepository.findByUserIdAndRecipeIdIn(userId, recipes.stream().map(RecipeResponse.SimpleRes::getId).collect(Collectors.toList()));
+        List<UserRecipe> userRecipes = userRecipeRepository.findByUserIdAndRecipeIdIn(userId, recipes.stream().map(Recipe::getId).collect(Collectors.toList()));
 
         // dto 생성을 빠르게 하기 위해, recipeId를 키로, userRecipe를 밸류로 하는 map을 생성
         Map<Long, UserRecipe> userRecipeMap = userRecipes.stream()
@@ -57,8 +60,8 @@ public class SearchServiceImpl implements SearchService {
                 .map(recipe -> {
                     // 좋아요 여부 입력받기
                     UserRecipe userRecipe = userRecipeMap.get(recipe.getId());
-                    boolean isLiked=(userRecipe!=null)&&userRecipe.getLiked();
-                    return new UserRecipeResponse.RecentRecipeDTO(recipe.getId(),recipe.getTitle(),recipe.getRecipeImage(),isLiked);
+                    boolean isLiked = userRecipe != null && Boolean.TRUE.equals(userRecipe.getLiked());
+                    return new UserRecipeResponse.RecentRecipeDTO(recipe.getId(), recipe.getTitle(), recipe.getRecipeImage(), isLiked);
                 }).collect(Collectors.toList());
 
         return recipeList;
