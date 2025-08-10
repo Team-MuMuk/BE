@@ -289,6 +289,9 @@ public class RecipeServiceImpl implements RecipeService {
                 .sorted()
                 .collect(Collectors.toList());
         
+        // 사용자 재료 Set 생성 (replaceable 검증용)
+        Set<String> normUserSet = new HashSet<>(normUser);
+        
         // Redis 캐싱 키 생성 (정규화된 재료 해시 포함)
         String cacheKey = String.format("ai-match:%d:%d:%d:%d",
                 userId, recipeId, normUser.hashCode(), normRecipe.hashCode());
@@ -297,7 +300,7 @@ public class RecipeServiceImpl implements RecipeService {
         String cachedResult = (String) redisTemplate.opsForValue().get(cacheKey);
         if (cachedResult != null) {
             log.info("캐시된 AI 분석 결과 사용");
-            return parseAIAnalysis(recipe, cachedResult);
+            return parseAIAnalysis(recipe, cachedResult, normUserSet);
         }
         
         // AI 분석 요청
@@ -308,7 +311,7 @@ public class RecipeServiceImpl implements RecipeService {
         redisTemplate.opsForValue().set(cacheKey, aiAnalysis, AI_MATCH_CACHE_TTL);
         
         // AI 분석 결과 파싱
-        RecipeResponse.IngredientMatchingRes result = parseAIAnalysis(recipe, aiAnalysis);
+        RecipeResponse.IngredientMatchingRes result = parseAIAnalysis(recipe, aiAnalysis, normUserSet);
         
         return result;
     }
@@ -489,7 +492,8 @@ public class RecipeServiceImpl implements RecipeService {
     /**
      * AI 분석 결과를 파싱합니다.
      */
-    private RecipeResponse.IngredientMatchingRes parseAIAnalysis(Recipe recipe, String aiAnalysis) {
+    private RecipeResponse.IngredientMatchingRes parseAIAnalysis(Recipe recipe, String aiAnalysis,
+                                                                 Set<String> userSet) {
         try {
             String jsonPart = extractJsonFromAIResponse(aiAnalysis);
             JsonNode root = objectMapper.readTree(jsonPart);
@@ -527,7 +531,7 @@ public class RecipeServiceImpl implements RecipeService {
                 });
             }
 
-                        // replaceable 배열 파싱
+            // replaceable 배열 파싱 (사용자 재료 존재 여부 검증 추가)
             List<RecipeResponse.ReplaceableIngredient> replaceable = new ArrayList<>();
             if (root.has("replaceable") && root.get("replaceable").isArray()) {
                 root.get("replaceable").forEach(n -> {
@@ -535,7 +539,9 @@ public class RecipeServiceImpl implements RecipeService {
                         String ri = n.get("recipeIngredient").asText(null);
                         String ui = n.get("userIngredient").asText(null);
                         if (ri != null && ui != null
-                                && recipeSet.contains(ri.trim().toLowerCase(Locale.ROOT))) {
+                                && recipeSet.contains(ri.trim().toLowerCase(Locale.ROOT))
+                                && userSet != null
+                                && userSet.contains(ui.trim().toLowerCase(Locale.ROOT))) {
                             replaceable.add(new RecipeResponse.ReplaceableIngredient(ri, ui));
                         }
                     }
@@ -543,34 +549,41 @@ public class RecipeServiceImpl implements RecipeService {
             }
 
             // 중복 제거 및 상호 배타성 보장
-            List<String> matchDedup = match.stream().distinct().collect(Collectors.toList());
-            Set<String> matchNorm = matchDedup.stream()
+            Set<String> matchSet = match.stream()
                     .filter(Objects::nonNull)
                     .map(s -> s.trim().toLowerCase(Locale.ROOT))
                     .collect(Collectors.toSet());
-            Set<String> replaceableRiNorm = replaceable.stream()
+            
+            Set<String> replaceableRiSet = replaceable.stream()
                     .map(RecipeResponse.ReplaceableIngredient::getRecipeIngredient)
                     .filter(Objects::nonNull)
                     .map(s -> s.trim().toLowerCase(Locale.ROOT))
                     .collect(Collectors.toSet());
+            
+            // mismatch에서 match와 replaceable의 recipeIngredient와 중복되는 항목 제거
             List<String> mismatchFiltered = mismatch.stream()
                     .filter(Objects::nonNull)
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .filter(s -> {
                         String k = s.toLowerCase(Locale.ROOT);
-                        return !matchNorm.contains(k) && !replaceableRiNorm.contains(k);
+                        return !matchSet.contains(k) && !replaceableRiSet.contains(k);
                     })
                     .distinct()
                     .collect(Collectors.toList());
 
             return new RecipeResponse.IngredientMatchingRes(
-                recipe.getId(), recipe.getTitle(), matchDedup, mismatchFiltered, replaceable
+                recipe.getId(), recipe.getTitle(), 
+                match.stream().distinct().collect(Collectors.toList()), 
+                mismatchFiltered, 
+                replaceable
             );
         } catch (Exception e) {
             log.error("AI 분석 결과 파싱 실패: {}", e.getMessage());
+            // analyzeIngredientsWithAI와 일관된 fallback 로직
+            List<String> fallbackMismatch = parseIngredients(recipe.getIngredients());
             return new RecipeResponse.IngredientMatchingRes(
-                recipe.getId(), recipe.getTitle(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()
+                recipe.getId(), recipe.getTitle(), List.of(), fallbackMismatch, List.of()
             );
         }
     }
