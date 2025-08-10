@@ -66,15 +66,9 @@ public class IngredientServiceImpl implements IngredientService {
     @Override
     public void updateIngredientExpireDate(Long ingredientId, IngredientRequest.UpdateExpireDateReq req, Long userId) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
-
-        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+        Ingredient ingredient = ingredientRepository.findByIdAndUser_Id(ingredientId,userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INGREDIENT_NOT_FOUND));
 
-        if (!ingredient.getUser().getId().equals(user.getId())) {
-            throw new AuthException(ErrorCode.USER_NOT_EQUAL);
-        }
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
         if (req.getExpireDate().isBefore(today)) {
@@ -89,23 +83,21 @@ public class IngredientServiceImpl implements IngredientService {
     @Override
     public void updateIngredientDdaySetting(Long ingredientId, IngredientRequest.UpdateDdaySettingReq req, Long userId) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
-
-        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+        Ingredient ingredient = ingredientRepository.findByIdAndUser_Id(ingredientId,userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INGREDIENT_NOT_FOUND));
 
-        if (!ingredient.getUser().getId().equals(user.getId())) {
-            throw new AuthException(ErrorCode.USER_NOT_EQUAL);
-        }
-
         List<IngredientNotification> alarmSetting = req.getDaySetting().stream()
+                .distinct()  // 중복 제거
                 .map(setting -> new IngredientNotification(ingredient, setting))
-                .toList(); //추후 수정가능성이 없으므로 toList로 반환.추후 알림설정한 리스트에대해 수정필요할시 .collect(Collectors.toList());
+                .toList();//추후 수정가능성이 없으므로 toList로 반환.추후 알림설정한 리스트에대해 수정필요할시 .collect(Collectors.toList());
+
+        if (req.getDaySetting().contains(DdayFcmSetting.NONE)
+                && req.getDaySetting().size() > 1) {
+            throw new BusinessException(ErrorCode.INVALID_D_DAY_SETTING);
+        }
 
         ingredient.getDaySettings().clear();
         ingredient.getDaySettings().addAll(alarmSetting); //알림설정 최신화 (NONE 포함조건 불필요)
-        ingredientRepository.save(ingredient);
     }
 
     @Transactional
