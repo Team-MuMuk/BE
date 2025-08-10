@@ -43,7 +43,7 @@ public class IngredientController {
 
 
     @Operation(summary = "재료의 유통기한 수정", description = "등록하신 재료의 유통기한을 수정합니다.")
-    @PutMapping("/{ingredientId}/update/expireDate")
+    @PutMapping("/{ingredientId}/expireDate")
     public Response<String> updateIngredient(
             @PathVariable Long ingredientId,
             @Valid @RequestBody IngredientRequest.UpdateExpireDateReq req,
@@ -55,7 +55,7 @@ public class IngredientController {
     }
 
     @Operation(summary = "재료의 알림설정 수정", description = "등록하신 재료의 알림설정기간을 수정합니다.")
-    @PutMapping("/{ingredientId}/update/dday-Setting")
+    @PutMapping("/{ingredientId}/dday-Setting")
     public Response<String> updateIngredient(
             @PathVariable Long ingredientId,
             @Valid @RequestBody IngredientRequest.UpdateDdaySettingReq req,
