@@ -95,15 +95,15 @@ public class SearchController {
     @GetMapping("/trends/recipe-title")
     public Response<SearchResponse.TrendRecipeTitleRes> getTrendRecipeTitle(){
         SearchResponse.TrendRecipeTitleRes trendRecipeTitle=trendSearchService.getTrendRecipeTitleList();
-        return Response.ok(ResultCode.SEARCH_GET_TRENDKEYWORDS_OK ,trendRecipeTitle);
+        return Response.ok(ResultCode.SEARCH_GET_TRENDRECIPETITLE_OK ,trendRecipeTitle);
     }
 
     @Operation(summary = "인기 레시피 세부 목록 조회",
-            description = "검색 화면에서 사용. user-recipe-controller에서 레시피 상세 조회시, 해당 레시피의 id가 현 시간대의 redis에 저장됨." +
+            description = "홈 화면에서 사용. user-recipe-controller에서 레시피 상세 조회시, 해당 레시피의 id가 현 시간대의 redis에 저장됨." +
                     "레시피 검색어 조회시 !이전 시간대!의 인기 레시피가 조회됨")
     @GetMapping("/trends/recipe-detail")
     public Response<List<SearchResponse.TrendRecipeDetailRes>> getTrendRecipeDetail(@AuthUser Long userId){
         List <SearchResponse.TrendRecipeDetailRes> trendRecipeDetail=trendSearchService.getTrendRecipeDetailList(userId);
-        return Response.ok(ResultCode.SEARCH_GET_TRENDKEYWORDS_OK ,trendRecipeDetail);
+        return Response.ok(ResultCode.SEARCH_GET_TRENDRECIPEDETAIL_OK ,trendRecipeDetail);
     }
 }

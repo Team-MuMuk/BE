@@ -9,6 +9,7 @@ import com.mumuk.domain.user.entity.UserRecipe;
 import com.mumuk.domain.user.repository.UserRecipeRepository;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
+import com.mumuk.global.apiPayload.exception.BusinessException;
 import com.mumuk.global.apiPayload.exception.GlobalException;
 import org.springframework.stereotype.Service;
 
@@ -32,12 +33,15 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public List<UserRecipeResponse.RecentRecipeDTO> SearchRecipeList(Long userId, String keyword) {
 
+        if (keyword == null || keyword.isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
         // 키워드를 바탕으로 결과값 반환
         List<Recipe> recipes= recipeRepository.findByTitleContainingIgnoreCase(keyword);
 
         // 레시피가 없는 경우 예외 던지기
         if (recipes.isEmpty()) {
-            throw new GlobalException(ErrorCode.SEARCH_RESULT_NOT_FOUND);
+            throw new BusinessException(ErrorCode.SEARCH_RESULT_NOT_FOUND);
         }
 
         // 찜하기 여부를 불러오기 위해, 검색결과에서 반환받은 레시피 id를 바탕으로 userRecipe 생성
@@ -52,7 +56,7 @@ public class SearchServiceImpl implements SearchService {
                 .map(recipe -> {
                     // 좋아요 여부 입력받기
                     UserRecipe userRecipe = userRecipeMap.get(recipe.getId());
-                    boolean isLiked=(userRecipe!=null)&&userRecipe.getLiked();
+                    boolean isLiked=(userRecipe!=null)&&Boolean.TRUE.equals(userRecipe.getLiked());
                     return new UserRecipeResponse.RecentRecipeDTO(recipe.getId(),recipe.getTitle(),recipe.getRecipeImage(),isLiked);
                 }).collect(Collectors.toList());
 

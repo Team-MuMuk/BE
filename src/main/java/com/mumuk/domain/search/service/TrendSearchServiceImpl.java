@@ -8,6 +8,7 @@ import com.mumuk.domain.user.repository.UserRecipeRepository;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -73,23 +74,30 @@ public class TrendSearchServiceImpl implements TrendSearchService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     // 레시피 이름만 반환
     public SearchResponse.TrendRecipeTitleRes getTrendRecipeTitleList() {
 
         // 캐시된 리스트를 불러옴
         List<Long> recipeIdList = getCachedTrendRecipe();
 
-        Map<Long, Recipe>  recipeMap= recipeRepository.findAllById(recipeIdList).stream()
+        Map<Long, Recipe> recipeMap= recipeRepository.findAllById(recipeIdList).stream()
                 .collect(Collectors.toMap(Recipe::getId, Function.identity()));
 
+        // redis에는 있으나 DB에는 없는 경우, null이 발생하므로 npe 발생 상황 제거
         List<String> trendRecipeTitleList=recipeIdList.stream()
-                .map(id ->recipeMap.get(id).getTitle())
+                .map(id -> {
+                    Recipe recipe = recipeMap.get(id);
+                    return recipe != null ? recipe.getTitle() : null;
+                })
+                .filter(Objects::nonNull)
                 .toList();
 
         return new SearchResponse.TrendRecipeTitleRes(trendRecipeTitleList);
     }
 
     @Override
+    @Transactional(readOnly = true)
     // 레시피 정보까지 반환
     public List<SearchResponse.TrendRecipeDetailRes> getTrendRecipeDetailList(Long userId) {
 
@@ -103,6 +111,7 @@ public class TrendSearchServiceImpl implements TrendSearchService {
                 .collect(Collectors.toMap(userRecipe -> userRecipe.getRecipe().getId(), Function.identity()));
 
         List<SearchResponse.TrendRecipeDetailRes> result= recipeIdList.stream()
+                .filter(recipeMap::containsKey)
                 .map(id->{
                     Recipe recipe = recipeMap.get(id);
                     boolean isLiked=userRecipeMap.containsKey(id)&&userRecipeMap.get(id).getLiked();

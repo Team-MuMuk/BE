@@ -29,7 +29,7 @@ public class RedisAutocompleteInitializer implements CommandLineRunner {
                 redisTemplate.opsForZSet().add(ZSET_KEY, recipe.getTitle(), 0);
             }
         } catch (Exception e) {
-            log.error(String.valueOf(e));
+            log.error("레디스 초기 데이터 구성 실패",e);
         }
 
     }
