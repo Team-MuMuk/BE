@@ -1,10 +1,10 @@
 package com.mumuk.domain.recipe.dto.response;
 
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
+
 
 import java.util.List;
 @Getter
@@ -15,12 +15,11 @@ public class RecipeNaverShoppingResponse {
 
     @Builder
     @Getter
-    @Setter
     @AllArgsConstructor
     @NoArgsConstructor
     public static class NaverShopping {
         private String title;
-        private String price;
+        private Integer price;
         private String link;
         private String imageUrl;
     }

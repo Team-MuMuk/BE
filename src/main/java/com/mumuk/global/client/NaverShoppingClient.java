@@ -20,15 +20,13 @@ public class NaverShoppingClient {
     @Value("${naver.login.secret-key}")
     private String clientSecret;
 
-    public String searchShopping(String ingredient, String url) {
+    public String searchShopping(String url) {
 
         Map<String, String> requestHeaders = new HashMap<>();
         requestHeaders.put("X-Naver-Client-Id", clientId);
         requestHeaders.put("X-Naver-Client-Secret", clientSecret);
         String responseBody = get(url,requestHeaders);
 
-
-        System.out.println(responseBody);
         return responseBody;
 
     }
@@ -59,7 +57,10 @@ public class NaverShoppingClient {
     private HttpURLConnection connect(String apiUrl){
         try {
             URL url = new URL(apiUrl);
-            return (HttpURLConnection)url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setConnectTimeout(5_000);
+            con.setReadTimeout(5_000);
+            return con;
         } catch (MalformedURLException e) {
             throw new RuntimeException("API URL이 잘못되었습니다. : " + apiUrl, e);
         } catch (IOException e) {

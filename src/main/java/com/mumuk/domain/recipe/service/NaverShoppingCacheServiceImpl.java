@@ -6,6 +6,7 @@ import com.mumuk.domain.recipe.dto.response.RecipeNaverShoppingResponse;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
 import com.mumuk.global.client.NaverShoppingClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -15,27 +16,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-
+@Slf4j
 @Service
 public class NaverShoppingCacheServiceImpl implements NaverShoppingCacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private static final Duration PRODUCT_CACHE_TTL = Duration.ofDays(3);// 3일 동안 캐시
     private final NaverShoppingClient naverShoppingClient;
+    private final ObjectMapper objectMapper;
 
-    public NaverShoppingCacheServiceImpl(RedisTemplate<String, Object> redisTemplate, NaverShoppingClient naverShoppingClient) {
+    public NaverShoppingCacheServiceImpl(RedisTemplate<String, Object> redisTemplate, NaverShoppingClient naverShoppingClient, ObjectMapper objectMapper) {
         this.redisTemplate = redisTemplate;
         this.naverShoppingClient = naverShoppingClient;
+        this.objectMapper = objectMapper;
 
     }
     @Override
-    public List<RecipeNaverShoppingResponse.NaverShopping> fetchAndCacheProduct(String ingredient, String url) {
+    public List<RecipeNaverShoppingResponse.NaverShopping> fetchAndCacheProduct(String url) {
 
         List<RecipeNaverShoppingResponse.NaverShopping> naverShoppingProducts = new ArrayList<>();
 
         try {
-            String json = naverShoppingClient.searchShopping(ingredient, url);
-            ObjectMapper objectMapper = new ObjectMapper();
+            String json = naverShoppingClient.searchShopping(url);
             JsonNode rootNode = objectMapper.readTree(json);
             JsonNode itemsNode = rootNode.path("items");
 
@@ -48,10 +50,8 @@ public class NaverShoppingCacheServiceImpl implements NaverShoppingCacheService 
                 String title = titleWithTags.replaceAll("<b>", "").replaceAll("</b>", "");
                 //가격, 링크, 이미지를 추출
                 String link = itemNode.path("link").asText();
-                String productPrice = itemNode.path("lprice").asText();
+                Integer productPrice = itemNode.path("lprice").asInt();
                 String imgUrl = itemNode.path("image").asText();
-                System.out.println("상품명: " + title);
-                System.out.println("링크: " + link);
 
                 naverShoppingProducts.add(RecipeNaverShoppingResponse.NaverShopping.builder()
                         .title(title)
@@ -69,6 +69,7 @@ public class NaverShoppingCacheServiceImpl implements NaverShoppingCacheService 
             return naverShoppingProducts;
 
         } catch (Exception e) {
+                log.error("쇼핑 검색 실패", e);
                 throw new BusinessException(ErrorCode.NAVER_SHOPPING_API_ERROR);
         }
 

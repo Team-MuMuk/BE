@@ -7,6 +7,7 @@ import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
 import com.mumuk.global.security.exception.AuthException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
+@Slf4j
 @Service
 public class RecipeNaverShoppingServiceImpl implements RecipeNaverShoppingService {
 
@@ -54,7 +55,8 @@ public class RecipeNaverShoppingServiceImpl implements RecipeNaverShoppingServic
                 .collect(Collectors.toList());
 
         // 사용자가 보유한 재료 리스트
-        List<String> inUserIngredients = user.getIngredients().stream()
+        List<String> inUserIngredients = Optional.ofNullable(user.getIngredients())
+                .orElse(Collections.emptyList()).stream()
                 .map(ingredient -> {
                     String name = ingredient.getName();
                     return name;
@@ -84,7 +86,7 @@ public class RecipeNaverShoppingServiceImpl implements RecipeNaverShoppingServic
 
                         // 없으면 api 호출하고 레디스에 저장
                         if (ingredientProducts == null || ingredientProducts.isEmpty()) {
-                            ingredientProducts = naverShoppingCacheService.fetchAndCacheProduct(ingredient, url);
+                            ingredientProducts = naverShoppingCacheService.fetchAndCacheProduct(url);
 
                         }
                         return ingredientProducts.stream();
@@ -94,6 +96,7 @@ public class RecipeNaverShoppingServiceImpl implements RecipeNaverShoppingServic
             return new RecipeNaverShoppingResponse(allNaverShoppingProducts);
 
         } catch (Exception e) {
+            log.info("error",e);
             throw new BusinessException(ErrorCode.NAVER_SHOPPING_API_ERROR);
         }
         }
