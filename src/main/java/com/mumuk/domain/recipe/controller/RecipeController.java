@@ -3,6 +3,7 @@ package com.mumuk.domain.recipe.controller;
 import com.mumuk.domain.recipe.dto.request.RecipeRequest;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.service.RecipeService;
+import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
@@ -73,10 +74,10 @@ public class RecipeController {
         return Response.ok(ResultCode.RECIPE_FETCH_OK, recipes);
     }
 
-    @Operation(summary = "레시피 간단 목록 조회")
-    @GetMapping("/simple")
-    public Response<List<RecipeResponse.SimpleRes>> getSimpleRecipes(@AuthUser Long userId) {
-        List<RecipeResponse.SimpleRes> recipes = recipeService.getSimpleRecipes(userId);
+    @Operation(summary = "레시피 요약 목록 조회")
+    @GetMapping("/summaries")
+    public Response<List<UserRecipeResponse.RecipeSummaryDTO>> getRecipeSummaries(@AuthUser Long userId) {
+        List<UserRecipeResponse.RecipeSummaryDTO> recipes = recipeService.getRecipeSummaries(userId);
         return Response.ok(ResultCode.RECIPE_FETCH_OK, recipes);
     }
 

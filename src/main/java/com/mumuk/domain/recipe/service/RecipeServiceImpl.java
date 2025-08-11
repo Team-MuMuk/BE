@@ -3,6 +3,7 @@ package com.mumuk.domain.recipe.service;
 import com.mumuk.domain.recipe.converter.RecipeConverter;
 import com.mumuk.domain.recipe.dto.request.RecipeRequest;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
+import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.repository.RecipeRepository;
 import com.mumuk.domain.user.repository.UserRecipeRepository;
@@ -162,14 +163,14 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RecipeResponse.SimpleRes> getSimpleRecipes(Long userId) {
+    public List<UserRecipeResponse.RecipeSummaryDTO> getRecipeSummaries(Long userId) {
         List<Recipe> recipes = recipeRepository.findAll();
         List<Long> recipeIds = recipes.stream()
                 .map(Recipe::getId)
                 .collect(Collectors.toList());
         Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
         return recipes.stream()
-                .map(recipe -> RecipeConverter.toSimpleRes(recipe, likedMap.get(recipe.getId())))
+                .map(recipe -> RecipeConverter.toRecipeSummaryDTO(recipe, likedMap.get(recipe.getId())))
                 .collect(Collectors.toList());
     }
 

@@ -75,9 +75,9 @@ public class UserRecipeConverter {
         );
     }
 
-    public static UserRecipeResponse.RecentRecipeDTO toRecentRecipeDTO(Recipe recipe, boolean liked) {
+    public static UserRecipeResponse.RecipeSummaryDTO toRecipeSummaryDTO(Recipe recipe, boolean liked) {
 
-        return UserRecipeResponse.RecentRecipeDTO.builder()
+        return UserRecipeResponse.RecipeSummaryDTO.builder()
                 .recipeId(recipe.getId())
                 .name(recipe.getTitle())
                 .imageUrl(recipe.getRecipeImage())
@@ -85,27 +85,23 @@ public class UserRecipeConverter {
                 .build();
     }
 
-    public static UserRecipeResponse.RecentRecipeDTOList toRecentRecipeDTOList(List<Long> recipeIds, Map<Long, Recipe> recipeMap,Map<Long, UserRecipe> userRecipeMap) {
+    public static UserRecipeResponse.RecipeSummaryDTOList toRecipeSummaryDTOList(List<Long> recipeIds, Map<Long, Recipe> recipeMap,Map<Long, UserRecipe> userRecipeMap) {
 
-        // 5. Redis에서 가져온 순서 (최신순)에 맞게 정렬하면서 DTO로 변환
-        List<UserRecipeResponse.RecentRecipeDTO> sortedRecentRecipes = recipeIds.stream()
+        List<UserRecipeResponse.RecipeSummaryDTO> sortedRecipeSummaries = recipeIds.stream()
                 .map(recipeId -> {
                     Recipe recipe = recipeMap.get(recipeId);
                     if (recipe == null) {
-                        return null; // DB에 없는 레시피 ID는 스킵
+                        return null;
                     }
-                    // liked 정보 가져오기
-                    boolean liked = Optional.ofNullable(userRecipeMap.get(recipeId))
-                            .map(UserRecipe::getLiked)
-                            .orElse(false); // 해당 UserRecipe가 없으면 기본값 false
-
-                    return toRecentRecipeDTO(recipe,liked);
+                    UserRecipe userRecipe = userRecipeMap.get(recipeId);
+                    boolean liked = userRecipe != null && Boolean.TRUE.equals(userRecipe.getLiked());
+                    return toRecipeSummaryDTO(recipe,liked);
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        return UserRecipeResponse.RecentRecipeDTOList.builder()
-                .recentRecipes(sortedRecentRecipes)
+        return UserRecipeResponse.RecipeSummaryDTOList.builder()
+                .recipeSummaries(sortedRecipeSummaries)
                 .build();
     }
 }

@@ -1,66 +1,51 @@
 package com.mumuk.domain.recipe.service;
 
-import com.mumuk.domain.recipe.dto.request.RecipeRequest;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
-import com.mumuk.global.apiPayload.exception.BusinessException;
+import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 
 import java.util.List;
 
-/**
- * AI 기반 레시피 추천 서비스
- */
 public interface RecipeRecommendService {
+
     /**
-     * 사용자의 재료를 기반으로 레시피를 추천하고 저장
-     * @param userId 사용자 ID
-     * @return 추천된 레시피 목록
-     * @throws BusinessException AI 추천 실패 시
+     * 사용자의 재료를 기반으로 레시피를 추천합니다.
      */
-    List<RecipeResponse.DetailRes> recommendAndSaveRecipesByIngredient(Long userId);
-    
+    List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByIngredient(Long userId);
+
+
+
     /**
-     * 사용자의 재료를 기반으로 레시피 추천 (저장하지 않음)
-     * @param userId 사용자 ID
-     * @return 추천된 레시피 목록
-     * @throws BusinessException AI 추천 실패 시
+     * 특정 카테고리들에 해당하는 레시피를 추천합니다.
      */
-    List<RecipeResponse.DetailRes> recommendByIngredient(Long userId);
-    
+    List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByCategories(Long userId, String categories);
+
     /**
-     * 랜덤 레시피 추천
-     * @return 추천된 레시피 목록
-     * @throws BusinessException AI 추천 실패 시
+     * 랜덤하게 레시피를 추천합니다.
      */
-    List<RecipeResponse.DetailRes> recommendRandom();
-    
+    List<UserRecipeResponse.RecipeSummaryDTO> recommendRandomRecipes(Long userId);
+
     /**
-     * 재료 기반 레시피 추천 (적합도 점수 기반)
-     * @param userId 사용자 ID
-     * @return 적합도 점수로 정렬된 레시피 목록
-     * @throws BusinessException AI 추천 실패 시
+     * OCR 결과를 기반으로 레시피를 추천합니다.
      */
-    List<RecipeResponse.SimpleRes> recommendRecipesByIngredient(Long userId);
-    
+    List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByOcr(Long userId);
+
     /**
-     * 건강 정보 기반 레시피 추천 (적합도 점수 기반)
-     * @param userId 사용자 ID
-     * @return 적합도 점수로 정렬된 레시피 목록
-     * @throws BusinessException AI 추천 실패 시
+     * 사용자의 건강 목표를 기반으로 레시피를 추천합니다.
      */
-    List<RecipeResponse.SimpleRes> recommendRecipesByHealth(Long userId);
-    
+    List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByHealthGoal(Long userId);
+
     /**
-     * 여러 카테고리별 레시피 추천 (DB 기반)
-     * @param userId 사용자 ID
-     * @param categories 레시피 카테고리 목록 (콤마로 구분)
-     * @return 해당 카테고리들의 레시피 목록
+     * 여러 조건을 조합하여 레시피를 추천합니다.
      */
-    List<RecipeResponse.SimpleRes> recommendRecipesByCategories(Long userId, String categories);
-    
+    List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByCombined(Long userId);
+
     /**
-     * 랜덤 레시피 추천 (DB 기반)
-     * @param userId 사용자 ID
-     * @return 랜덤하게 선택된 레시피 목록
+     * AI를 사용하여 재료 기반 레시피를 생성하고 저장합니다.
      */
-    List<RecipeResponse.SimpleRes> recommendRandomRecipes(Long userId);
+    List<RecipeResponse.DetailRes> createAndSaveRecipesByIngredient(Long userId);
+
+    /**
+     * AI를 사용하여 랜덤 레시피를 생성하고 저장합니다.
+     */
+    List<RecipeResponse.DetailRes> createAndSaveRandomRecipes(Long userId);
 } 

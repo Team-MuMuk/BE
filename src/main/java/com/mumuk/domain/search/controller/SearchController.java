@@ -37,9 +37,9 @@ public class SearchController {
     }
 
     @Operation(summary = "레시피 검색결과 목록 조회")
-    @GetMapping("/recipes")
-    public Response<List<UserRecipeResponse.RecentRecipeDTO>> showResultList(@AuthUser Long userId, @RequestParam String keyword) {
-        List<UserRecipeResponse.RecentRecipeDTO> resultList= searchService.SearchRecipeList(userId, keyword);
+    @GetMapping("/search")
+    public Response<List<UserRecipeResponse.RecipeSummaryDTO>> showResultList(@AuthUser Long userId, @RequestParam String keyword) {
+        List<UserRecipeResponse.RecipeSummaryDTO> resultList= searchService.searchRecipeList(userId, keyword);
         return Response.ok(ResultCode.SEARCH_RECIPE_OK, resultList);
     }
 

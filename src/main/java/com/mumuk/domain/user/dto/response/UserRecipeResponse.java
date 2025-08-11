@@ -49,7 +49,7 @@ public class UserRecipeResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class RecentRecipeDTO {
+    public static class RecipeSummaryDTO {
         private Long recipeId;
         private String name;
         private String imageUrl;
@@ -60,8 +60,8 @@ public class UserRecipeResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class RecentRecipeDTOList {
-        private List<RecentRecipeDTO> recentRecipes;
+    public static class RecipeSummaryDTOList {
+        private List<RecipeSummaryDTO> recipeSummaries;
     }
 
     @Builder
@@ -69,7 +69,7 @@ public class UserRecipeResponse {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class LikedRecipeListDTO {
         private Long userId;
-        private List<UserRecipeResponse.RecentRecipeDTO> likedRecipes;
+        private List<UserRecipeResponse.RecipeSummaryDTO> likedRecipes;
         private int currentPage;
         private int totalPages;
         private long totalElements;
