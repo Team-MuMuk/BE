@@ -102,6 +102,25 @@ public class IngredientServiceImpl implements IngredientService {
 
     @Transactional
     @Override
+    public void updateIngredientQuantity(Long ingredientId, IngredientRequest.UpdateQuantityReq req, Long userId) {
+
+        Ingredient ingredient = ingredientRepository.findByIdAndUser_Id(ingredientId,userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INGREDIENT_NOT_FOUND));
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+
+        //입력한 수량이 0보다 작을경우 예외 발생.
+        if (req.getQuantity() < 0) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+
+
+        ingredient.setQuantity(req.getQuantity());
+        ingredientRepository.save(ingredient);
+    }
+
+    @Transactional
+    @Override
     public void deleteIngredient(Long ingredientId, Long userId) {
 
         User user = userRepository.findById(userId)

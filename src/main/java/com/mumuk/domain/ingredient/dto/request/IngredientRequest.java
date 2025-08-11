@@ -44,4 +44,12 @@ public class IngredientRequest {
         @NotNull
         private List<DdayFcmSetting> daySetting;
     }
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UpdateQuantityReq{
+
+        @NotNull
+        private Integer quantity;
+    }
 }
