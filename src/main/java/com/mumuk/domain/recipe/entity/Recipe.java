@@ -19,7 +19,7 @@ public class Recipe extends BaseEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name = "recipe_image", nullable = false, length = 150)
+    @Column(name = "recipe_image", nullable = false, length = 500)
     private String recipeImage = "default-recipe-image.jpg";
 
     @Column(name = "description", nullable = false, length = 100)

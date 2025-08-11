@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/recipe/recommend")
+@RequestMapping("/api/recipe/recommend")
 @Tag(name = "레시피 추천 관련", description = "AI 기반 레시피 추천 및 생성 API")
 @RequiredArgsConstructor
 public class RecipeRecommendController {
@@ -75,6 +75,13 @@ public class RecipeRecommendController {
     @PostMapping("/random")
     public Response<List<RecipeResponse.DetailRes>> createAndSaveRandomRecipes(@AuthUser Long userId) {
         List<RecipeResponse.DetailRes> result = recommendService.createAndSaveRandomRecipes(userId);
+        return Response.ok(result);
+    }
+    
+    @Operation(summary = "AI 추천 레시피 등록 (키워드 기반)", description = "키워드를 기반으로 AI가 새로운 레시피를 생성하고 저장합니다. 키워드가 없으면 완전 랜덤하게 생성합니다.")
+    @PostMapping("/random/{keyword}")
+    public Response<List<RecipeResponse.DetailRes>> createAndSaveRandomRecipesByKeyword(@AuthUser Long userId, @PathVariable String keyword) {
+        List<RecipeResponse.DetailRes> result = recommendService.createAndSaveRandomRecipesByKeyword(userId, keyword);
         return Response.ok(result);
     }
 } 
