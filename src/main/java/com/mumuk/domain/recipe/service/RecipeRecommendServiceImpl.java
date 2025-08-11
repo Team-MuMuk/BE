@@ -11,6 +11,8 @@ import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.entity.RecipeCategory;
 import com.mumuk.domain.recipe.repository.RecipeRepository;
+import com.mumuk.domain.recipe.converter.RecipeConverter;
+import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.domain.user.repository.UserRecipeRepository;
@@ -21,6 +23,9 @@ import com.mumuk.global.client.OpenAiClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -44,6 +49,7 @@ import com.mumuk.domain.healthManagement.service.HealthGoalService;
 
 @Slf4j
 @Service
+@EnableScheduling
 public class RecipeRecommendServiceImpl implements RecipeRecommendService {
 
     private final OpenAiClient openAiClient;
@@ -57,10 +63,14 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private final UserHealthDataRepository userHealthDataRepository;
     private final HealthGoalService healthGoalService;
 
-    private static final Duration RECIPE_CACHE_TTL = Duration.ofDays(7); // 7일 동안 캐시
+    private static final Duration RECIPE_CACHE_TTL = Duration.ofDays(30); // 30일 동안 캐시 (POST API용)
+    private static final Duration RECOMMENDATION_CACHE_TTL = Duration.ofDays(7); // 7일 동안 캐시 (GET API용)
+    private static final String RECIPE_TITLES_KEY = "recipetitles"; // 레시피 제목 저장용 ZSet 키 (search domain과 동일)
     private static final int BATCH_SIZE = 20; // 배치 처리 크기
     private static final int PAGE_SIZE = 100; // 페이징 크기
-    private static final int MAX_RECOMMENDATIONS = 10; // 최대 추천 개수
+    private static final int MAX_RECOMMENDATIONS = 6; // 최대 추천 개수 (상위 6개)
+    private static final int RANDOM_SAMPLE_SIZE = 48; // 무작위 샘플 크기 (GET API용)
+    private static final int POST_RECIPE_COUNT = 5; // POST API로 생성할 레시피 개수
 
     public RecipeRecommendServiceImpl(OpenAiClient openAiClient, ObjectMapper objectMapper,
                                    UserRepository userRepository, UserRecipeRepository userRecipeRepository,
@@ -79,219 +89,126 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         this.healthGoalService = healthGoalService;
     }
 
-    // 1. recommendAndSaveRecipes는 전체 흐름만 담당하도록 정리
+
+
     @Override
-    public List<RecipeResponse.DetailRes> recommendAndSaveRecipesByIngredient(Long userId) {
+    public List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByIngredient(Long userId) {
+        // 사용자 정보 조회
         User user = getUser(userId);
+        
+        // 사용자 보유 재료 및 알레르기 정보 조회
         List<String> availableIngredients = getUserIngredients(userId);
         List<String> allergyTypes = getUserAllergies(userId);
-        String redisKey = generateRedisKey(userId, availableIngredients, allergyTypes);
-        List<RecipeResponse.DetailRes> cachedResult = getCachedRecommendations(redisKey);
-        if (cachedResult != null) return cachedResult;
-        String prompt = createRecommendationPrompt(availableIngredients, allergyTypes, user);
-        List<Recipe> savedRecipes = callAIAndSaveRecipes(prompt);
-        List<RecipeResponse.DetailRes> result = savedRecipes.stream()
-            .map(this::toDetailRes)
-                .collect(Collectors.toList());
-        if (!result.isEmpty()) cacheRecommendations(redisKey, result);
-        return result;
-    }
-
-    @Override
-    public List<RecipeResponse.DetailRes> recommendByIngredient(Long userId) {
-        User user = getUser(userId);
-        List<String> availableIngredients = getUserIngredients(userId);
-        List<String> allergyTypes = getUserAllergies(userId);
-        String prompt = createRecommendationPrompt(availableIngredients, allergyTypes, user);
-        List<Recipe> savedRecipes = callAIAndSaveRecipes(prompt);
-        List<RecipeResponse.DetailRes> result = savedRecipes.stream()
-            .map(this::toDetailRes)
-            .collect(Collectors.toList());
-        return result.size() > 4 ? result.subList(0, 4) : result;
-    }
-
-    @Override
-    public List<RecipeResponse.DetailRes> recommendRandom() {
-        String prompt = buildRandomPrompt();
-        List<Recipe> savedRecipes = callAIAndSaveRecipes(prompt);
-        List<RecipeResponse.DetailRes> result = savedRecipes.stream()
-            .map(this::toDetailRes)
-            .collect(Collectors.toList());
-        return result.size() > 4 ? result.subList(0, 4) : result;
-    }
-
-    @Override
-    public List<RecipeResponse.SimpleRes> recommendRecipesByIngredient(Long userId) {
-        User user = getUser(userId);
-        List<String> availableIngredients = getUserIngredients(userId);
-        List<String> allergyTypes = getUserAllergies(userId);
-
-        // DB 레벨에서 랜덤 샘플링으로 24개 조회
-        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
-
-        if (sampledRecipes.isEmpty()) {
-            log.warn("DB에 레시피가 없습니다.");
-            return new ArrayList<>();
-        }
-
-        log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
-
-        // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
+        
+        // 레시피 적합도 평가 (무작위 48개에서 상위 6개 선택)
         List<RecipeWithScore> recipesWithScores = evaluateRecipeSuitabilityByIngredient(
-            sampledRecipes, availableIngredients, allergyTypes);
-
-        // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
-        recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
-
-        // SimpleRes로 변환하여 반환 (상위 6개만)
-        List<RecipeWithScore> topRecipes = recipesWithScores.stream()
-                .limit(6)
-                .collect(Collectors.toList());
+            getRandomRecipesForEvaluation(RANDOM_SAMPLE_SIZE), availableIngredients, allergyTypes);
         
+        // 상위 6개 레시피 선택
+        List<RecipeWithScore> topRecipes = recipesWithScores.stream()
+            .limit(6)
+            .collect(Collectors.toList());
+        
+        // 찜 여부 조회
         List<Long> recipeIds = topRecipes.stream()
-                .map(recipeWithScore -> recipeWithScore.recipe.getId())
-                .collect(Collectors.toList());
+            .map(recipeWithScore -> recipeWithScore.recipe.getId())
+            .collect(Collectors.toList());
         Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
         
+        // RecipeSummaryDTO로 변환하여 반환
         return topRecipes.stream()
-                .map(recipeWithScore -> new RecipeResponse.SimpleRes(
-                    recipeWithScore.recipe.getId(),
-                    recipeWithScore.recipe.getTitle(),
-                    recipeWithScore.recipe.getRecipeImage(),
-                    likedMap.get(recipeWithScore.recipe.getId())
-                ))
-                .collect(Collectors.toList());
+            .map(recipeWithScore -> UserRecipeResponse.RecipeSummaryDTO.builder()
+                .recipeId(recipeWithScore.recipe.getId())
+                .name(recipeWithScore.recipe.getTitle())
+                .imageUrl(recipeWithScore.recipe.getRecipeImage())
+                .liked(likedMap.get(recipeWithScore.recipe.getId()))
+                .build())
+            .collect(Collectors.toList());
     }
 
+
+
     @Override
-    public List<RecipeResponse.SimpleRes> recommendRecipesByHealth(Long userId) {
+    public List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByCategories(Long userId, String categories) {
+        // 사용자 정보 조회
         User user = getUser(userId);
+        
+        // 사용자 보유 재료 및 알레르기 정보 조회
         List<String> availableIngredients = getUserIngredients(userId);
         List<String> allergyTypes = getUserAllergies(userId);
-        String healthInfo = getUserHealthInfo(userId);
         
-        // DB 레벨에서 랜덤 샘플링으로 24개 조회
-        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
+        // 카테고리별 레시피 조회
+        List<Recipe> recipes = getRecipesByCategories(categories);
         
-        if (sampledRecipes.isEmpty()) {
-            log.warn("DB에 레시피가 없습니다.");
+        if (recipes.isEmpty()) {
             return new ArrayList<>();
         }
         
-        log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
+        // 상위 6개 레시피 선택
+        List<Recipe> topRecipes = recipes.stream()
+            .limit(6)
+            .collect(Collectors.toList());
         
-        // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
-        List<RecipeWithScore> recipesWithScores = evaluateRecipeSuitabilityByHealth(
-            sampledRecipes, availableIngredients, allergyTypes, healthInfo);
-        
-        // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
-        recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
-        
-        // SimpleRes로 변환하여 반환 (상위 6개만)
-        List<RecipeWithScore> topRecipes = recipesWithScores.stream()
-                .limit(6)
-                .collect(Collectors.toList());
-        
+        // 찜 여부 조회
         List<Long> recipeIds = topRecipes.stream()
-                .map(recipeWithScore -> recipeWithScore.recipe.getId())
-                .collect(Collectors.toList());
+            .map(Recipe::getId)
+            .collect(Collectors.toList());
         Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
         
+        // RecipeSummaryDTO로 변환하여 반환
         return topRecipes.stream()
-                .map(recipeWithScore -> new RecipeResponse.SimpleRes(
-                    recipeWithScore.recipe.getId(),
-                    recipeWithScore.recipe.getTitle(),
-                    recipeWithScore.recipe.getRecipeImage(),
-                    likedMap.get(recipeWithScore.recipe.getId())
-                ))
-                .collect(Collectors.toList());
+            .map(recipe -> UserRecipeResponse.RecipeSummaryDTO.builder()
+                .recipeId(recipe.getId())
+                .name(recipe.getTitle())
+                .imageUrl(recipe.getRecipeImage())
+                .liked(likedMap.get(recipe.getId()))
+                .build())
+            .collect(Collectors.toList());
     }
 
     @Override
-    public List<RecipeResponse.SimpleRes> recommendRecipesByCategories(Long userId, String categories) {
-        try {
-            String[] categoryArray = categories.split(",");
-            List<RecipeCategory> recipeCategories = new ArrayList<>();
-            
-            for (String category : categoryArray) {
-                try {
-                    RecipeCategory recipeCategory = RecipeCategory.valueOf(category.trim().toUpperCase());
-                    recipeCategories.add(recipeCategory);
-                } catch (IllegalArgumentException e) {
-                    log.warn("유효하지 않은 카테고리: {}", category.trim());
-                }
-            }
-            
-            if (recipeCategories.isEmpty()) {
-                log.warn("유효한 카테고리가 없습니다: {}", categories);
-                return new ArrayList<>();
-            }
-            
-            List<Recipe> recipes = recipeRepository.findByCategoriesIn(recipeCategories);
-            List<Recipe> limitedRecipes = recipes.stream()
-                    .limit(MAX_RECOMMENDATIONS) // 상위 10개만 반환
-                    .collect(Collectors.toList());
-            
-            List<Long> recipeIds = limitedRecipes.stream()
-                    .map(Recipe::getId)
-                    .collect(Collectors.toList());
-            Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
-            
-            return limitedRecipes.stream()
-                    .map(recipe -> new RecipeResponse.SimpleRes(
-                        recipe.getId(),
-                        recipe.getTitle(),
-                        recipe.getRecipeImage(),
-                        likedMap.get(recipe.getId())
-                    ))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.warn("카테고리 파싱 실패: {}", e.getMessage());
-            return new ArrayList<>();
-        }
-    }
-
-    @Override
-    public List<RecipeResponse.SimpleRes> recommendRandomRecipes(Long userId) {
-        // 페이징 처리로 성능 최적화
-        PageRequest pageRequest = PageRequest.of(0, PAGE_SIZE);
-        Page<Recipe> recipePage = recipeRepository.findAll(pageRequest);
-        List<Recipe> allRecipes = new ArrayList<>(recipePage.getContent()); // 새로운 ArrayList로 복사
+    public List<UserRecipeResponse.RecipeSummaryDTO> recommendRandomRecipes(Long userId) {
+        // 사용자 정보 조회
+        User user = getUser(userId);
         
-        if (allRecipes.isEmpty()) {
-            log.warn("DB에 레시피가 없습니다.");
+        // 사용자 보유 재료 및 알레르기 정보 조회
+        List<String> availableIngredients = getUserIngredients(userId);
+        List<String> allergyTypes = getUserAllergies(userId);
+        
+        // 랜덤 레시피 조회 (무작위 48개에서 상위 6개 선택)
+        List<Recipe> recipes = getRandomRecipesForEvaluation(RANDOM_SAMPLE_SIZE);
+        
+        if (recipes.isEmpty()) {
             return new ArrayList<>();
         }
         
-        log.info("처리할 레시피 수: {}", allRecipes.size());
+        // 상위 6개 레시피 선택
+        List<Recipe> topRecipes = recipes.stream()
+            .limit(6)
+            .collect(Collectors.toList());
         
-        // 랜덤하게 섞기
-        Collections.shuffle(allRecipes);
-        
-        List<Recipe> limitedRecipes = allRecipes.stream()
-                .limit(MAX_RECOMMENDATIONS) // 상위 10개만 반환
-                .collect(Collectors.toList());
-        
-        List<Long> recipeIds = limitedRecipes.stream()
-                .map(Recipe::getId)
-                .collect(Collectors.toList());
+        // 찜 여부 조회
+        List<Long> recipeIds = topRecipes.stream()
+            .map(Recipe::getId)
+            .collect(Collectors.toList());
         Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
         
-        return limitedRecipes.stream()
-                .map(recipe -> new RecipeResponse.SimpleRes(
-                    recipe.getId(),
-                    recipe.getTitle(),
-                    recipe.getRecipeImage(),
-                    likedMap.get(recipe.getId())
-                ))
-                .collect(Collectors.toList());
+        // RecipeSummaryDTO로 변환하여 반환
+        return topRecipes.stream()
+            .map(recipe -> UserRecipeResponse.RecipeSummaryDTO.builder()
+                .recipeId(recipe.getId())
+                .name(recipe.getTitle())
+                .imageUrl(recipe.getRecipeImage())
+                .liked(likedMap.get(recipe.getId()))
+                .build())
+            .collect(Collectors.toList());
     }
 
     /**
      * OCR 기반 레시피 추천
      */
     @Override
-    public List<RecipeResponse.SimpleRes> recommendRecipesByOcr(Long userId) {
+    public List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByOcr(Long userId) {
         log.info("OCR 기반 레시피 추천 시작 - userId: {}", userId);
         
         // 사용자 정보 조회
@@ -310,8 +227,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // OCR 데이터를 기반으로 건강 정보 생성
         String healthInfo = buildOcrHealthInfo(ocrHealthData);
         
-        // DB 레벨에서 랜덤 샘플링으로 24개 조회
-        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
+        // DB 레벨에서 랜덤 샘플링으로 48개 조회
+        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(RANDOM_SAMPLE_SIZE);
         
         if (sampledRecipes.isEmpty()) {
             log.warn("DB에 레시피가 없습니다.");
@@ -327,7 +244,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
         recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
         
-        // SimpleRes로 변환하여 반환 (상위 6개만)
+        // RecipeSummaryDTO로 변환하여 반환 (상위 6개만)
         List<RecipeWithScore> topRecipes = recipesWithScores.stream()
                 .limit(6)
                 .collect(Collectors.toList());
@@ -339,12 +256,12 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         log.info("OCR 기반 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
         return topRecipes.stream()
-                .map(recipeWithScore -> new RecipeResponse.SimpleRes(
-                    recipeWithScore.recipe.getId(),
-                    recipeWithScore.recipe.getTitle(),
-                    recipeWithScore.recipe.getRecipeImage(),
-                    likedMap.get(recipeWithScore.recipe.getId())
-                ))
+                .map(recipeWithScore -> UserRecipeResponse.RecipeSummaryDTO.builder()
+                    .recipeId(recipeWithScore.recipe.getId())
+                    .name(recipeWithScore.recipe.getTitle())
+                    .imageUrl(recipeWithScore.recipe.getRecipeImage())
+                    .liked(likedMap.get(recipeWithScore.recipe.getId()))
+                    .build())
                 .collect(Collectors.toList());
     }
 
@@ -352,7 +269,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
      * HealthGoal 기반 레시피 추천
      */
     @Override
-    public List<RecipeResponse.SimpleRes> recommendRecipesByHealthGoal(Long userId) {
+    public List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByHealthGoal(Long userId) {
         log.info("HealthGoal 기반 레시피 추천 시작 - userId: {}", userId);
         
         // 사용자 정보 조회
@@ -368,8 +285,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             return recommendRecipesByIngredient(userId);
         }
         
-        // DB 레벨에서 랜덤 샘플링으로 24개 조회
-        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
+        // DB 레벨에서 랜덤 샘플링으로 48개 조회
+        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(RANDOM_SAMPLE_SIZE);
         
         if (sampledRecipes.isEmpty()) {
             log.warn("DB에 레시피가 없습니다.");
@@ -385,7 +302,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
         scoredRecipes.sort((a, b) -> Double.compare(b.score, a.score));
         
-        // SimpleRes로 변환하여 반환 (상위 6개만)
+        // RecipeSummaryDTO로 변환하여 반환 (상위 6개만)
         List<RecipeWithScore> topRecipes = scoredRecipes.stream()
                 .limit(6)
                 .collect(Collectors.toList());
@@ -397,12 +314,12 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         log.info("HealthGoal 기반 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
         return topRecipes.stream()
-                .map(recipeWithScore -> new RecipeResponse.SimpleRes(
-                    recipeWithScore.recipe.getId(),
-                    recipeWithScore.recipe.getTitle(),
-                    recipeWithScore.recipe.getRecipeImage(),
-                    likedMap.get(recipeWithScore.recipe.getId())
-                ))
+                .map(recipeWithScore -> UserRecipeResponse.RecipeSummaryDTO.builder()
+                    .recipeId(recipeWithScore.recipe.getId())
+                    .name(recipeWithScore.recipe.getTitle())
+                    .imageUrl(recipeWithScore.recipe.getRecipeImage())
+                    .liked(likedMap.get(recipeWithScore.recipe.getId()))
+                    .build())
                 .collect(Collectors.toList());
     }
 
@@ -410,7 +327,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
      * 재료 + OCR + HealthGoal 통합 레시피 추천
      */
     @Override
-    public List<RecipeResponse.SimpleRes> recommendRecipesByCombined(Long userId) {
+    public List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByCombined(Long userId) {
         log.info("통합 레시피 추천 시작 - userId: {}", userId);
         
         // 사용자 정보 조회
@@ -424,8 +341,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // HealthGoal 정보 조회
         List<String> healthGoals = getUserHealthGoals(userId);
         
-        // DB 레벨에서 랜덤 샘플링으로 24개 조회
-        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(24);
+        // DB 레벨에서 랜덤 샘플링으로 48개 조회
+        List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(RANDOM_SAMPLE_SIZE);
         
         if (sampledRecipes.isEmpty()) {
             log.warn("DB에 레시피가 없습니다.");
@@ -441,7 +358,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
         scoredRecipes.sort((a, b) -> Double.compare(b.score, a.score));
         
-        // SimpleRes로 변환하여 반환 (상위 6개만)
+        // RecipeSummaryDTO로 변환하여 반환 (상위 6개만)
         List<RecipeWithScore> topRecipes = scoredRecipes.stream()
                 .limit(6)
                 .collect(Collectors.toList());
@@ -453,12 +370,12 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         log.info("통합 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
         return topRecipes.stream()
-                .map(recipeWithScore -> new RecipeResponse.SimpleRes(
-                    recipeWithScore.recipe.getId(),
-                    recipeWithScore.recipe.getTitle(),
-                    recipeWithScore.recipe.getRecipeImage(),
-                    likedMap.get(recipeWithScore.recipe.getId())
-                ))
+                .map(recipeWithScore -> UserRecipeResponse.RecipeSummaryDTO.builder()
+                    .recipeId(recipeWithScore.recipe.getId())
+                    .name(recipeWithScore.recipe.getTitle())
+                    .imageUrl(recipeWithScore.recipe.getRecipeImage())
+                    .liked(likedMap.get(recipeWithScore.recipe.getId()))
+                    .build())
                 .collect(Collectors.toList());
     }
 
@@ -489,7 +406,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         log.info("사용자 알레르기 정보: {}", allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
         log.info("전체 레시피 수: {}", recipes.size());
         
-        // 모든 레시피 평가 (24개)
+        // 모든 레시피 평가 (무작위 샘플링된 레시피들)
         log.info("평가할 레시피 수: {}", recipes.size());
         
         try {
@@ -750,7 +667,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         log.info("사용자 건강 정보: {}", healthInfo);
         log.info("전체 레시피 수: {}", recipes.size());
         
-        // 모든 레시피 평가 (24개)
+        // 모든 레시피 평가 (무작위 샘플링된 레시피들)
         log.info("평가할 레시피 수: {}", recipes.size());
         
         try {
@@ -903,8 +820,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
 
     private void cacheRecommendations(String redisKey, List<RecipeResponse.DetailRes> result) {
         try {
-            redisTemplate.opsForValue().set(redisKey, result, RECIPE_CACHE_TTL);
-            log.info("Redis에 추천 결과 캐싱: {}", redisKey);
+            redisTemplate.opsForValue().set(redisKey, result, RECOMMENDATION_CACHE_TTL);
+            log.info("Redis에 추천 결과 캐싱: {} (TTL: {}일)", redisKey, RECOMMENDATION_CACHE_TTL.toDays());
         } catch (Exception e) {
             log.warn("Redis 캐싱 실패: {}", e.getMessage());
             // Redis 에러는 추천 기능을 중단시키지 않도록 BusinessException을 던지지 않음
@@ -953,6 +870,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                         Recipe savedRecipe = recipeRepository.save(recipe);
                         recipes.add(savedRecipe);
                         log.info("레시피 저장 성공: {}", recipe.getTitle());
+                        
+                        // DB 저장 성공 시 Redis에 제목 기반으로 캐싱 (30일)
+                        cacheRecipeTitle(savedRecipe.getTitle());
+                    } else {
+                        log.info("중복 레시피 제외: {}", recipe != null ? recipe.getTitle() : "null");
                     }
                 } catch (Exception e) {
                     log.warn("레시피 파싱/저장 실패: {}", e.getMessage());
@@ -1040,10 +962,36 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     /**
-     * 레시피 중복 검사 (간소화 - DB만 사용)
+     * 레시피 중복 검사 (Redis → DB 순서로 체크)
+     * Search domain과 동일한 방식으로 ZSet 사용
      */
     private boolean isDuplicateRecipe(Recipe recipe) {
-        return recipeRepository.existsByTitle(recipe.getTitle());
+        String title = recipe.getTitle();
+        
+        // 1. Redis ZSet에서 제목 기반 중복 체크 (search domain과 동일한 방식)
+        try {
+            Double score = redisTemplate.opsForZSet().score(RECIPE_TITLES_KEY, title);
+            if (score != null) {
+                log.info("Redis에서 중복 레시피 발견: {}", title);
+                return true;
+            }
+        } catch (Exception e) {
+            log.warn("Redis 중복 체크 실패: {}", e.getMessage());
+        }
+        
+        // 2. DB에서 제목 기반 중복 체크
+        boolean isDuplicate = recipeRepository.existsByTitle(title);
+        if (isDuplicate) {
+            log.info("DB에서 중복 레시피 발견: {}", title);
+            // Redis ZSet에도 중복 정보 추가 (search domain과 동일한 방식)
+            try {
+                redisTemplate.opsForValue().set(RECIPE_TITLES_KEY, title, 0);
+            } catch (Exception e) {
+                log.warn("Redis 중복 정보 추가 실패: {}", e.getMessage());
+            }
+        }
+        
+        return isDuplicate;
     }
 
 
@@ -1183,30 +1131,9 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         }
     }
 
-    /**
-     * Recipe를 DetailRes로 변환
-     */
-    private RecipeResponse.DetailRes toDetailRes(Recipe recipe) {
-        return new RecipeResponse.DetailRes(
-            recipe.getId(),
-            recipe.getTitle(),
-            recipe.getRecipeImage(),
-            recipe.getDescription(),
-            recipe.getCookingTime(),
-            recipe.getCalories(),
-            recipe.getProtein(),
-            recipe.getCarbohydrate(),
-            recipe.getFat(),
-            recipe.getCategories().stream()
-                .map(RecipeCategory::getName)
-                .collect(Collectors.toList()),
-            recipe.getIngredients()
-        );
-    }
 
-    private String buildRandomPrompt() {
-        return buildRecipePostPromptRandom();
-    }
+
+
 
     /**
      * 공통 프롬프트 부분 생성
@@ -1219,14 +1146,13 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                "- 한국 요리, 중국 요리, 일본 요리, 서양 요리, 동남아 요리 등 다양한 문화권의 요리 포함\n" +
                "- 메인 요리, 반찬, 국물 요리, 볶음 요리, 구이 요리 등 다양한 조리법 포함\n" +
                "- 고기 요리, 생선 요리, 채식 요리, 면 요리 등 다양한 재료 활용\n" +
-               "- 레시피 이름에 재료는 2개 이하로 포함, 면(파스타, 우동 등), 밥(덮밥, 볶음밥 등)의 경우 3개까지 가능 (토마토 바질 파스타 O, 고추장 돼지고기 볶음 O, 고추장 양파 돼지고기 볶음 X)\n" +
+               "- 레시피 이름에 포함된 재료는 2개 이하로, 주식(면(파스타, 우동 등), 밥(덮밥, 볶음밥 등))의 경우 3개까지 가능 (토마토 바질 파스타 O, 고추장 돼지고기 볶음 O, 고추장 양파 돼지고기 볶음 X)\n" +
                "※ 재료 포함 기준:\n" +
-               "- 예시: 제육볶음 → 고추장, 설탕, 간장, 식용유, 앞다리살, 양파, 당근 (보편적)\n" +
-               "- 예시: 배추, 깻잎, 치킨스톡, 다시마, 로즈마리, 바질 등은 선택사항이므로 제외\n" +
-               "- 재료명은 최대한 한국어로 표기 (네기 X → 양파 O, 어니언 X → 양파 O)\n" +
-               "- 레시피 이름과 재료, 설명 모두 순수 한글로만 구성 (스파게티 O, 스파게티 네ап리타나 X\n" +
-               "- 기본 조미료: 소금, 후추, 식용유, 간장, 설탕\n" +
-               "- 기본 조미료나 허브, 기타조미료는 필수가 아니면 제외 (로즈마리, 바질, 오레가노, 치킨스톡, 굴소스 등)\n\n" +
+               "- 실제 요리에 필요한 보편적인 모든 주요 재료를 포함해야 함 (최소 2-8개 재료)\n" +
+               "- 예시: 제육볶음 → 돼지고기, 양파, 당근, 고추장, 간장, 설탕, 식용유, 후추 (8개 재료)\n" +
+               "- 레시피 이름과 재료, 설명 모두 순수 한글로만 구성 (스파게티 O, 양파 O, noodle X, 네기 X)\n" +
+               "- 선택사항인 식재료는 제외 (연어 포케에 올리브도 들어갈 수 있지만 필수는 아님)n" +
+               "- 다양한 재료를 이용할 수 있는 경우 큰 틀로 작성 (앞다리살, 삼겹살, 목살 -> 돼지고기, 상추, 로메인, 샐러리 -> 샐러드 채소)"+
                "※ 카테고리 선택:\n" +
                "- 각 요리의 특성에 맞는 카테고리를 적절하게 선택, 여러개 선택 가능, 애매하다 싶으면 추가\n" +
                "- 마땅히 없다면 OTHER 선택 (OTHER은 유일해야 함함)\n\n" +
@@ -1277,7 +1203,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             .append("\n\n※ 사용자가 보유한 식재료 목록:\n")
             .append(String.join(", ", uniqueIngredients)).append("\n\n")
             .append(buildAllergyPrompt(allergyTypes))
-            .append("\n위 재료들을 활용하여 만들 수 있는 보편적인 요리를 4가지 추천해줘.");
+            .append("\n위 재료들을 활용하여 만들 수 있는 보편적인 요리를 ").append(POST_RECIPE_COUNT).append("가지 추천해줘.");
 
         String prompt = promptBuilder.toString();
         log.info("프롬프트 길이: {} characters", prompt.length());
@@ -1296,7 +1222,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                "\n\n※ 알레르기 주의사항:\n" +
                "- 일반적인 알레르기 유발 성분(우유, 계란, 대두, 밀, 땅콩, 견과류, 조개류, 생선 등)이 포함된 요리도 추천 가능\n" +
                "- 사용자가 개별적으로 알레르기 정보를 확인하고 선택하도록 안내\n\n" +
-               "총 8개의 다양한 보편적인 요리를 추천해줘.";
+               "총 " + POST_RECIPE_COUNT + "개의 다양한 보편적인 요리를 추천해줘.";
     }
 
     /**
@@ -1769,15 +1695,15 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     }
 
     /**
-     * Recipe를 SimpleRes로 변환
+     * Recipe를 RecipeSummaryDTO로 변환
      */
-    private RecipeResponse.SimpleRes toSimpleRes(Recipe recipe) {
-        return new RecipeResponse.SimpleRes(
-            recipe.getId(),
-            recipe.getTitle(),
-            recipe.getRecipeImage(),
-            null // isLiked는 별도로 설정해야 함
-        );
+    private UserRecipeResponse.RecipeSummaryDTO toRecipeSummaryDTO(Recipe recipe) {
+        return UserRecipeResponse.RecipeSummaryDTO.builder()
+            .recipeId(recipe.getId())
+            .name(recipe.getTitle())
+            .imageUrl(recipe.getRecipeImage())
+            .liked(false) // 기본값은 false, 별도로 설정해야 함
+            .build();
     }
 
     /**
@@ -2192,5 +2118,124 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         log.info("최종 HealthGoal 기반 파싱 결과: {}", scores);
         return scores;
+    }
+
+    private List<Recipe> getRecipesByCategories(String categories) {
+        try {
+            String[] categoryArray = categories.split(",");
+            List<RecipeCategory> recipeCategories = new ArrayList<>();
+            
+            for (String category : categoryArray) {
+                try {
+                    RecipeCategory recipeCategory = RecipeCategory.valueOf(category.trim().toUpperCase());
+                    recipeCategories.add(recipeCategory);
+                } catch (IllegalArgumentException e) {
+                    log.warn("유효하지 않은 카테고리: {}", category.trim());
+                }
+            }
+            
+            if (recipeCategories.isEmpty()) {
+                log.warn("유효한 카테고리가 없습니다: {}", categories);
+                return new ArrayList<>();
+            }
+            
+            List<Recipe> recipes = recipeRepository.findByCategoriesIn(recipeCategories);
+            return recipes.stream()
+                .limit(MAX_RECOMMENDATIONS)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.warn("카테고리 파싱 실패: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    @Override
+    @Transactional
+    public List<RecipeResponse.DetailRes> createAndSaveRandomRecipes(Long userId) {
+        log.info("AI 랜덤 레시피 생성 및 저장 시작 - userId: {}", userId);
+        
+        try {
+            // 랜덤 프롬프트 생성
+            String prompt = buildRecipePostPromptRandom();
+            log.info("랜덤 레시피 생성 프롬프트 생성 완료");
+            
+            // AI 호출하여 레시피 생성 및 저장
+            List<Recipe> recipes = callAIAndSaveRecipes(prompt);
+            log.info("AI 랜덤 레시피 생성 완료 - 생성된 레시피 수: {}", recipes.size());
+            
+            // DetailRes로 변환하여 반환
+            return recipes.stream()
+                    .map(RecipeConverter::toDetailRes)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("AI 랜덤 레시피 생성 실패: {}", e.getMessage(), e);
+            throw new BusinessException(ErrorCode.OPENAI_INVALID_RESPONSE);
+        }
+    }
+
+    @Override
+    @Transactional
+    public List<RecipeResponse.DetailRes> createAndSaveRecipesByIngredient(Long userId) {
+        log.info("AI 재료 기반 레시피 생성 및 저장 시작 - userId: {}", userId);
+        
+        try {
+            // 사용자 정보 조회
+            User user = getUser(userId);
+            List<String> availableIngredients = getUserIngredients(userId);
+            List<String> allergyTypes = getUserAllergies(userId);
+            
+            // 재료 기반 프롬프트 생성
+            String prompt = buildRecipePostPromptIngredient(availableIngredients, allergyTypes);
+            log.info("재료 기반 레시피 생성 프롬프트 생성 완료");
+            
+            // AI 호출하여 레시피 생성 및 저장
+            List<Recipe> recipes = callAIAndSaveRecipes(prompt);
+            log.info("AI 재료 기반 레시피 생성 완료 - 생성된 레시피 수: {}", recipes.size());
+            
+            // DetailRes로 변환하여 반환
+            return recipes.stream()
+                    .map(RecipeConverter::toDetailRes)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("AI 재료 기반 레시피 생성 실패: {}", e.getMessage(), e);
+            throw new BusinessException(ErrorCode.OPENAI_INVALID_RESPONSE);
+        }
+    }
+
+    /**
+     * 레시피 제목을 Redis ZSet에 추가 (search domain과 동일한 방식)
+     * ZSet은 TTL을 직접 지원하지 않으므로 별도 TTL 설정 필요
+     */
+    private void cacheRecipeTitle(String title) {
+        try {
+            // ZSet에 제목 추가 (search domain과 동일한 방식: score는 0)
+            redisTemplate.opsForZSet().add(RECIPE_TITLES_KEY, title, 0);
+            log.info("Redis ZSet에 레시피 제목 추가: {}", title);
+        } catch (Exception e) {
+            log.warn("Redis ZSet 레시피 제목 추가 실패: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Redis ZSet에서 오래된 레시피 제목들을 정리
+     * 매일 새벽 2시에 실행 (search domain과 동일한 패턴)
+     * Score가 0이므로 시간 기반 정리가 아닌 전체 정리
+     */
+    @Scheduled(cron = "0 0 2 * * *")
+    public void cleanupExpiredRecipeTitles() {
+        try {
+            // Score가 0이므로 시간 기반 정리가 불가능
+            // 대신 전체 크기를 제한하여 관리 (예: 최대 10000개)
+            long totalSize = redisTemplate.opsForZSet().size(RECIPE_TITLES_KEY);
+            if (totalSize > 10000) {
+                // 가장 오래된 데이터부터 제거 (score가 낮은 순서)
+                long removedCount = redisTemplate.opsForZSet().removeRange(RECIPE_TITLES_KEY, 0, totalSize - 10000);
+                log.info("Redis ZSet에서 {}개의 레시피 제목 제거 완료 (크기 제한: 10000)", removedCount);
+            }
+        } catch (Exception e) {
+            log.error("Redis ZSet 정리 중 오류 발생: {}", e.getMessage(), e);
+        }
     }
 } 

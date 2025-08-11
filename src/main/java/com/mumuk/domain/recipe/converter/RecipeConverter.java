@@ -3,6 +3,7 @@ package com.mumuk.domain.recipe.converter;
 import com.mumuk.domain.recipe.dto.request.RecipeRequest;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
+import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import com.mumuk.domain.recipe.entity.RecipeCategory;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
@@ -56,23 +57,23 @@ public class RecipeConverter {
     }
 
     // 엔티티 → 간단한 응답 DTO
-    public static RecipeResponse.SimpleRes toSimpleRes(Recipe recipe) {
-        return new RecipeResponse.SimpleRes(
-                recipe.getId(),
-                recipe.getTitle(),
-                recipe.getRecipeImage(),
-                false // 기본값은 false
-        );
+    public static UserRecipeResponse.RecipeSummaryDTO toRecipeSummaryDTO(Recipe recipe) {
+        return UserRecipeResponse.RecipeSummaryDTO.builder()
+                .recipeId(recipe.getId())
+                .name(recipe.getTitle())
+                .imageUrl(recipe.getRecipeImage())
+                .liked(false) // 기본값은 false
+                .build();
     }
 
     // 엔티티 + 찜 여부 → 간단한 응답 DTO
-    public static RecipeResponse.SimpleRes toSimpleRes(Recipe recipe, Boolean isLiked) {
-        return new RecipeResponse.SimpleRes(
-                recipe.getId(),
-                recipe.getTitle(),
-                recipe.getRecipeImage(),
-                isLiked != null ? isLiked : false
-        );
+    public static UserRecipeResponse.RecipeSummaryDTO toRecipeSummaryDTO(Recipe recipe, Boolean isLiked) {
+        return UserRecipeResponse.RecipeSummaryDTO.builder()
+                .recipeId(recipe.getId())
+                .name(recipe.getTitle())
+                .imageUrl(recipe.getRecipeImage())
+                .liked(isLiked != null ? isLiked : false)
+                .build();
     }
 
 }

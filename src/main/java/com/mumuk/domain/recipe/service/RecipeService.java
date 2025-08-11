@@ -2,6 +2,7 @@ package com.mumuk.domain.recipe.service;
 
 import com.mumuk.domain.recipe.dto.request.RecipeRequest;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
+import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import java.util.List;
 
 public interface RecipeService {
@@ -12,7 +13,7 @@ public interface RecipeService {
     List<String> findNamesByCategory(String category);
     List<String> findNamesByCategories(String categories);
     List<RecipeResponse.DetailRes> getAllRecipes();
-    List<RecipeResponse.SimpleRes> getSimpleRecipes(Long userId);
+    List<UserRecipeResponse.RecipeSummaryDTO> getSimpleRecipes(Long userId);
     
     // 레시피 재료 매칭 기능 (토큰 기반 인증)
     RecipeResponse.IngredientMatchingRes matchIngredientsByAI(Long userId, Long recipeId);

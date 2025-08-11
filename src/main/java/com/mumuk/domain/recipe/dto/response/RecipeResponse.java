@@ -23,20 +23,7 @@ public class RecipeResponse {
         private String ingredients;
     }
 
-    @Getter
-    @AllArgsConstructor
-    public static class SimpleRes {
-        private Long id;
-        private String title;
-        private String recipeImage;
-        private Boolean isLiked;
-    }
 
-    @Getter
-    @AllArgsConstructor
-    public static class SimpleResList {
-        private List<SimpleRes> simpleResList;
-    }
 
     @Getter
     @AllArgsConstructor

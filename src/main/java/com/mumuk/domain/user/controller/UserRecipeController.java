@@ -39,9 +39,9 @@ public class UserRecipeController {
 
 
     @Operation(summary = "최근 레시피 조회", description = "사용자가 최근에 조회한 레시피 목록을 8개까지 조회합니다.")
-    @GetMapping("/recent-recipe")
-    public Response<UserRecipeResponse.RecentRecipeDTOList> getRecentRecipe(@AuthUser Long userId) {
-        UserRecipeResponse.RecentRecipeDTOList response = userRecipeService.getRecentRecipes(userId);
+    @GetMapping("/recent")
+    public Response<UserRecipeResponse.RecipeSummaryDTOList> getRecentRecipe(@AuthUser Long userId) {
+        UserRecipeResponse.RecipeSummaryDTOList response = userRecipeService.getRecentRecipes(userId);
         return Response.ok(ResultCode.RECENT_RECIPE_OK, response);
     }
 

@@ -32,7 +32,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public List<UserRecipeResponse.RecentRecipeDTO> SearchRecipeList(Long userId, String keyword) {
+    public List<UserRecipeResponse.RecipeSummaryDTO> SearchRecipeList(Long userId, String keyword) {
 
         // 입력값 null 또는 blank 검사
         if (keyword == null || keyword.isBlank()) {
@@ -55,13 +55,13 @@ public class SearchServiceImpl implements SearchService {
         Map<Long, UserRecipe> userRecipeMap = userRecipes.stream()
                 .collect(Collectors.toMap(userRecipe -> userRecipe.getRecipe().getId(), userRecipe -> userRecipe));
 
-        // RecentRecipeDTO를 반환하는 List 생성
-        List<UserRecipeResponse.RecentRecipeDTO> recipeList = recipes.stream()
+        // RecipeSummaryDTO를 반환하는 List 생성
+        List<UserRecipeResponse.RecipeSummaryDTO> recipeList = recipes.stream()
                 .map(recipe -> {
                     // 좋아요 여부 입력받기
                     UserRecipe userRecipe = userRecipeMap.get(recipe.getId());
                     boolean isLiked = userRecipe != null && Boolean.TRUE.equals(userRecipe.getLiked());
-                    return new UserRecipeResponse.RecentRecipeDTO(recipe.getId(), recipe.getTitle(), recipe.getRecipeImage(), isLiked);
+                    return new UserRecipeResponse.RecipeSummaryDTO(recipe.getId(), recipe.getTitle(), recipe.getRecipeImage(), isLiked);
                 }).collect(Collectors.toList());
 
         return recipeList;

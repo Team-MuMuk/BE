@@ -21,27 +21,25 @@ public class MypageConverter {
         );
     }
 
-    public static UserRecipeResponse.RecentRecipeDTO toLikedRecipeDTO(UserRecipe userRecipe) {
+    public static UserRecipeResponse.RecipeSummaryDTO toLikedRecipeDTO(UserRecipe userRecipe) {
 
-        Recipe recipe = userRecipe.getRecipe();
-        boolean liked = userRecipe.getLiked();
-        return UserRecipeResponse.RecentRecipeDTO.builder()
-                .recipeId(recipe.getId())
-                .name(recipe.getTitle())
-                .imageUrl(recipe.getRecipeImage())
-                .liked(liked)
+        return UserRecipeResponse.RecipeSummaryDTO.builder()
+                .recipeId(userRecipe.getRecipe().getId())
+                .name(userRecipe.getRecipe().getTitle())
+                .imageUrl(userRecipe.getRecipe().getRecipeImage())
+                .liked(userRecipe.getLiked())
                 .build();
-
     }
+
     public static UserRecipeResponse.LikedRecipeListDTO toLikedRecipeListDTO(Long userId, Page<UserRecipe> likedUserRecipes) {
-        List<UserRecipeResponse.RecentRecipeDTO> likedRecipeDTOList = likedUserRecipes.stream()
+        List<UserRecipeResponse.RecipeSummaryDTO> likedRecipeDTOList = likedUserRecipes.stream()
                 .map(MypageConverter::toLikedRecipeDTO)
                 .collect(Collectors.toList());
 
         return UserRecipeResponse.LikedRecipeListDTO.builder()
                 .userId(userId)
                 .likedRecipes(likedRecipeDTOList)
-                .currentPage(likedUserRecipes.getNumber()+1)
+                .currentPage(likedUserRecipes.getNumber() + 1)
                 .totalPages(likedUserRecipes.getTotalPages())
                 .totalElements(likedUserRecipes.getTotalElements())
                 .pageSize(likedUserRecipes.getSize())

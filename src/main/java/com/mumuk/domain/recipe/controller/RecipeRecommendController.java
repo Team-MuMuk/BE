@@ -2,7 +2,7 @@ package com.mumuk.domain.recipe.controller;
 
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.service.RecipeRecommendService;
-import com.mumuk.global.apiPayload.code.ResultCode;
+import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,73 +13,68 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/v1/recipe/recommend")
+@Tag(name = "레시피 추천 관련", description = "AI 기반 레시피 추천 및 생성 API")
 @RequiredArgsConstructor
-@Tag(name = "레시피 추천 관련")
-@RequestMapping("/api/recipe/recommend")
 public class RecipeRecommendController {
+
     private final RecipeRecommendService recommendService;
 
-    @Operation(summary = "재료 기반 레시피 추천")
-    @PostMapping("/ingredient")
-    public Response<List<RecipeResponse.DetailRes>> recommendByIngredient(@AuthUser Long userId) {
-        List<RecipeResponse.DetailRes> result = recommendService.recommendByIngredient(userId);
-        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
-    }
-
-    @Operation(summary = "랜덤 레시피 추천")
-    @PostMapping("/random")
-    public Response<List<RecipeResponse.DetailRes>> recommendRandom() {
-        List<RecipeResponse.DetailRes> result = recommendService.recommendRandom();
-        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
-    }
-
-    @Operation(summary = "재료 기반 레시피 추천")
+    @Operation(summary = "AI 추천 레시피 조회 (냉장고 재료 기반)", description = "사용자의 보유 재료와 알레르기 정보를 기반으로 AI가 추천하는 레시피를 조회합니다.")
     @GetMapping("/ingredient")
-    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByIngredient(@AuthUser Long userId) {
-        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByIngredient(userId);
-        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
+    public Response<List<UserRecipeResponse.RecipeSummaryDTO>> recommendRecipesByIngredient(@AuthUser Long userId) {
+        List<UserRecipeResponse.RecipeSummaryDTO> result = recommendService.recommendRecipesByIngredient(userId);
+        return Response.ok(result);
     }
 
-    @Operation(summary = "건강 정보 기반 레시피 추천")
-    @GetMapping("/health")
-    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByHealth(@AuthUser Long userId) {
-        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByHealth(userId);
-        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
-    }
 
-    @Operation(summary = "카테고리들에 해당하는 레시피 추천")
+
+    @Operation(summary = "카테고리 기반 레시피 조회", description = "특정 카테고리에 해당하는 레시피를 조회합니다.")
     @GetMapping("/categories/{categories}")
-    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByCategories(@AuthUser Long userId, @PathVariable String categories) {
-        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByCategories(userId, categories);
-        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
+    public Response<List<UserRecipeResponse.RecipeSummaryDTO>> recommendRecipesByCategories(@AuthUser Long userId, @PathVariable String categories) {
+        List<UserRecipeResponse.RecipeSummaryDTO> result = recommendService.recommendRecipesByCategories(userId, categories);
+        return Response.ok(result);
     }
 
-    @Operation(summary = "랜덤 레시피 추천")
+    @Operation(summary = "무작위 레시피 조회", description = "랜덤하게 선택된 레시피를 조회합니다.")
     @GetMapping("/random")
-    public Response<List<RecipeResponse.SimpleRes>> recommendRandomRecipes(@AuthUser Long userId) {
-        List<RecipeResponse.SimpleRes> result = recommendService.recommendRandomRecipes(userId);
-        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
+    public Response<List<UserRecipeResponse.RecipeSummaryDTO>> recommendRandomRecipes(@AuthUser Long userId) {
+        List<UserRecipeResponse.RecipeSummaryDTO> result = recommendService.recommendRandomRecipes(userId);
+        return Response.ok(result);
     }
 
-    @Operation(summary = "OCR 기반 레시피 추천")
-    @GetMapping("/ocr")
-    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByOcr(@AuthUser Long userId) {
-        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByOcr(userId);
-        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
+    @Operation(summary = "AI 추천 레시피 조회 (OCR 기반)", description = "OCR로 추출된 건강 정보를 기반으로 AI가 추천하는 레시피를 조회합니다.")
+    @GetMapping("/health-info")
+    public Response<List<UserRecipeResponse.RecipeSummaryDTO>> recommendRecipesByOcr(@AuthUser Long userId) {
+        List<UserRecipeResponse.RecipeSummaryDTO> result = recommendService.recommendRecipesByOcr(userId);
+        return Response.ok(result);
     }
 
-    @Operation(summary = "HealthGoal 기반 레시피 추천")
+    @Operation(summary = "AI 추천 레시피 조회 (건강목표 기반)", description = "사용자의 건강 목표를 기반으로 AI가 추천하는 레시피를 조회합니다.")
     @GetMapping("/health-goal")
-    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByHealthGoal(@AuthUser Long userId) {
-        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByHealthGoal(userId);
-        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
+    public Response<List<UserRecipeResponse.RecipeSummaryDTO>> recommendRecipesByHealthGoal(@AuthUser Long userId) {
+        List<UserRecipeResponse.RecipeSummaryDTO> result = recommendService.recommendRecipesByHealthGoal(userId);
+        return Response.ok(result);
     }
 
-    @Operation(summary = "재료 + OCR + HealthGoal 통합 레시피 추천")
+    @Operation(summary = "AI 추천 레시피 조회 (사용자 맞춤)", description = "여러 조건을 조합하여 사용자 맞춤형 레시피를 추천합니다.")
     @GetMapping("/combined")
-    public Response<List<RecipeResponse.SimpleRes>> recommendRecipesByCombined(@AuthUser Long userId) {
-        List<RecipeResponse.SimpleRes> result = recommendService.recommendRecipesByCombined(userId);
-        return Response.ok(ResultCode.RECIPE_FETCH_OK, result);
+    public Response<List<UserRecipeResponse.RecipeSummaryDTO>> recommendRecipesByCombined(@AuthUser Long userId) {
+        List<UserRecipeResponse.RecipeSummaryDTO> result = recommendService.recommendRecipesByCombined(userId);
+        return Response.ok(result);
     }
 
+    @Operation(summary = "AI 추천 레시피 등록 (냉장고 재료 기반)", description = "사용자의 보유 재료와 알레르기 정보를 기반으로 AI가 새로운 레시피를 생성하고 저장합니다.")
+    @PostMapping("/ingredient")
+    public Response<List<RecipeResponse.DetailRes>> createAndSaveRecipesByIngredient(@AuthUser Long userId) {
+        List<RecipeResponse.DetailRes> result = recommendService.createAndSaveRecipesByIngredient(userId);
+        return Response.ok(result);
+    }
+
+    @Operation(summary = "AI 추천 레시피 등록 (랜덤)", description = "AI가 랜덤하게 새로운 레시피를 생성하고 저장합니다.")
+    @PostMapping("/random")
+    public Response<List<RecipeResponse.DetailRes>> createAndSaveRandomRecipes(@AuthUser Long userId) {
+        List<RecipeResponse.DetailRes> result = recommendService.createAndSaveRandomRecipes(userId);
+        return Response.ok(result);
+    }
 } 
