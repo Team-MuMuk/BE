@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 
 @Slf4j
@@ -23,6 +25,19 @@ public class RecipeBlogImageServiceImpl implements RecipeBlogImageService {
     private static final int MAX_FALLBACK_IMAGES = 15;
     private static final int MAX_BLOG_POSTS = 5;
     private static final int MAX_BLOG_IMAGES = 10;
+    private static final long BLOG_REQUEST_DELAY_MS = 150L; // 연속 요청 완화용 지연
+
+    // URL 검증 상수/패턴 (성능/유지보수 개선)
+    private static final Set<String> BLOCKED_KEYWORDS = Set.of(
+        "favicon", "icon", "logo", "thumb", "small", "mini", "tiny"
+    );
+    private static final Set<String> SMALL_SIZE_PATTERNS = Set.of(
+        "30x30", "32x32", "48x48", "54x54", "64x64", "128x128", "256x256"
+    );
+    private static final Set<String> NAVER_SMALL_TYPES = Set.of(
+        "type=fff", "type=f30", "type=f48", "type=f54", "type=f64", "type=f128"
+    );
+    private static final Pattern SIZE_PATTERN = Pattern.compile("\\d+x\\d+");
 
     
 
@@ -192,79 +207,61 @@ public class RecipeBlogImageServiceImpl implements RecipeBlogImageService {
      */
     private boolean isValidImageUrl(String imageUrl) {
         if (imageUrl == null || imageUrl.isEmpty()) return false;
-        
         // HTTP/HTTPS 프로토콜 확인
         if (!imageUrl.startsWith("http")) return false;
-        
-        // 기본적인 차단 패턴
+
         String lowerUrl = imageUrl.toLowerCase();
-        if (lowerUrl.contains("favicon") || 
-            lowerUrl.contains("icon") || 
-            lowerUrl.contains("logo")) {
-            log.info("기본 차단 패턴으로 차단: {}", imageUrl);
-            return false;
-        }
-        
+
         // 이미지 확장자 확인 (필수)
-        if (!(lowerUrl.contains(".jpg") || lowerUrl.contains(".jpeg") || 
+        if (!(lowerUrl.contains(".jpg") || lowerUrl.contains(".jpeg") ||
               lowerUrl.contains(".png") || lowerUrl.contains(".webp") ||
               lowerUrl.contains(".gif"))) {
             log.info("이미지 확장자가 없어서 차단: {}", imageUrl);
             return false;
         }
-        
-        // 54x54 관련 URL 강력 차단
-        if (lowerUrl.contains("54") || 
-            lowerUrl.contains("54x54") ||
-            lowerUrl.contains("type=f54") ||
-            lowerUrl.contains("_54") ||
-            lowerUrl.contains("54_")) {
+
+        // 기본 차단 키워드
+        for (String keyword : BLOCKED_KEYWORDS) {
+            if (lowerUrl.contains(keyword)) {
+                log.info("차단 키워드로 차단: {} (키워드: {})", imageUrl, keyword);
+                return false;
+            }
+        }
+
+        // 54x54 관련 URL 강력 차단 (특수케이스 우선 차단)
+        if (lowerUrl.contains("54x54") || lowerUrl.contains("type=f54") ||
+            lowerUrl.contains("_54") || lowerUrl.contains("54_")) {
             log.info("54x54 관련 URL 차단: {}", imageUrl);
             return false;
         }
-        
+
         // 작은 이미지 크기 패턴 차단
-        if (lowerUrl.contains("30x30") || lowerUrl.contains("32x32") || 
-            lowerUrl.contains("48x48") || lowerUrl.contains("64x64") ||
-            lowerUrl.contains("128x128") || lowerUrl.contains("256x256")) {
-            log.info("작은 이미지 크기 패턴 차단: {}", imageUrl);
-            return false;
+        for (String pattern : SMALL_SIZE_PATTERNS) {
+            if (lowerUrl.contains(pattern)) {
+                log.info("작은 이미지 크기 패턴 차단: {} (패턴: {})", imageUrl, pattern);
+                return false;
+            }
         }
-        
-        // 썸네일 관련 키워드 차단
-        if (lowerUrl.contains("thumb") || lowerUrl.contains("small") || 
-            lowerUrl.contains("mini") || lowerUrl.contains("tiny") ||
-            lowerUrl.contains("_t.") || lowerUrl.contains("_s.") ||
-            lowerUrl.contains("_m.") || lowerUrl.contains("_l.")) {
-            log.info("썸네일 관련 키워드 차단: {}", imageUrl);
-            return false;
-        }
-        
-        // 네이버 이미지 검색에서 추가 검증
+
+        // 네이버 이미지 검색 추가 검증
         if (lowerUrl.contains("search.pstatic.net")) {
-            // 너무 짧은 URL 차단
             if (imageUrl.length() < 150) {
                 log.info("URL이 너무 짧아서 차단: {} (길이: {})", imageUrl, imageUrl.length());
                 return false;
             }
-            
-            // 작은 이미지 타입 차단
-            if (lowerUrl.contains("type=fff") || 
-                lowerUrl.contains("type=f30") ||
-                lowerUrl.contains("type=f48") ||
-                lowerUrl.contains("type=f64") ||
-                lowerUrl.contains("type=f128")) {
-                log.info("작은 이미지 타입으로 차단: {}", imageUrl);
-                return false;
+            for (String typeToken : NAVER_SMALL_TYPES) {
+                if (lowerUrl.contains(typeToken)) {
+                    log.info("작은 이미지 타입으로 차단: {} (토큰: {})", imageUrl, typeToken);
+                    return false;
+                }
             }
-            
-            // 숫자x숫자 패턴 차단 (예: 54x54, 128x128)
-            if (lowerUrl.matches(".*\\d+x\\d+.*")) {
+            // 숫자x숫자 패턴 차단 (미리 컴파일된 패턴 사용)
+            if (SIZE_PATTERN.matcher(lowerUrl).find()) {
                 log.info("숫자x숫자 패턴 차단: {}", imageUrl);
                 return false;
             }
         }
-        
+
         log.info("이미지 URL 검증 통과: {}", imageUrl);
         return true;
     }
@@ -341,6 +338,8 @@ public class RecipeBlogImageServiceImpl implements RecipeBlogImageService {
                     log.info("블로그 포스트 크롤링 시도 ({}/{}): {}", i + 1, maxBlogs, blogUrl);
                     
                     try {
+                        // 연속 요청에 대한 간단한 레이트 리미팅
+                        delayBetweenRequests();
                         // 블로그 포스트 크기 제한
                         Document blogDoc = Jsoup.connect(blogUrl)
                             .timeout(SEARCH_TIMEOUT)
@@ -381,6 +380,14 @@ public class RecipeBlogImageServiceImpl implements RecipeBlogImageService {
         } catch (Exception e) {
             log.error("네이버 블로그 직접 검색 실패: {} - {}", recipeName, e.getMessage());
             return null;
+        }
+    }
+
+    private void delayBetweenRequests() {
+        try {
+            Thread.sleep(BLOG_REQUEST_DELAY_MS);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
         }
     }
     
