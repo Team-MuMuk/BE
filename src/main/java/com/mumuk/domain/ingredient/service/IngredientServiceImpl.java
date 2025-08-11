@@ -64,21 +64,10 @@ public class IngredientServiceImpl implements IngredientService {
 
     @Transactional
     @Override
-    public void updateIngredient(Long ingredientId, IngredientRequest.UpdateReq req, Long userId) {
+    public void updateIngredientExpireDate(Long ingredientId, IngredientRequest.UpdateExpireDateReq req, Long userId) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
-
-        Ingredient ingredient = ingredientRepository.findById(ingredientId)
+        Ingredient ingredient = ingredientRepository.findByIdAndUser_Id(ingredientId,userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INGREDIENT_NOT_FOUND));
-
-        if (!ingredient.getUser().getId().equals(user.getId())) {
-            throw new AuthException(ErrorCode.USER_NOT_EQUAL);
-        }
-
-        List<IngredientNotification> alarmSetting = req.getDaySetting().stream()
-                .map(setting -> new IngredientNotification(ingredient, setting))
-                .toList(); //추후 수정가능성이 없으므로 toList로 반환.추후 알림설정한 리스트에대해 수정필요할시 .collect(Collectors.toList());
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
@@ -86,13 +75,29 @@ public class IngredientServiceImpl implements IngredientService {
             throw new BusinessException(ErrorCode.INVALID_EXPIREDATE);
         }
 
-        ingredient.getDaySettings().clear();
-        ingredient.getDaySettings().addAll(alarmSetting); //알림설정 최신화 (NONE 포함조건 불필요)
-
-
-        ingredient.setName(req.getName());
         ingredient.setExpireDate(req.getExpireDate());
         ingredientRepository.save(ingredient);
+    }
+
+    @Transactional
+    @Override
+    public void updateIngredientDdaySetting(Long ingredientId, IngredientRequest.UpdateDdaySettingReq req, Long userId) {
+
+        Ingredient ingredient = ingredientRepository.findByIdAndUser_Id(ingredientId,userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INGREDIENT_NOT_FOUND));
+
+        List<IngredientNotification> alarmSetting = req.getDaySetting().stream()
+                .distinct()  // 중복 제거
+                .map(setting -> new IngredientNotification(ingredient, setting))
+                .toList();//추후 수정가능성이 없으므로 toList로 반환.추후 알림설정한 리스트에대해 수정필요할시 .collect(Collectors.toList());
+
+        if (req.getDaySetting().contains(DdayFcmSetting.NONE)
+                && req.getDaySetting().size() > 1) {
+            throw new BusinessException(ErrorCode.INVALID_D_DAY_SETTING);
+        }
+
+        ingredient.getDaySettings().clear();
+        ingredient.getDaySettings().addAll(alarmSetting); //알림설정 최신화 (NONE 포함조건 불필요)
     }
 
     @Transactional

@@ -29,14 +29,17 @@ public class IngredientRequest {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class UpdateReq {
-
-        @NotNull
-        private String name;
+    public static class UpdateExpireDateReq {
 
         @NotNull
         @JsonFormat(pattern = "yyyy-MM-dd")
         private LocalDate expireDate;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UpdateDdaySettingReq{
 
         @NotNull
         private List<DdayFcmSetting> daySetting;
