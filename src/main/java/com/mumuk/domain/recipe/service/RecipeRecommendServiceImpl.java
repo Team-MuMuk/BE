@@ -102,7 +102,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         List<RecipeWithScore> recipesWithScores = evaluateRecipeSuitabilityByIngredient(
             getRandomRecipesForEvaluation(RANDOM_SAMPLE_SIZE), availableIngredients, allergyTypes);
         
-        // 상위 6개 레시피 선택
+        // 점수 내림차순 정렬 후 상위 N개 선택
+        recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
         List<RecipeWithScore> topRecipes = recipesWithScores.stream()
             .limit(MAX_RECOMMENDATIONS)
             .collect(Collectors.toList());
@@ -115,12 +116,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         // RecipeSummaryDTO로 변환하여 반환
         return topRecipes.stream()
-            .map(recipeWithScore -> UserRecipeResponse.RecipeSummaryDTO.builder()
-                .recipeId(recipeWithScore.recipe.getId())
-                .name(recipeWithScore.recipe.getTitle())
-                .imageUrl(recipeWithScore.recipe.getRecipeImage())
-                .liked(likedMap.get(recipeWithScore.recipe.getId()))
-                .build())
+            .map(rws -> RecipeConverter.toRecipeSummaryDTO(rws.recipe, likedMap.get(rws.recipe.getId())))
             .collect(Collectors.toList());
     }
 
@@ -218,7 +214,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         Map<String, String> ocrHealthData = getLatestOcrHealthData(userId);
         
         if (ocrHealthData == null || ocrHealthData.isEmpty()) {
-            log.warn("사용자의 OCR 건강 데이터가 없습니다. 기본 재료 기반 추천으로 대체합니다.");
+            log.warn("사용자의 OCR 건강 데이터 없음. 기본 재료 기반 추천으로 대체");
             return recommendRecipesByIngredient(userId);
         }
         
@@ -254,12 +250,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         log.info("OCR 기반 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
         return topRecipes.stream()
-                .map(recipeWithScore -> UserRecipeResponse.RecipeSummaryDTO.builder()
-                    .recipeId(recipeWithScore.recipe.getId())
-                    .name(recipeWithScore.recipe.getTitle())
-                    .imageUrl(recipeWithScore.recipe.getRecipeImage())
-                    .liked(likedMap.get(recipeWithScore.recipe.getId()))
-                    .build())
+                .map(rws -> RecipeConverter.toRecipeSummaryDTO(rws.recipe, likedMap.get(rws.recipe.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -279,7 +270,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         List<String> healthGoals = getUserHealthGoals(userId);
         
         if (healthGoals == null || healthGoals.isEmpty()) {
-            log.warn("사용자의 HealthGoal이 설정되지 않았습니다. 기본 재료 기반 추천으로 대체합니다.");
+            log.warn("사용자의 HealthGoal이 설정되지 않음. 기본 재료 기반 추천으로 대체");
             return recommendRecipesByIngredient(userId);
         }
         
@@ -312,12 +303,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         log.info("HealthGoal 기반 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
         return topRecipes.stream()
-                .map(recipeWithScore -> UserRecipeResponse.RecipeSummaryDTO.builder()
-                    .recipeId(recipeWithScore.recipe.getId())
-                    .name(recipeWithScore.recipe.getTitle())
-                    .imageUrl(recipeWithScore.recipe.getRecipeImage())
-                    .liked(likedMap.get(recipeWithScore.recipe.getId()))
-                    .build())
+                .map(rws -> RecipeConverter.toRecipeSummaryDTO(rws.recipe, likedMap.get(rws.recipe.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -368,12 +354,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         log.info("통합 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
         return topRecipes.stream()
-                .map(recipeWithScore -> UserRecipeResponse.RecipeSummaryDTO.builder()
-                    .recipeId(recipeWithScore.recipe.getId())
-                    .name(recipeWithScore.recipe.getTitle())
-                    .imageUrl(recipeWithScore.recipe.getRecipeImage())
-                    .liked(likedMap.get(recipeWithScore.recipe.getId()))
-                    .build())
+                .map(rws -> RecipeConverter.toRecipeSummaryDTO(rws.recipe, likedMap.get(rws.recipe.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -2226,16 +2207,13 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     @Scheduled(cron = "0 0 2 * * *")
     public void cleanupExpiredRecipeTitles() {
         try {
-            // Score가 0이므로 시간 기반 정리가 불가능
-            // 대신 전체 크기를 제한하여 관리 (예: 최대 10000개)
-            long totalSize = redisTemplate.opsForZSet().size(RECIPE_TITLES_KEY);
-            if (totalSize > 10000) {
-                // 가장 오래된 데이터부터 제거 (score가 낮은 순서)
-                long removedCount = redisTemplate.opsForZSet().removeRange(RECIPE_TITLES_KEY, 0, totalSize - 10000);
-                log.info("Redis ZSet에서 {}개의 레시피 제목 제거 완료 (크기 제한: 10000)", removedCount);
-            }
+            long now = System.currentTimeMillis();
+            long cutoff = now - RECIPE_CACHE_TTL.toMillis(); // 30일 이전 데이터 제거
+            Long removed = redisTemplate.opsForZSet()
+                    .removeRangeByScore(RECIPE_TITLES_KEY, 0, cutoff);
+            log.info("Redis ZSet 만료 정리 완료 - 제거:{}개, cutoff:{}", removed, cutoff);
         } catch (Exception e) {
-            log.error("Redis ZSet 정리 중 오류 발생: {}", e.getMessage(), e);
+            log.error("Redis ZSet 정리 중 오류: {}", e.getMessage(), e);
         }
     }
 } 

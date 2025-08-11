@@ -163,7 +163,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<UserRecipeResponse.RecipeSummaryDTO> getSimpleRecipes(Long userId) {
+    public List<UserRecipeResponse.RecipeSummaryDTO> getRecipeSummaries(Long userId) {
         List<Recipe> recipes = recipeRepository.findAll();
         List<Long> recipeIds = recipes.stream()
                 .map(Recipe::getId)
