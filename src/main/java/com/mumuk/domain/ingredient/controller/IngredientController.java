@@ -43,7 +43,7 @@ public class IngredientController {
 
 
     @Operation(summary = "재료의 유통기한 수정", description = "등록하신 재료의 유통기한을 수정합니다.")
-    @PutMapping("/{ingredientId}/expireDate")
+    @PutMapping("/{ingredientId}/expiredate")
     public Response<String> updateIngredient(
             @PathVariable Long ingredientId,
             @Valid @RequestBody IngredientRequest.UpdateExpireDateReq req,
@@ -55,7 +55,7 @@ public class IngredientController {
     }
 
     @Operation(summary = "재료의 알림설정 수정", description = "등록하신 재료의 알림설정기간을 수정합니다.")
-    @PutMapping("/{ingredientId}/dday-Setting")
+    @PutMapping("/{ingredientId}/dday-setting")
     public Response<String> updateIngredient(
             @PathVariable Long ingredientId,
             @Valid @RequestBody IngredientRequest.UpdateDdaySettingReq req,
@@ -76,7 +76,7 @@ public class IngredientController {
     }
 
     @Operation(summary = "유통기한 관리", description = "유통기한이 임박한 재료를 조회합니다.")
-    @GetMapping("/expireDateManege")
+    @GetMapping("/expiredatemanege")
     public Response<List<IngredientResponse.ExpireDateManegeRes>> getExpireDateManegeIngredient (@AuthUser Long userId){
 
         List<IngredientResponse.ExpireDateManegeRes> ingredients = ingredientService.getCloseExpireDateIngredients(userId);
