@@ -75,7 +75,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     @Query(value = """
         SELECT * FROM recipe 
         WHERE id >= (
-            SELECT FLOOR(RANDOM() * (SELECT MAX(id) FROM recipe)) + 1
+            SELECT CAST(FLOOR(RANDOM() * (SELECT MAX(id) FROM recipe)) + 1 AS BIGINT)
         )
         ORDER BY id 
         LIMIT :limit

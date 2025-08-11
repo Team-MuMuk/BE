@@ -1,5 +1,6 @@
 package com.mumuk.domain.search.service;
 
+import com.mumuk.domain.recipe.converter.RecipeConverter;
 import com.mumuk.domain.recipe.dto.response.RecipeResponse;
 import com.mumuk.domain.recipe.entity.Recipe;
 import com.mumuk.domain.recipe.repository.RecipeRepository;
@@ -32,7 +33,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public List<UserRecipeResponse.RecipeSummaryDTO> SearchRecipeList(Long userId, String keyword) {
+    public List<UserRecipeResponse.RecipeSummaryDTO> searchRecipeList(Long userId, String keyword) {
 
         // 입력값 null 또는 blank 검사
         if (keyword == null || keyword.isBlank()) {
@@ -55,13 +56,12 @@ public class SearchServiceImpl implements SearchService {
         Map<Long, UserRecipe> userRecipeMap = userRecipes.stream()
                 .collect(Collectors.toMap(userRecipe -> userRecipe.getRecipe().getId(), userRecipe -> userRecipe));
 
-        // RecipeSummaryDTO를 반환하는 List 생성
+        // RecipeSummaryDTO를 반환하는 List 생성 (Converter 사용)
         List<UserRecipeResponse.RecipeSummaryDTO> recipeList = recipes.stream()
                 .map(recipe -> {
-                    // 좋아요 여부 입력받기
                     UserRecipe userRecipe = userRecipeMap.get(recipe.getId());
-                    boolean isLiked = userRecipe != null && Boolean.TRUE.equals(userRecipe.getLiked());
-                    return new UserRecipeResponse.RecipeSummaryDTO(recipe.getId(), recipe.getTitle(), recipe.getRecipeImage(), isLiked);
+                    Boolean liked = (userRecipe != null) ? userRecipe.getLiked() : null;
+                    return RecipeConverter.toRecipeSummaryDTO(recipe, liked);
                 }).collect(Collectors.toList());
 
         return recipeList;

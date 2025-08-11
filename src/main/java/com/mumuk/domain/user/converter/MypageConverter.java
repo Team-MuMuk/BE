@@ -27,7 +27,7 @@ public class MypageConverter {
                 .recipeId(userRecipe.getRecipe().getId())
                 .name(userRecipe.getRecipe().getTitle())
                 .imageUrl(userRecipe.getRecipe().getRecipeImage())
-                .liked(userRecipe.getLiked())
+                .liked(Boolean.TRUE.equals(userRecipe.getLiked()))
                 .build();
     }
 

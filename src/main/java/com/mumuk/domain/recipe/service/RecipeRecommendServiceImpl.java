@@ -24,7 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.nio.charset.StandardCharsets;
@@ -49,7 +48,6 @@ import com.mumuk.domain.healthManagement.service.HealthGoalService;
 
 @Slf4j
 @Service
-@EnableScheduling
 public class RecipeRecommendServiceImpl implements RecipeRecommendService {
 
     private final OpenAiClient openAiClient;
@@ -106,7 +104,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         // 상위 6개 레시피 선택
         List<RecipeWithScore> topRecipes = recipesWithScores.stream()
-            .limit(6)
+            .limit(MAX_RECOMMENDATIONS)
             .collect(Collectors.toList());
         
         // 찜 여부 조회
@@ -146,7 +144,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         // 상위 6개 레시피 선택
         List<Recipe> topRecipes = recipes.stream()
-            .limit(6)
+            .limit(MAX_RECOMMENDATIONS)
             .collect(Collectors.toList());
         
         // 찜 여부 조회
@@ -184,7 +182,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         // 상위 6개 레시피 선택
         List<Recipe> topRecipes = recipes.stream()
-            .limit(6)
+            .limit(MAX_RECOMMENDATIONS)
             .collect(Collectors.toList());
         
         // 찜 여부 조회
@@ -246,7 +244,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         // RecipeSummaryDTO로 변환하여 반환 (상위 6개만)
         List<RecipeWithScore> topRecipes = recipesWithScores.stream()
-                .limit(6)
+                .limit(MAX_RECOMMENDATIONS)
                 .collect(Collectors.toList());
         
         List<Long> recipeIds = topRecipes.stream()
@@ -304,7 +302,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         // RecipeSummaryDTO로 변환하여 반환 (상위 6개만)
         List<RecipeWithScore> topRecipes = scoredRecipes.stream()
-                .limit(6)
+                .limit(MAX_RECOMMENDATIONS)
                 .collect(Collectors.toList());
         
         List<Long> recipeIds = topRecipes.stream()
@@ -360,7 +358,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         
         // RecipeSummaryDTO로 변환하여 반환 (상위 6개만)
         List<RecipeWithScore> topRecipes = scoredRecipes.stream()
-                .limit(6)
+                .limit(MAX_RECOMMENDATIONS)
                 .collect(Collectors.toList());
         
         List<Long> recipeIds = topRecipes.stream()
@@ -985,7 +983,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             log.info("DB에서 중복 레시피 발견: {}", title);
             // Redis ZSet에도 중복 정보 추가 (search domain과 동일한 방식)
             try {
-                redisTemplate.opsForValue().set(RECIPE_TITLES_KEY, title, 0);
+                // score는 시간 기반으로 부여하면 정리에 유리합니다.
+                redisTemplate.opsForZSet().add(RECIPE_TITLES_KEY, title, System.currentTimeMillis());
             } catch (Exception e) {
                 log.warn("Redis 중복 정보 추가 실패: {}", e.getMessage());
             }
@@ -2210,8 +2209,8 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
      */
     private void cacheRecipeTitle(String title) {
         try {
-            // ZSet에 제목 추가 (search domain과 동일한 방식: score는 0)
-            redisTemplate.opsForZSet().add(RECIPE_TITLES_KEY, title, 0);
+            // ZSet에 제목 추가 (score는 시간 기반으로 부여하면 정리에 유리합니다)
+            redisTemplate.opsForZSet().add(RECIPE_TITLES_KEY, title, System.currentTimeMillis());
             log.info("Redis ZSet에 레시피 제목 추가: {}", title);
         } catch (Exception e) {
             log.warn("Redis ZSet 레시피 제목 추가 실패: {}", e.getMessage());
@@ -2221,7 +2220,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     /**
      * Redis ZSet에서 오래된 레시피 제목들을 정리
      * 매일 새벽 2시에 실행 (search domain과 동일한 패턴)
-     * Score가 0이므로 시간 기반 정리가 아닌 전체 정리
+     * Score가 시간 기반이므로 시간 순으로 정리 가능
      */
     @Scheduled(cron = "0 0 2 * * *")
     public void cleanupExpiredRecipeTitles() {

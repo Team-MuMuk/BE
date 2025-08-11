@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface SearchService {
 
-    List<UserRecipeResponse.RecipeSummaryDTO> SearchRecipeList(Long userId, String keyword);
+    List<UserRecipeResponse.RecipeSummaryDTO> searchRecipeList(Long userId, String keyword);
 
     RecipeResponse.DetailRes SearchDetailRecipe(Long recipeId);
 
