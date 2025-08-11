@@ -1,5 +1,6 @@
 package com.mumuk.domain.ingredient.dto.response;
 
+import com.mumuk.domain.ingredient.entity.Ingredient;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ public class IngredientResponse {
         private String name;
         private LocalDate expireDate;
         private LocalDateTime createdAt;
+        private Integer quantity;
     }
 
     @Getter

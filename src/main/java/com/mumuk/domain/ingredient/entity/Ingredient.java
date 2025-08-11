@@ -21,6 +21,9 @@ public class Ingredient extends BaseEntity {
     @Column(name = "유통기한", nullable = false)
     private LocalDate expireDate;
 
+    @Column(name = "재료수량", nullable = false)
+    private Integer quantity;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -44,6 +47,8 @@ public class Ingredient extends BaseEntity {
         return expireDate;
     }
 
+    public Integer getQuantity() {return quantity;}
+
     public User getUser() {return user;}
 
     public List<IngredientNotification> getDaySettings() {return daySettings;}
@@ -60,6 +65,8 @@ public class Ingredient extends BaseEntity {
     public void setExpireDate(LocalDate expireDate) {
         this.expireDate = expireDate;
     }
+
+    public void setQuantity(Integer quantity) {this.quantity = quantity;}
 
     public void setUser(User user) {this.user = user;}
 

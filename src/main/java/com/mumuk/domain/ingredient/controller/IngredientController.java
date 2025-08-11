@@ -44,7 +44,7 @@ public class IngredientController {
 
     @Operation(summary = "재료의 유통기한 수정", description = "등록하신 재료의 유통기한을 수정합니다.")
     @PutMapping("/{ingredientId}/expiredate")
-    public Response<String> updateIngredient(
+    public Response<String> updateExpireDate(
             @PathVariable Long ingredientId,
             @Valid @RequestBody IngredientRequest.UpdateExpireDateReq req,
             @AuthUser Long userId) {
@@ -56,13 +56,25 @@ public class IngredientController {
 
     @Operation(summary = "재료의 알림설정 수정", description = "등록하신 재료의 알림설정기간을 수정합니다.")
     @PutMapping("/{ingredientId}/dday-setting")
-    public Response<String> updateIngredient(
+    public Response<String> updateDdaySetting(
             @PathVariable Long ingredientId,
             @Valid @RequestBody IngredientRequest.UpdateDdaySettingReq req,
             @AuthUser Long userId) {
 
 
         ingredientService.updateIngredientDdaySetting(ingredientId, req, userId);
+        return Response.ok(ResultCode.INGREDIENT_UPDATE_OK, "재료 수정 완료");
+    }
+
+    @Operation(summary = "재료의 수량 수정", description = "등록하신 재료의 수량을 수정합니다.")
+    @PutMapping("/{ingredientId}/quantity")
+    public Response<String> updateQuantity(
+            @PathVariable Long ingredientId,
+            @Valid @RequestBody IngredientRequest.UpdateQuantityReq req,
+            @AuthUser Long userId) {
+
+
+        ingredientService.updateIngredientQuantity(ingredientId, req, userId);
         return Response.ok(ResultCode.INGREDIENT_UPDATE_OK, "재료 수정 완료");
     }
 
