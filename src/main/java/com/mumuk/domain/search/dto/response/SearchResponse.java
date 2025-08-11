@@ -10,17 +10,25 @@ import java.util.Set;
 public class SearchResponse {
 
     @Getter
-    @AllArgsConstructor
-    public static class TrendKeywordListRes {
-        private final List<String> trendKeywordList;
+    public static class TrendRecipeTitleRes {
+        private final List<String> trendRecipeTitleList;
         private final LocalDateTime localDateTime;
 
-        public TrendKeywordListRes(List<String> trendKeywordList) {
-            this.trendKeywordList = trendKeywordList;
+        public TrendRecipeTitleRes(List<String> trendRecipeTitleList) {
+            this.trendRecipeTitleList = trendRecipeTitleList;
             this.localDateTime = LocalDateTime.now();
         }
     }
 
+    @Getter
+    @AllArgsConstructor
+    public static class TrendRecipeDetailRes {
+        private Long recipeId;
+        private String title;
+        private String imageUrl;
+        private Long calories;
+        private boolean isLiked;
+    }
 
 
 }

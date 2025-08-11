@@ -23,15 +23,13 @@ public class RedisAutocompleteInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
 
         try {
-            log.info("레디스 데이터 초기화 시작");
             List<Recipe> allRecipes = recipeRepository.findAll();
 
             for (Recipe recipe : allRecipes) {
                 redisTemplate.opsForZSet().add(ZSET_KEY, recipe.getTitle(), 0);
             }
-            log.info("레디스 데이터 초기화 성공");
         } catch (Exception e) {
-            log.error("레디스 데이터 초기화 실패", e);
+            log.error("레디스 초기 데이터 구성 실패",e);
         }
 
     }

@@ -2,6 +2,7 @@ package com.mumuk.domain.user.controller;
 
 
 
+import com.mumuk.domain.search.service.TrendSearchService;
 import com.mumuk.domain.user.dto.request.UserRecipeRequest;
 import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 
@@ -22,11 +23,12 @@ import org.springframework.web.bind.annotation.*;
 public class UserRecipeController {
 
     private final UserRecipeService userRecipeService;
+    private final TrendSearchService trendSearchService;
 
-
-    public UserRecipeController(UserRecipeService userRecipeService) {
+    public UserRecipeController(UserRecipeService userRecipeService, TrendSearchService trendSearchService) {
 
         this.userRecipeService = userRecipeService;
+        this.trendSearchService = trendSearchService;
     }
 
 
@@ -34,6 +36,7 @@ public class UserRecipeController {
     @GetMapping("/{recipeId}")
     public Response<UserRecipeResponse.UserRecipeRes> getUserRecipe(@AuthUser Long userId, @PathVariable Long recipeId) {
         UserRecipeResponse.UserRecipeRes response = userRecipeService.getUserRecipeDetail(userId,recipeId);
+        trendSearchService.increaseKeywordCount(recipeId);
         return Response.ok(ResultCode.USER_RECIPE_OK, response);
     }
 
