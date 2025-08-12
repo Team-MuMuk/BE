@@ -2067,7 +2067,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             
             // DetailRes로 변환하여 반환
             return recipes.stream()
-                .map(RecipeResponse.DetailRes::from)
+                .map(RecipeConverter::toDetailRes)
                 .collect(Collectors.toList());
         } catch (BusinessException e) {
             log.error("AI 키워드 기반 랜덤 레시피 생성 실패: {}", e.getMessage());
