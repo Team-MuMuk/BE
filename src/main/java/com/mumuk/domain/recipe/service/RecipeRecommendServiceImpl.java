@@ -77,6 +77,9 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     
     /** POST API로 생성할 레시피 개수 */
     private static final int POST_RECIPE_COUNT = 5;
+    
+    /** 이미지 URL 최대 길이 (엔티티 컬럼 길이와 일치) */
+    private static final int MAX_IMAGE_URL_LENGTH = 500;
 
     public RecipeRecommendServiceImpl(OpenAiClient openAiClient, ObjectMapper objectMapper,
                                    UserRepository userRepository, UserRecipeRepository userRecipeRepository,
@@ -805,19 +808,19 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                     if (recipe != null && !isDuplicateRecipe(recipe)) {
                         // DB 저장 전에 이미지 URL 미리 가져오기
                         String imageUrl = recipeBlogImageService.searchRecipeImage(recipe.getTitle());
-                        if (imageUrl != null && !imageUrl.isBlank() && imageUrl.length() <= 500) {
+                        if (isValidHttpUrl(imageUrl) && imageUrl.length() <= MAX_IMAGE_URL_LENGTH) {
                             recipe.setRecipeImage(imageUrl);
                             log.info("레시피 이미지 설정 완료: {} -> {}", recipe.getTitle(), imageUrl);
                             
                             // 이미지가 있는 경우에만 DB에 저장
-                        Recipe savedRecipe = recipeRepository.save(recipe);
-                        recipes.add(savedRecipe);
-                        log.info("레시피 저장 성공: {}", recipe.getTitle());
-                        
-                        // DB 저장 성공 시 Redis에 제목 기반으로 캐싱 (30일)
-                        cacheRecipeTitle(savedRecipe.getTitle());
+                            Recipe savedRecipe = recipeRepository.save(recipe);
+                            recipes.add(savedRecipe);
+                            log.info("레시피 저장 성공: {}", recipe.getTitle());
+                            
+                            // DB 저장 성공 시 Redis에 제목 기반으로 캐싱 (30일)
+                            cacheRecipeTitle(savedRecipe.getTitle());
                         } else {
-                            log.warn("레시피 {}에 대한 적절한 이미지를 찾을 수 없어 DB 등록을 건너뜁니다.", recipe.getTitle());
+                            log.warn("레시피 '{}' 이미지 검증 실패(유효한 URL 아님 또는 길이 초과). DB 등록을 건너뜁니다. url='{}'", recipe.getTitle(), imageUrl);
                         }
                     } else {
                         log.info("중복 레시피 제외: {}", recipe != null ? recipe.getTitle() : "null");
@@ -2209,5 +2212,26 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                "- 1-2점: 대부분의 조건을 만족하지 못함\n" +
                "- 0점: 알러지 성분 포함 (절대 추천 불가)\n\n" +
                "적합도 점수만 숫자로 응답해주세요 (예: 8.5)";
+    }
+
+    /**
+     * HTTP/HTTPS URL 유효성 검증
+     * 
+     * @param url 검증할 URL 문자열
+     * @return 유효한 HTTP/HTTPS URL이면 true, 그렇지 않으면 false
+     */
+    private boolean isValidHttpUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        
+        try {
+            java.net.URI uri = new java.net.URI(url.trim());
+            String scheme = uri.getScheme();
+            return ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) 
+                   && uri.getHost() != null;
+        } catch (Exception e) {
+            return false;
+        }
     }
 } 
