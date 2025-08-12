@@ -60,11 +60,23 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private final HealthGoalService healthGoalService;
     private final RecipeBlogImageService recipeBlogImageService;
 
-    private static final Duration RECIPE_CACHE_TTL = Duration.ofDays(30); // 30일 동안 캐시 (POST API용)
-    private static final String RECIPE_TITLES_KEY = "recipetitles"; // 레시피 제목 저장용 ZSet 키 (search domain과 동일)
-    private static final int MAX_RECOMMENDATIONS = 6; // 최대 추천 개수 (상위 6개)
-    private static final int RANDOM_SAMPLE_SIZE = 48; // 무작위 샘플 크기 (GET API용)
-    private static final int POST_RECIPE_COUNT = 5; // POST API로 생성할 레시피 개수
+    // ===== 상수 정의 =====
+    // 설정 변경 시 이 부분만 수정하면 됩니다
+    
+    /** 레시피 캐시 유효기간 (POST API용) */
+    private static final Duration RECIPE_CACHE_TTL = Duration.ofDays(30);
+    
+    /** 레시피 제목 저장용 ZSet 키 (search domain과 동일) */
+    private static final String RECIPE_TITLES_KEY = "recipetitles";
+    
+    /** 최대 추천 개수 (모든 추천 API에서 사용) */
+    private static final int MAX_RECOMMENDATIONS = 12;
+    
+    /** 무작위 샘플 크기 (GET API용) */
+    private static final int RANDOM_SAMPLE_SIZE = 60;
+    
+    /** POST API로 생성할 레시피 개수 */
+    private static final int POST_RECIPE_COUNT = 5;
 
     public RecipeRecommendServiceImpl(OpenAiClient openAiClient, ObjectMapper objectMapper,
                                    UserRepository userRepository, UserRecipeRepository userRecipeRepository,
@@ -96,11 +108,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         List<String> availableIngredients = getUserIngredients(userId);
         List<String> allergyTypes = getUserAllergies(userId);
         
-        // 레시피 적합도 평가 (무작위 48개에서 상위 6개 선택)
+        // 레시피 적합도 평가 (무작위 샘플에서 상위 MAX_RECOMMENDATIONS개 선택)
         List<RecipeWithScore> recipesWithScores = evaluateRecipeSuitabilityByIngredient(
             getRandomRecipesForEvaluation(RANDOM_SAMPLE_SIZE), availableIngredients, allergyTypes);
         
-        // 점수 내림차순 정렬 후 상위 N개 선택
+        // 점수 내림차순 정렬 후 상위 MAX_RECOMMENDATIONS개 선택
         recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
         List<RecipeWithScore> topRecipes = recipesWithScores.stream()
             .limit(MAX_RECOMMENDATIONS)
@@ -132,7 +144,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             return new ArrayList<>();
         }
         
-        // 상위 6개 레시피 선택
+        // 상위 MAX_RECOMMENDATIONS개 레시피 선택
         List<Recipe> topRecipes = recipes.stream()
             .limit(MAX_RECOMMENDATIONS)
             .collect(Collectors.toList());
@@ -159,14 +171,14 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 무작위 추천: 사용자 재료/알레르기 미사용. 사용자 존재만 검증.
         getUser(userId);
         
-        // 랜덤 레시피 조회 (무작위 48개에서 상위 6개 선택)
+        // 랜덤 레시피 조회 (무작위 샘플에서 상위 MAX_RECOMMENDATIONS개 선택)
         List<Recipe> recipes = getRandomRecipesForEvaluation(RANDOM_SAMPLE_SIZE);
         
         if (recipes.isEmpty()) {
             return new ArrayList<>();
         }
         
-        // 상위 6개 레시피 선택
+        // 상위 MAX_RECOMMENDATIONS개 레시피 선택
         List<Recipe> topRecipes = recipes.stream()
             .limit(MAX_RECOMMENDATIONS)
             .collect(Collectors.toList());
@@ -228,7 +240,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
         recipesWithScores.sort((a, b) -> Double.compare(b.score, a.score));
         
-        // RecipeSummaryDTO로 변환하여 반환 (상위 6개만)
+        // RecipeSummaryDTO로 변환하여 반환 (상위 MAX_RECOMMENDATIONS개만)
         List<RecipeWithScore> topRecipes = recipesWithScores.stream()
                 .limit(MAX_RECOMMENDATIONS)
                 .collect(Collectors.toList());
@@ -264,7 +276,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             return recommendRecipesByIngredient(userId);
         }
         
-        // DB 레벨에서 랜덤 샘플링으로 48개 조회
+        // DB 레벨에서 랜덤 샘플링으로 RANDOM_SAMPLE_SIZE개 조회
         List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(RANDOM_SAMPLE_SIZE);
         
         if (sampledRecipes.isEmpty()) {
@@ -281,7 +293,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
         scoredRecipes.sort((a, b) -> Double.compare(b.score, a.score));
         
-        // RecipeSummaryDTO로 변환하여 반환 (상위 6개만)
+        // RecipeSummaryDTO로 변환하여 반환 (상위 MAX_RECOMMENDATIONS개만)
         List<RecipeWithScore> topRecipes = scoredRecipes.stream()
                 .limit(MAX_RECOMMENDATIONS)
                 .collect(Collectors.toList());
@@ -316,7 +328,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // HealthGoal 정보 조회
         List<String> healthGoals = getUserHealthGoals(userId);
         
-        // DB 레벨에서 랜덤 샘플링으로 48개 조회
+        // DB 레벨에서 랜덤 샘플링으로 RANDOM_SAMPLE_SIZE개 조회
         List<Recipe> sampledRecipes = getRandomRecipesForEvaluation(RANDOM_SAMPLE_SIZE);
         
         if (sampledRecipes.isEmpty()) {
@@ -333,7 +345,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 적합도 점수로 내림차순 정렬 (높은 점수가 위로)
         scoredRecipes.sort((a, b) -> Double.compare(b.score, a.score));
         
-        // RecipeSummaryDTO로 변환하여 반환 (상위 6개만)
+        // RecipeSummaryDTO로 변환하여 반환 (상위 MAX_RECOMMENDATIONS개만)
         List<RecipeWithScore> topRecipes = scoredRecipes.stream()
                 .limit(MAX_RECOMMENDATIONS)
                 .collect(Collectors.toList());
