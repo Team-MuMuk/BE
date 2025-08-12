@@ -18,12 +18,10 @@ public class RecipeBlogServiceImpl implements RecipeBlogService {
 
     private final NaverBlogClient naverBlogClient;
     private final ObjectMapper objectMapper;
-    private final RecipeBlogImageAsyncService recipeBlogImageAsyncService;
 
-    public RecipeBlogServiceImpl(NaverBlogClient naverBlogClient, ObjectMapper objectMapper, RecipeBlogImageAsyncService recipeBlogImageAsyncService) {
+    public RecipeBlogServiceImpl(NaverBlogClient naverBlogClient, ObjectMapper objectMapper) {
         this.naverBlogClient = naverBlogClient;
         this.objectMapper = objectMapper;
-        this.recipeBlogImageAsyncService = recipeBlogImageAsyncService;
     }
 
     @Override
@@ -47,17 +45,12 @@ public class RecipeBlogServiceImpl implements RecipeBlogService {
                 String description = TextUtil.smartTruncate(rawDescription, 70);
                 String link = item.path("link").asText();
 
-                // 캐시된 이미지 확인 및 비동기 크롤링 호출
-                String cachedImage = recipeBlogImageAsyncService.getCachedImage(link);
-                if (cachedImage==null) {
-                    recipeBlogImageAsyncService.fetchAndCacheImage(link);
-                }
-
+                // 이미지 정보는 현재 사용하지 않음 (레거시 코드 제거)
                 blogs.add(new RecipeBlogResponse.Blog(
                         title,
                         description,
                         link,
-                        cachedImage     // null or 실제 URL
+                        null     // 이미지 URL은 현재 사용하지 않음
                 ));
             }
             return new RecipeBlogResponse(blogs);

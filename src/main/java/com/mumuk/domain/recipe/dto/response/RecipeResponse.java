@@ -1,5 +1,7 @@
 package com.mumuk.domain.recipe.dto.response;
 
+import com.mumuk.domain.recipe.entity.Recipe;
+import com.mumuk.domain.recipe.converter.RecipeConverter;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -21,6 +23,15 @@ public class RecipeResponse {
         private Long fat;
         private List<String> categories;
         private String ingredients;
+        
+        /**
+         * Recipe 엔티티로부터 DetailRes를 생성합니다.
+         * @param recipe Recipe 엔티티
+         * @return DetailRes 객체
+         */
+        public static DetailRes from(Recipe recipe) {
+            return RecipeConverter.toDetailRes(recipe);
+        }
     }
 
 

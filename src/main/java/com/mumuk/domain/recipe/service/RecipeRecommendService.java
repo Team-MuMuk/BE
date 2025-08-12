@@ -46,6 +46,21 @@ public interface RecipeRecommendService {
 
     /**
      * AI를 사용하여 랜덤 레시피를 생성하고 저장합니다.
+     * @param userId 사용자 ID
+     * @param topic 선택적 주제 (null이면 완전 랜덤)
+     */
+    List<RecipeResponse.DetailRes> createAndSaveRandomRecipes(Long userId, String topic);
+
+    /**
+     * AI를 사용하여 랜덤 레시피를 생성하고 저장합니다. (기존 호환성 유지)
+     * 주제 없이 완전 랜덤하게 레시피를 생성합니다.
      */
     List<RecipeResponse.DetailRes> createAndSaveRandomRecipes(Long userId);
+    
+    /**
+     * AI를 사용하여 키워드 기반 랜덤 레시피를 생성하고 저장합니다.
+     * @param userId 사용자 ID
+     * @param keyword 키워드 (null이면 완전 랜덤)
+     */
+    List<RecipeResponse.DetailRes> createAndSaveRandomRecipesByKeyword(Long userId, String keyword);
 } 
