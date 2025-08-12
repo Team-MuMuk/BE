@@ -2067,14 +2067,14 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             
             // DetailRes로 변환하여 반환
             return recipes.stream()
-                .map(recipe -> RecipeResponse.DetailRes.from(recipe, false)) // 좋아요 여부는 false로 가정
+                .map(RecipeResponse.DetailRes::from)
                 .collect(Collectors.toList());
         } catch (BusinessException e) {
             log.error("AI 키워드 기반 랜덤 레시피 생성 실패: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
             log.error("AI 키워드 기반 랜덤 레시피 생성 중 예상치 못한 오류 발생: {}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "AI 키워드 기반 랜덤 레시피 생성 중 오류가 발생했습니다.");
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
 
