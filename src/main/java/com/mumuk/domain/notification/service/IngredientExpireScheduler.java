@@ -75,13 +75,17 @@ public class IngredientExpireScheduler {
                 String body = String.format("'%s'에 등록한 '%s'의 유통기한이 %d일 남았어요!",createdDate, ingredient.getName(), daysLeft);
 
                 boolean sent = fcmMessageService.sendFcmMessage(user.getId(), title, body);
+                // 알림설정한 기간 리스트를 string 으로 출력
+                String settingsText = alarmSettings.stream()
+                        .map(s -> s.getDdayFcmSetting().name())
+                        .collect(java.util.stream.Collectors.joining(", "));
 
                 if (sent) {
                     log.info("✅ 알림 전송 완료: 재료={}, 남은일수={}, 설정={}",
-                            ingredient.getName(), daysLeft, ingredient.getDaySettings());
+                            ingredient.getName(), daysLeft, settingsText);
                 } else {
                     log.info("⚠️ 알림 전송 실패/스킵: 재료={}, 남은일수={}, 설정={}",
-                            ingredient.getName(), daysLeft, ingredient.getDaySettings());
+                            ingredient.getName(), daysLeft, settingsText);
                 }
             }
         }

@@ -55,6 +55,7 @@ public class FcmMessageService {
         notificationLog.setUser(user);
         notificationLog.setTitle(title);
         notificationLog.setBody(body);
+        notificationLog.setStatus(MessageStatus.PENDING);
 
         notificationLogRepository.save(notificationLog);//알림 로그 저장
 
