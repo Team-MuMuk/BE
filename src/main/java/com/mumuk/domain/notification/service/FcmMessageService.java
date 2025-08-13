@@ -5,6 +5,9 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import com.mumuk.domain.notification.entity.Fcm;
+import com.mumuk.domain.notification.entity.MessageStatus;
+import com.mumuk.domain.notification.entity.NotificationLog;
+import com.mumuk.domain.notification.repository.NotificationLogRepository;
 import com.mumuk.domain.notification.repository.NotificationRepository;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
@@ -21,11 +24,12 @@ public class FcmMessageService {
 
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final NotificationLogRepository notificationLogRepository;
 
-    public FcmMessageService(UserRepository userRepository, NotificationRepository notificationRepository) {
+    public FcmMessageService(UserRepository userRepository, NotificationRepository notificationRepository, NotificationLogRepository notificationLogRepository) {
         this.userRepository = userRepository;
         this.notificationRepository = notificationRepository;
-
+        this.notificationLogRepository = notificationLogRepository;
     }
 
     @Transactional
@@ -46,6 +50,15 @@ public class FcmMessageService {
             return false;
         }
 
+        //보낼 알림 로그 작성
+        NotificationLog notificationLog = new NotificationLog();
+        notificationLog.setUser(user);
+        notificationLog.setTitle(title);
+        notificationLog.setBody(body);
+
+        notificationLogRepository.save(notificationLog);//알림 로그 저장
+
+
         String token = userToken.getFcmToken();
 
         Message message = Message.builder()
@@ -59,9 +72,17 @@ public class FcmMessageService {
         try {
             String response = FirebaseMessaging.getInstance().send(message);   // FCM 서버에 메시지 전송
             log.info("FCM 전송 성공: userId={},  response={}", userId, response);
+
+            notificationLog.setStatus(MessageStatus.SENT); //보냄으로 상태 변경
+            notificationLog.setFcmMessageId(response);
+            notificationLogRepository.save(notificationLog);
+
             return true;
         } catch (FirebaseMessagingException e) {
             log.warn("FCM 전송 실패: userId={}, error={}", userId, e.getMessage(), e);
+
+            notificationLog.setStatus(MessageStatus.FAILED); //전송실패로 상태 변경
+            notificationLogRepository.save(notificationLog); //db에 메세지 로그 저장
 
             Set<String> deletableErrorCodes = Set.of(
                     "unregistered",

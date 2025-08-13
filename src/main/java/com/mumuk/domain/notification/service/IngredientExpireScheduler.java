@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,9 +67,12 @@ public class IngredientExpireScheduler {
                 if (!shouldNotify(ingredient.getDaySettings(), daysLeft)) {
                     continue;
                 }
+                //제료등록 생성시각 조정
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                String createdDate = ingredient.getCreatedAt().format(formatter);
 
                 String title = "유통기한 알림";
-                String body = String.format("'%s'의 유통기한이 %d일 남았어요!", ingredient.getName(), daysLeft);
+                String body = String.format("'%s'에 등록한 '%s'의 유통기한이 %d일 남았어요!",createdDate, ingredient.getName(), daysLeft);
 
                 boolean sent = fcmMessageService.sendFcmMessage(user.getId(), title, body);
 
