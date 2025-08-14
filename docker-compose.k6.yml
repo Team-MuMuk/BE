@@ -43,6 +43,8 @@ services:
       - ./prometheus/prometheus-local.yml:/etc/prometheus/prometheus-local.yml:ro
     ports:
       - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - monitoring
 
@@ -64,7 +66,7 @@ services:
     image: prometheuscommunity/postgres-exporter
     container_name: postgres-exporter
     environment:
-      DATA_SOURCE_NAME: "postgresql://${LOCAL_DB_USERNAME}:${LOCAL_DB_PASSWORD}@postgres:5432/mumuk?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://root:1234@host.docker.internal:5433/mumuk?sslmode=disable"
     depends_on:
       - postgres
     ports:
