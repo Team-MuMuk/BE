@@ -31,74 +31,81 @@ public class FcmMessageService {
         this.notificationRepository = notificationRepository;
         this.notificationLogRepository = notificationLogRepository;
     }
-
+    // 로그 저장 트랜잭션과 메세지 전송 트랜잭션 분리
     @Transactional
-    public boolean sendFcmMessage(Long userId, String title, String body ) {
-
+    public NotificationLog createNotificationLog(Long userId, String title, String body) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
+        // 푸시 알림 비동의 상태 또는 유효하지 않은 토큰일 경우
         if (!user.getFcmAgreed()) {
-            log.info("푸시 알림 비동의 상태: userId={}", userId);
-            return false;
+            log.info("푸시 알림 전송 대상 아님: userId={}", userId);
+            return null;
         }
 
+        // 알림 로그 생성 및 저장
+        NotificationLog notificationLog = new NotificationLog(title, body, MessageStatus.PENDING, user);
+        return notificationLogRepository.save(notificationLog);
+    }
+
+    private Fcm isValidFcmToken(User user) {
         Fcm userToken = notificationRepository.findByUser(user).orElse(null);
-
         if (userToken == null || userToken.getFcmToken() == null || userToken.getFcmToken().isBlank()) {
-            log.warn("FCM 토큰 없음 또는 유효하지 않음: userId={}", userId);
+            return null;
+        }
+        else{
+            return userToken;
+        }
+    }
+
+    @Transactional
+    public boolean sendFcmMessage(NotificationLog notificationLog) {
+
+        Fcm userToken = isValidFcmToken(notificationLog.getUser());
+        if(userToken == null) { //토큰 유효성 검사
             return false;
         }
-
-        //보낼 알림 로그 작성
-        NotificationLog notificationLog = new NotificationLog();
-        notificationLog.setUser(user);
-        notificationLog.setTitle(title);
-        notificationLog.setBody(body);
-        notificationLog.setStatus(MessageStatus.PENDING);
-
-        notificationLogRepository.save(notificationLog);//알림 로그 저장
-
 
         String token = userToken.getFcmToken();
 
         Message message = Message.builder()
                 .setToken(token)
                 .setNotification(Notification.builder()
-                        .setTitle(title)
-                        .setBody(body)
+                        .setTitle(notificationLog.getTitle())
+                        .setBody(notificationLog.getBody())
                         .build())
                 .build();
 
         try {
-            String response = FirebaseMessaging.getInstance().send(message);   // FCM 서버에 메시지 전송
-            log.info("FCM 전송 성공: userId={},  response={}", userId, response);
+            String response = FirebaseMessaging.getInstance().send(message);
+            log.info("FCM 전송 성공: notificationLogId={}, response={}", notificationLog.getId(), response);
 
-            notificationLog.setStatus(MessageStatus.SENT); //보냄으로 상태 변경
+            notificationLog.setStatus(MessageStatus.SENT);
             notificationLog.setFcmMessageId(response);
             notificationLogRepository.save(notificationLog);
 
             return true;
         } catch (FirebaseMessagingException e) {
-            log.warn("FCM 전송 실패: userId={}, error={}", userId, e.getMessage(), e);
+            log.warn("FCM 전송 실패: notificationLogId={}, error={}", notificationLog.getId(), e.getMessage(), e);
 
-            notificationLog.setStatus(MessageStatus.FAILED); //전송실패로 상태 변경
-            notificationLogRepository.save(notificationLog); //db에 메세지 로그 저장
+            notificationLog.setStatus(MessageStatus.FAILED);
+            notificationLogRepository.save(notificationLog);
 
+            // 오류 처리 로직
             Set<String> deletableErrorCodes = Set.of(
-                    "unregistered",
-                    "invalid_argument", "invalid_arguments",
-                    "registration-token-not-registered",
+                    "unregistered", "invalid_argument",
+                    "invalid_arguments", "registration-token-not-registered",
                     "messaging/invalid-registration-token"
             );
 
             String errorCode = e.getErrorCode() != null ? e.getErrorCode().name() : null;
             if (errorCode != null && deletableErrorCodes.contains(errorCode.toLowerCase())) {
                 notificationRepository.delete(userToken);
-                log.warn("무효한 FCM 토큰 삭제: token={}, userId={}", token, user.getId());
+                log.warn("무효한 FCM 토큰 삭제: token={}, userId={}", token, notificationLog.getUser().getId());
                 return false;
             }
             return false;
         }
     }
 }
+

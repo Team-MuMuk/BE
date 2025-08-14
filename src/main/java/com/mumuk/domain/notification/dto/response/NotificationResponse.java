@@ -12,7 +12,7 @@ public class NotificationResponse {
     @Getter
     @AllArgsConstructor
     public static class RecentRes {
-        private Long notificationLog_id;
+        private Long notificationLogid;
         private String title;
         private String body;
         private String messageId;

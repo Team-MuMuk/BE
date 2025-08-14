@@ -33,6 +33,13 @@ public class NotificationLog extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
+    public NotificationLog(String title, String body, MessageStatus status, User user) {
+        this.title = title;
+        this.body = body;
+        this.status = status;
+        this.user = user;
+    }
+
     // Getter
     public NotificationLog() {}
 
