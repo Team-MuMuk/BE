@@ -136,9 +136,8 @@ public class NotificationServiceImpl implements NotificationService {
         //생성일시별로 내림차순 -> 타이 발생 -> 아이디순
 
         var statuses = List.of(
-                MessageStatus.PENDING,
                 MessageStatus.SENT
-        );
+        ); // 보낸 알림만 기록
 
         return notificationLogRepository.findByUserIdAndCreatedAtBetweenAndStatusIn(userId, from, now, statuses, pr)
                 .stream()

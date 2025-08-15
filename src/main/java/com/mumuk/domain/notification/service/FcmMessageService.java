@@ -37,10 +37,10 @@ public class FcmMessageService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        // 푸시 알림 비동의 상태 또는 유효하지 않은 토큰일 경우
+        // 푸시 알림 비동의 상태 + 스케줄러에서 1차로 ture인 사람에게만 알림을 전송하지만 2차 방어
         if (!user.getFcmAgreed()) {
             log.info("푸시 알림 전송 대상 아님: userId={}", userId);
-            return null;
+            return(notificationLogRepository.save(new NotificationLog(title,body,MessageStatus.REJECTED,user)));
         }
 
         // 알림 로그 생성 및 저장
