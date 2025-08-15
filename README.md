@@ -1,24 +1,35 @@
 # BE
 
-### Contributors
----
+## Contributors
 | <img src="https://avatars.githubusercontent.com/u/165489156?v=4" width="100" height="100"> | <img src="https://avatars.githubusercontent.com/u/80953694?v=4" width="100" height="100"> | <img src="https://avatars.githubusercontent.com/u/95339052?v=4" width="100" height="100"> | <img src="https://avatars.githubusercontent.com/u/201078502?v=4" width="100" height="100"> | <img src="https://avatars.githubusercontent.com/u/186348397?v=4" width="100" height="100"> |
 |:---:|:---:|:---:|:---:|:---:|
 | [박민음(Lead)](https://github.com/parkmineum) | [유완규](https://github.com/beans3142) | [한재민](https://github.com/jaemin0413) | [박종찬](https://github.com/Jongchanpark22) | [이가은](https://github.com/GaEun132) |
 
+<br> 
 
-### Tech Stack
+
+## Tech Stack
+| **구분** | **기술** |
+| --- | --- |
+| **Language** | Java 17 |
+| **Framework** | Spring Boot 3.3.1 |
+| **Database** | PostgreSQL, Redis |
+| **CI / CD** | GitHub Actions, Dockerhub |
+| **Monitoring** | Grafana, Prometeus, Promtail, Loki |
+| Test | K6, JUnit |
 
 
-### System Architecture
----
+<br> 
+
+## System Architecture
 <img width="2546" height="1044" alt="스크린샷 2025-08-15 오후 4 12 40" src="https://github.com/user-attachments/assets/7a326e07-93b6-444f-8b42-ac8b09c4e18f" />
 - 팀원 모두가 운영 환경상의 리소스와 로그 추적이 가능하도록 별도의 도메인으로 분리하여 모니터링 서버를 구축하였습니다.
 - 별도의 인증 과정을 통해 Grafana 서버에 접속하며, 어플리케이션(WAS) 와 Nginx, RDS 등의 상황을 실시간으로 알 수 있게 하여 개발 환경을 최적화하였습니다.
+- 부하 테스트를 통해 서비스의 병목 지점과 DB 성능 최적화를 진행하였습니다.
 
+<br> 
 
 ### Branch
----
 `컨벤션명/#이슈번호`
 
 ### Commit Convention
