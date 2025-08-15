@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  deployments: write
 
 jobs:
   CI:
@@ -61,6 +62,9 @@ jobs:
     needs: CI
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: prod
+      url: https://api.mumuk.site
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
