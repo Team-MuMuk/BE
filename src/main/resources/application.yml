@@ -5,6 +5,28 @@ spring:
     password: ${LOCAL_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
+  datasource.hikari:
+    maximum-pool-size: 150
+    minimum-idle: 30
+    connection-timeout: 3000
+    validation-timeout: 1000
+    idle-timeout: 600000
+    max-lifetime: 1800000
+    connection-init-sql: "SET application_name = 'mumuk-api'"
+
+server:
+  tomcat:
+    max-threads: 200              # 운영 인스턴스와 동일하게 유지
+    accept-count: 100
+    mbeanregistry:
+      enabled: true
+
+management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -24,6 +46,10 @@ spring:
     redis:
       host: localhost
       port: 6379
+  endpoints:
+    web:
+          exposure:
+            include: health,info,prometheus,metrics
 
 
 jwt:
@@ -64,9 +90,3 @@ openai:
     url: https://api.openai.com/v1
     model: gpt-4o-mini
 
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: prometheus

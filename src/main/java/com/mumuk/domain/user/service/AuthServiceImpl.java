@@ -296,18 +296,4 @@ public class AuthServiceImpl implements AuthService {
                 .mapToObj(String::valueOf)
                 .collect(Collectors.joining());
     }
-
-    private String formatPhoneWithHyphen(String phoneNumber) {
-
-        if (phoneNumber == null) return null;
-
-        String digits = phoneNumber.replaceAll("\\D", "");
-
-        if (digits.length() == 11) {
-            return digits.replaceFirst("(\\d{3})(\\d{4})(\\d{4})", "$1-$2-$3");
-        } else if (digits.length() == 10) {
-            return digits.replaceFirst("(\\d{3})(\\d{3})(\\d{4})", "$1-$2-$3");
-        }
-        return phoneNumber;
-    }
 }
