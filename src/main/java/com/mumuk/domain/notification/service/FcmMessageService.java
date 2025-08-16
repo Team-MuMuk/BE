@@ -39,7 +39,6 @@ public class FcmMessageService {
 
         // 푸시 알림 비동의 상태 + 스케줄러에서 1차로 ture인 사람에게만 알림을 전송하지만 2차 방어
         if (!user.getFcmAgreed()) {
-            log.info("푸시 알림 전송 대상 아님: userId={}", userId);
             return(notificationLogRepository.save(new NotificationLog(title,body,MessageStatus.REJECTED,user)));
         }
 
@@ -62,7 +61,14 @@ public class FcmMessageService {
     public boolean sendFcmMessage(NotificationLog notificationLog) {
 
         Fcm userToken = isValidFcmToken(notificationLog.getUser());
-        if(userToken == null) { //토큰 유효성 검사
+        if(userToken == null) {//토큰 유효성 검사
+            notificationLog.setStatus(MessageStatus.FAILED);
+            notificationLogRepository.save(notificationLog);
+            log.warn("FCM 전송 스킵(토큰 없음/무효): notificationLogId={}, userId={}, messageStatus={}", notificationLog.getId(), notificationLog.getUser().getId(),MessageStatus.FAILED);
+            return false;
+        }
+        if(notificationLog.getStatus() == MessageStatus.REJECTED) {
+            log.warn("FCM 푸시 비동의 상태: notificationLogId={}, userId={}, messageStatus={}", notificationLog.getId(), notificationLog.getUser().getId(),MessageStatus.REJECTED);
             return false;
         }
 
@@ -78,17 +84,17 @@ public class FcmMessageService {
 
         try {
             String response = FirebaseMessaging.getInstance().send(message);
-            log.info("FCM 전송 성공: notificationLogId={}, response={}", notificationLog.getId(), response);
-
             notificationLog.setStatus(MessageStatus.SENT);
+            log.info("FCM 전송 성공: notificationLogId={}, response={}, messageStatus={}", notificationLog.getId(), response, notificationLog.getStatus());
+
             notificationLog.setFcmMessageId(response);
             notificationLogRepository.save(notificationLog);
 
             return true;
         } catch (FirebaseMessagingException e) {
-            log.warn("FCM 전송 실패: notificationLogId={}, error={}", notificationLog.getId(), e.getMessage(), e);
-
             notificationLog.setStatus(MessageStatus.FAILED);
+            log.warn("FCM 전송 실패: notificationLogId={}, error={}, messageStatus={}", notificationLog.getId(), e.getMessage(), notificationLog.getStatus(), e);
+
             notificationLogRepository.save(notificationLog);
 
             // 오류 처리 로직
