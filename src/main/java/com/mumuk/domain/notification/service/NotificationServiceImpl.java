@@ -4,8 +4,12 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
-import com.mumuk.domain.notification.dto.NotificationRequest;
+import com.mumuk.domain.notification.converter.NotificationConverter;
+import com.mumuk.domain.notification.dto.request.NotificationRequest;
+import com.mumuk.domain.notification.dto.response.NotificationResponse;
 import com.mumuk.domain.notification.entity.Fcm;
+import com.mumuk.domain.notification.entity.MessageStatus;
+import com.mumuk.domain.notification.repository.NotificationLogRepository;
 import com.mumuk.domain.notification.repository.NotificationRepository;
 import com.mumuk.domain.user.dto.request.FCMRequest;
 import com.mumuk.domain.user.entity.User;
@@ -14,8 +18,15 @@ import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
 import com.mumuk.global.security.exception.AuthException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -24,10 +35,15 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final UserRepository userRepository; // 사용자 엔티티를 찾기 위함
     private final NotificationRepository notificationRepository;
+    private final NotificationLogRepository notificationLogRepository;
+    private final NotificationConverter notificationConverter;
 
-    public NotificationServiceImpl(UserRepository userRepository, NotificationRepository notificationRepository) {
+    public NotificationServiceImpl(UserRepository userRepository, NotificationRepository notificationRepository,
+                                   NotificationLogRepository notificationLogRepository, NotificationConverter notificationConverter) {
         this.userRepository = userRepository;
         this.notificationRepository = notificationRepository;
+        this.notificationLogRepository = notificationLogRepository;
+        this.notificationConverter = notificationConverter;
     }
 
     @Override
@@ -103,5 +119,29 @@ public class NotificationServiceImpl implements NotificationService {
             log.warn("FCM 전송 실패: {}", e.getMessage(), e);
             throw new BusinessException(ErrorCode.FCM_SEND_MESSAGE_ERROR);
         }
+    }
+
+    private static final int MAX_SIZE = 200;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<NotificationResponse.RecentRes> getRecentAlarm(Long userId, int size) {
+        ZoneId zone = ZoneId.of("Asia/Seoul");
+        LocalDateTime now  = LocalDateTime.now(zone);
+        LocalDateTime from = now.minusDays(7);
+
+        int limit = Math.max(1, Math.min(size, MAX_SIZE));
+        Pageable pr = PageRequest.of(0, limit, Sort.by(
+                Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+        //생성일시별로 내림차순 -> 타이 발생 -> 아이디순
+
+        var statuses = List.of(
+                MessageStatus.SENT
+        ); // 보낸 알림만 기록
+
+        return notificationLogRepository.findByUserIdAndCreatedAtBetweenAndStatusIn(userId, from, now, statuses, pr)
+                .stream()
+                .map(notificationConverter::toRecentAlarm)
+                .toList();
     }
 }
