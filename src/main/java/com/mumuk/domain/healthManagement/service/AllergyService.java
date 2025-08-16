@@ -2,10 +2,6 @@ package com.mumuk.domain.healthManagement.service;
 
 import com.mumuk.domain.healthManagement.dto.request.AllergyRequest;
 import com.mumuk.domain.healthManagement.dto.response.AllergyResponse;
-import com.mumuk.domain.healthManagement.entity.Allergy;
-import com.mumuk.domain.healthManagement.entity.AllergyType;
-
-import java.util.List;
 
 public interface AllergyService {
 

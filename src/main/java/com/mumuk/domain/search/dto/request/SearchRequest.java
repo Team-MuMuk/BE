@@ -3,8 +3,6 @@ package com.mumuk.domain.search.dto.request;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
 public class SearchRequest {
 
     @Getter

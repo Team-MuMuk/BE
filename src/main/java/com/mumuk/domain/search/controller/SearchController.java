@@ -5,7 +5,6 @@ import com.mumuk.domain.search.dto.request.SearchRequest;
 import com.mumuk.domain.search.dto.response.SearchResponse;
 import com.mumuk.domain.search.service.*;
 import com.mumuk.domain.user.dto.response.UserRecipeResponse;
-import com.mumuk.domain.user.entity.User;
 import com.mumuk.global.apiPayload.code.ResultCode;
 import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.annotation.AuthUser;
