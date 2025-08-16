@@ -5,6 +5,7 @@ import com.mumuk.domain.ingredient.entity.Ingredient;
 import com.mumuk.domain.ingredient.entity.IngredientNotification;
 import com.mumuk.domain.ingredient.repository.IngredientRepository;
 import com.mumuk.domain.notification.entity.Fcm;
+import com.mumuk.domain.notification.entity.NotificationLog;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,18 +68,26 @@ public class IngredientExpireScheduler {
                 if (!shouldNotify(ingredient.getDaySettings(), daysLeft)) {
                     continue;
                 }
+                //제료등록 생성시각 조정
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                String createdDate = ingredient.getCreatedAt().format(formatter);
 
                 String title = "유통기한 알림";
-                String body = String.format("'%s'의 유통기한이 %d일 남았어요!", ingredient.getName(), daysLeft);
+                String body = String.format("'%s'에 등록한 '%s'의 유통기한이 %d일 남았어요!",createdDate, ingredient.getName(), daysLeft);
 
-                boolean sent = fcmMessageService.sendFcmMessage(user.getId(), title, body);
+                NotificationLog notificationLog = fcmMessageService.createNotificationLog(user.getId(),title,body);
+                boolean sent = fcmMessageService.sendFcmMessage(notificationLog);
+                // 알림설정한 기간 리스트를 string 으로 출력
+                String settingsText = alarmSettings.stream()
+                        .map(s -> s.getDdayFcmSetting().name())
+                        .collect(java.util.stream.Collectors.joining(", "));
 
                 if (sent) {
                     log.info("✅ 알림 전송 완료: 재료={}, 남은일수={}, 설정={}",
-                            ingredient.getName(), daysLeft, ingredient.getDaySettings());
+                            ingredient.getName(), daysLeft, settingsText);
                 } else {
                     log.info("⚠️ 알림 전송 실패/스킵: 재료={}, 남은일수={}, 설정={}",
-                            ingredient.getName(), daysLeft, ingredient.getDaySettings());
+                            ingredient.getName(), daysLeft, settingsText);
                 }
             }
         }

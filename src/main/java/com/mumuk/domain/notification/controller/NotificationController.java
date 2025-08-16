@@ -1,6 +1,7 @@
 package com.mumuk.domain.notification.controller;
 
-import com.mumuk.domain.notification.dto.NotificationRequest;
+import com.mumuk.domain.notification.dto.request.NotificationRequest;
+import com.mumuk.domain.notification.dto.response.NotificationResponse;
 import com.mumuk.domain.notification.service.IngredientExpireScheduler;
 import com.mumuk.domain.notification.service.NotificationService;
 import com.mumuk.domain.user.dto.request.FCMRequest;
@@ -9,9 +10,10 @@ import com.mumuk.global.security.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -55,5 +57,15 @@ public class NotificationController {
     public Response<String> triggerExpiryNotification() {
         ingredientExpireScheduler.sendExpiryNotifications();
         return Response.ok("🔔 스케줄러 수동 실행 완료");
+    }
+
+    @Operation(summary = "최근 7일간 알림 조회", description = "최근 7일간 온 알림을 조회합니다.")
+    @GetMapping("/recent-alarm")
+    public Response<List<NotificationResponse.RecentRes>> recentAlarm(
+            @AuthUser Long userId,
+            @RequestParam(defaultValue = "200") int size //알림이 너무 많아질 시 대비하여 상한선 200으로 설정
+    ) {
+        List<NotificationResponse.RecentRes> notificationLogs = notificationService.getRecentAlarm(userId, size);
+        return Response.ok(notificationLogs);
     }
 }

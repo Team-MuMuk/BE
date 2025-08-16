@@ -1,4 +1,4 @@
-package com.mumuk.domain.notification.dto;
+package com.mumuk.domain.notification.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
