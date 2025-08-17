@@ -1,11 +1,14 @@
-FROM openjdk:17-jre-slim
+FROM eclipse-temurin:17-jre-alpine
 
 ARG JAR_FILE=build/libs/*.jar
 
 COPY ${JAR_FILE} app.jar
 
 # 시간대 설정
-RUN ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime && echo "Asia/Seoul" > /etc/timezone
+RUN apk add --no-cache tzdata && \
+    cp /usr/share/zoneinfo/Asia/Seoul /etc/localtime && \
+    echo "Asia/Seoul" > /etc/timezone && \
+    apk del tzdata
 
 # 환경 변수 설정
 ENV SPRING_PROFILES_ACTIVE=prod
