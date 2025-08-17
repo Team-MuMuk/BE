@@ -2,14 +2,12 @@ services:
 
   backend:
     container_name: backend
-    image: parkmineum/mumuk-backend:v1.0.0
-    build:
-      context: ./
-      dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME}/mumuk:latest
+    pull_policy: always
     env_file:
       - .env
-    expose:
-      - "8080"
+    ports:
+      - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - POSTGRESQL_USER=${PROD_DB_USERNAME}
@@ -20,12 +18,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+    restart: unless-stopped
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter
@@ -33,11 +26,12 @@ services:
     env_file:
       - .env
     environment:
-      DATA_SOURCE_NAME: "postgresql://${PROD_DB_USERNAME}:${PROD_DB_PASSWORD}@${PROD_DB_ENDPOINT}:${PROD_DB_PORT}/${PROD_DB_NAME}"
+      DATA_SOURCE_NAME: "postgresql://${PROD_DB_USERNAME}:${PROD_DB_PASSWORD}@${PROD_DB_ENDPOINT}:5432/${PROD_DB_NAME}"
     ports:
       - "9187:9187"
     networks:
       - mumuk_network
+    restart: unless-stopped
 
   redis:
     image: redis:7.2
@@ -52,6 +46,7 @@ services:
       timeout: 3s
       retries: 5
       start_period: 30s
+    restart: unless-stopped
 
   redis-exporter:
     image: oliver006/redis_exporter:v1.61.0
@@ -62,6 +57,7 @@ services:
       - mumuk_network
     environment:
       - REDIS_ADDR=redis:6379
+    restart: unless-stopped
 
   nginx:
     container_name: nginx
@@ -94,7 +90,7 @@ services:
       - nginx
     networks:
       - mumuk_network
-
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:v3.5.0
@@ -107,6 +103,7 @@ services:
       - "9090:9090"
     networks:
       - mumuk_network
+    restart: unless-stopped
 
   loki:
     image: grafana/loki:2.9.2
@@ -118,6 +115,7 @@ services:
       - ./loki:/loki
     networks:
       - mumuk_network
+    restart: unless-stopped
 
   promtail:
     image: grafana/promtail:2.9.2
@@ -133,6 +131,7 @@ services:
       - mumuk_network
     depends_on:
       - loki
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:12.1.0
@@ -148,6 +147,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_SERVER_DOMAIN=grafana.mumuk.site
       - GF_SERVER_ROOT_URL=https://grafana.mumuk.site/
+    restart: unless-stopped
+
 volumes:
   grafana-storage:
 
