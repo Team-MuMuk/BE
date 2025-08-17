@@ -1,5 +1,10 @@
 # BE
 
+| FOODLIER : 내 건강 데이터 기반 1:1 식단 큐레이션 서비스 
+
+<img width="1312" height="743" alt="image" src="https://github.com/user-attachments/assets/089630a5-e390-42f4-a971-371c5193ec65" />
+
+
 ## Contributors
 | <img src="https://avatars.githubusercontent.com/u/165489156?v=4" width="100" height="100"> | <img src="https://avatars.githubusercontent.com/u/80953694?v=4" width="100" height="100"> | <img src="https://avatars.githubusercontent.com/u/95339052?v=4" width="100" height="100"> | <img src="https://avatars.githubusercontent.com/u/201078502?v=4" width="100" height="100"> | <img src="https://avatars.githubusercontent.com/u/186348397?v=4" width="100" height="100"> |
 |:---:|:---:|:---:|:---:|:---:|
