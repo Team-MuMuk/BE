@@ -67,4 +67,3 @@ nginx/nginx.conf
 ./bin
 
 /loki/
-src/main/resources/secrets/firebase-admin-sdk.json
