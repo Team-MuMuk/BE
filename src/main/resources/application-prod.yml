@@ -29,3 +29,7 @@ naver:
 
 kakao:
   redirect-uri: ${KAKAO_PROD_REDIRECT_URI}
+
+fcm:
+  credentials:
+    file: /home/ubuntu/BE/src/main/resources/secrets/firebase-admin-sdk.json
