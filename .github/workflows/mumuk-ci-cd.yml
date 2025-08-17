@@ -45,6 +45,11 @@ jobs:
           mkdir -p ./src/main/resources
           echo "${{ secrets.APPLICATION }}" > ./src/main/resources/application-prod.yml
 
+      - name: Create Firebase SDK JSON
+        run: |
+          mkdir -p ./src/main/resources/fcm
+          echo '${{ secrets.FIREBASE_SDK_JSON }}' > ./src/main/resources/fcm/firebase-sdk.json
+
       - name: Build with Gradle
         run: ./gradlew clean bootJar -x test
 

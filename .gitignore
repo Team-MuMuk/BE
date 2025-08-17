@@ -67,3 +67,4 @@ nginx/nginx.conf
 ./bin
 
 /loki/
+src/main/resources/fcm/firebase-sdk.json
