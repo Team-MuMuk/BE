@@ -76,7 +76,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/mumuk:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/mumuk:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/mumuk:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
