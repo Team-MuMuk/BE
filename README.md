@@ -1,6 +1,6 @@
 # BE
 
-| FOODLIER : 내 건강 데이터 기반 1:1 식단 큐레이션 서비스 
+[FOODLIER] 내 건강 데이터 기반 1:1 식단 큐레이션 서비스 
 
 <img width="1312" height="743" alt="image" src="https://github.com/user-attachments/assets/089630a5-e390-42f4-a971-371c5193ec65" />
 
