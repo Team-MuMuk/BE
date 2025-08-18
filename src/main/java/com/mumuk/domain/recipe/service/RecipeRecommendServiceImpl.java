@@ -73,7 +73,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private static final int MAX_RECOMMENDATIONS = 4;
     
     /** 무작위 샘플 크기 (GET API용) */
-    private static final int RANDOM_SAMPLE_SIZE = 24;
+    private static final int RANDOM_SAMPLE_SIZE = 8;
     
     /** POST API로 생성할 레시피 개수 */
     private static final int POST_RECIPE_COUNT = 5;
