@@ -76,8 +76,12 @@ dependencies {
 	implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
 	implementation 'org.hibernate.orm:hibernate-core:6.5.2.Final'
 
-//FCM
+	//FCM
 	implementation 'com.google.firebase:firebase-admin:9.2.0'
+
+	// Mocking Test
+	testImplementation 'org.springframework.security:spring-security-test'
+
 
 
 }

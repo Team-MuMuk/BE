@@ -59,6 +59,12 @@ jwt:
 
 app:
   env: local
+  ocr:
+    max-retries: 3
+    retry-delay-ms: 2000
+    enable-image-preprocessing: true
+    enable-multi-template: true
+    confidence-threshold: 0.7
 
 kakao:
   redirect-uri: http://localhost:8080/login/oauth2/code/kakao    # 인가 코드
