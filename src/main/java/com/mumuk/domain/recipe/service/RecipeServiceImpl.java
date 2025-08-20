@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import java.time.Duration;
-import com.mumuk.global.client.OpenAiClient;
+import com.mumuk.global.client.GeminiClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mumuk.domain.ingredient.service.IngredientService;
@@ -43,17 +43,17 @@ public class RecipeServiceImpl implements RecipeService {
     private final RecipeRepository recipeRepository;
     private final UserRecipeRepository userRecipeRepository;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final OpenAiClient openAiClient;
+    private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
     private final IngredientService ingredientService;
 
     public RecipeServiceImpl(RecipeRepository recipeRepository, UserRecipeRepository userRecipeRepository, RedisTemplate<String, Object> redisTemplate,
-                           OpenAiClient openAiClient, ObjectMapper objectMapper,
+                           GeminiClient geminiClient, ObjectMapper objectMapper,
                            IngredientService ingredientService) {
         this.recipeRepository = recipeRepository;
         this.userRecipeRepository = userRecipeRepository;
         this.redisTemplate = redisTemplate;
-        this.openAiClient = openAiClient;
+        this.geminiClient = geminiClient;
         this.objectMapper = objectMapper;
         this.ingredientService = ingredientService;
     }
@@ -425,42 +425,44 @@ public class RecipeServiceImpl implements RecipeService {
             분류 로직:
             각 레시피 재료에 대해:
             1) 사용자 재료 목록에서 정확히 일치하는 것이 있으면 → match
-            2) 정확히 일치하지 않지만 같은 종류의 사용자 재료가 있으면 → replaceable
+            2) 정확히 일치하지 않지만 아래 조건에 맞춰 확실한 대체 가능한 사용자 재료가 있으면 → replaceable
             3) 그 외의 경우 → mismatch
             
-                         대체 가능한 경우 (3가지 기준):
+            대체 가능한 경우는 3가지 기준 중 적어도 하나를 만족하고, 
+            레시피 재료를 기준으로 확실하게 조건을 만족하는 경우에만 대체가능:
              
              1. 포함 관계 (상위 개념 ↔ 하위 개념):
              - 돼지고기 ↔ 앞다리살, 목살, 삼겹살 (돼지고기가 상위, 구체적 부위가 하위)
              - 소고기 ↔ 등심, 안심, 갈비 (소고기가 상위, 구체적 부위가 하위)
              - 닭고기 ↔ 닭가슴살, 닭다리, 닭날개 (닭고기가 상위, 구체적 부위가 하위)
+             - 간장 ↔ 진간장, 국간장, 노추, 쯔유 (간장에 포함되는 개념) 
+             - 치즈 ↔ 모짜렐라, 크림치즈, 브레드치즈 (치즈 종류)
+             - 파스타 ↔ 링귀니, 마카로니, 스파게티 (파스타 면 종류)
              
-             2. 같은 종류 + 같은 용도의 대체재:
-             - 돼지고기(구이용) ↔ 삼겹살(구이용) (같은 돼지고기, 같은 구이용도)
-             - 돼지고기(구이용) ↔ 목살(구이용) (같은 돼지고기, 같은 구이용도)
+             2. 같은 용도:
+             - 목살(구이용) ↔ 삼겹살(구이용) (같은 돼지고기, 같은 구이용도)
+             - 돼지고기(찌개용) ↔ 목살(찌개용) (같은 돼지고기, 같은 구이용도)
              - 돼지고기(탕용) ↔ 앞다리살(탕용) (같은 돼지고기, 같은 탕용도)
-             - 마늘 ↔ 흑마늘 (같은 마늘이지만 다른 종류)
-             - 상추 ↔ 로메인 (같은 상추 종류)
-             - 양파 ↔ 대파 (같은 파 종류)
-             - 간장 ↔ 진간장 (같은 간장 종류)
              
-             3. 비슷한 역할의 조미료:
-             - 설탕 ↔ 올리고당 (단맛 조미료)
-             - 소금 ↔ 천일염 (염분 조미료)
+             3. 조미료 대체:
+             - 설탕 ↔ 올리고당, 알룰로스 (단맛 조미료)
+             - 소금 ↔ 천일염, 새우젓 (염분 조미료)
+             - 미원 ↔ 다시다, 혼다시, 연두 (감칠맛 조미료)
+             - 식용유 ↔ 올리브유, 포도씨유, 케네프리유 (식용유 종류)
             
-                         대체 불가능한 경우:
-             - 돼지 등심(돈까스용) ↔ 삼겹살(구이용) (같은 돼지고기지만 용도가 완전히 다름)
-             - 돼지 등심(돈까스용) ↔ 목살(구이용) (같은 돼지고기지만 용도가 완전히 다름)
-             - 돼지 등심(돈까스용) ↔ 앞다리살(탕용) (같은 돼지고기지만 용도가 완전히 다름)
+            대체 불가능한 경우:
+             - 실제 레시피를 고려했을 때 차이가 큰 경우 (식용유 알리오 올리오, 기름이 중요한 레시피인데 식용유는 적절X)
+             - 2칸 이상 차이나는 경우 (면 ↔ 파스타 ↔ 링귀니 : 면 링귀니는 대체불가, 돼지 등심(돈까스용) ↔ 돼지고기 ↔ 앞다리살(탕용))
+             - 돼지 등심(돈까스용) ↔ 삼겹살(구이용),목살(구이용),앞다리살(탕용) (같은 돼지고기지만 용도가 완전히 다름)
              - 소고기 ↔ 돼지고기 (완전히 다른 고기)
-             - 고기 ↔ 생선 (완전히 다른 단백질)
-             - 채소 ↔ 고기 (완전히 다른 재료)
-             - 조미료 ↔ 주재료 (완전히 다른 역할)
+             - 올리브유 ↔ 올리브, 고추장 ↔ 고추, 케찹 ↔ 토마토 (소스와 재료의 구분 및 원재료로 제작이 힘든 경우)
+             - 양파 ↔ 올리브, 파, 마늘 (전혀 다른 재료)
+             - 기타 대체로 보기 어려운 경우
+             - 조금이라도 애매한 경우 대체 불가능으로 본다.
             
             절대 규칙:
-            - 하나의 레시피 재료는 반드시 한 곳에만 분류
-            - replaceable의 recipeIngredient는 반드시 레시피 재료 목록에 있어야 함
-            - 사용자 재료 목록에 없는 재료는 절대 replaceable에 포함하지 마세요!
+            - 레시피 재료는 사용자 재료에 대해서 각각 match, mismatch, replaceable 중 오직 하나에만 속함
+            - 최종적으로 응답에 레시피 재료가 모두 포함되어 있어야 함
             
             JSON 형태로 응답:
             {
@@ -481,7 +483,7 @@ public class RecipeServiceImpl implements RecipeService {
      */
     private String callAI(String prompt) {
         try {
-            return openAiClient.chat(prompt).block(java.time.Duration.ofSeconds(15));
+            return geminiClient.chat(prompt).block(java.time.Duration.ofSeconds(15));
         } catch (Exception e) {
             log.error("AI 호출 실패", e); // 스택트레이스 포함 로깅
             throw new BusinessException(ErrorCode.OPENAI_API_ERROR);

@@ -81,4 +81,17 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
         LIMIT :limit
         """, nativeQuery = true)
     List<Recipe> findRandomRecipesByPkRange(@Param("limit") int limit);
+
+    // 카테고리 조건을 만족하는 레시피를 랜덤으로 제한 개수만큼 조회
+    @Query(value = """
+        SELECT r.*
+        FROM recipe r
+        INNER JOIN recipe_category_map rcm ON r.id = rcm.recipe_id
+        WHERE rcm.category IN (:categories)
+        GROUP BY r.id
+        ORDER BY RANDOM()
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Recipe> findRandomRecipesByCategoriesLimited(@Param("categories") List<String> categories,
+                                                      @Param("limit") int limit);
 }
