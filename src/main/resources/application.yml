@@ -90,9 +90,9 @@ colsms:
     secret: ${SMS_API_SECRET}
     sender: 01087164428
 
-openai:
+gemini:
   api:
-    key: ${OPEN_AI_KEY}
-    url: https://api.openai.com/v1
-    model: gpt-4o-mini
+    key: ${GEMINI_API_KEY}
+    url: https://generativelanguage.googleapis.com
+    model: gemini-1.5-flash
 
