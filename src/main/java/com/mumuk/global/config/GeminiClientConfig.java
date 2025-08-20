@@ -9,10 +9,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class GeminiClientConfig {
 
-    @Value("${openai.api.url}")
+    @Value("${gemini.api.url}")
     private String baseUrl;
 
-    @Value("${openai.api.key}")
+    @Value("${gemini.api.key}")
     private String apiKey;
 
     @Bean
@@ -24,7 +24,7 @@ public class GeminiClientConfig {
     }
 
     @Bean
-    public GeminiClient geminiClient(WebClient geminiWebClient, @Value("${openai.api.model}") String model) {
+    public GeminiClient geminiClient(WebClient geminiWebClient, @Value("${gemini.api.model}") String model) {
         return new GeminiClient(geminiWebClient, model);
     }
 }
