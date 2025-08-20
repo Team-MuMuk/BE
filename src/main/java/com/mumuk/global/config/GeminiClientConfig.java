@@ -24,7 +24,7 @@ public class GeminiClientConfig {
     }
 
     @Bean
-    public GeminiClient geminiClient(WebClient geminiWebClient, @Value("${gemini.api.model}") String model) {
+    public GeminiClient geminiClient(WebClient geminiWebClient, @Value("${openai.api.model}") String model) {
         return new GeminiClient(geminiWebClient, model);
     }
 }
