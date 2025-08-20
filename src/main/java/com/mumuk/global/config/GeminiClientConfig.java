@@ -9,10 +9,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class GeminiClientConfig {
 
-    @Value("${gemini.api.url}")
+    @Value("${openai.api.url}")
     private String baseUrl;
 
-    @Value("${gemini.api.key}")
+    @Value("${openai.api.key}")
     private String apiKey;
 
     @Bean
