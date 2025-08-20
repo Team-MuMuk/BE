@@ -73,13 +73,15 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private static final int MAX_RECOMMENDATIONS = 4;
     
     /** 무작위 샘플 크기 (GET API용) */
-    private static final int RANDOM_SAMPLE_SIZE = 20;
+    private static final int RANDOM_SAMPLE_SIZE = 12;
     
     /** POST API로 생성할 레시피 개수 */
     private static final int POST_RECIPE_COUNT = 5;
     
     /** 이미지 URL 최대 길이 (엔티티 컬럼 길이와 일치) */
     private static final int MAX_IMAGE_URL_LENGTH = 500;
+    /** 성능 최적화를 위한 상세 로그 출력 여부 (운영에서는 false 권장) */
+    private static final boolean ENABLE_VERBOSE_LOG = false;
 
     public RecipeRecommendServiceImpl(GeminiClient geminiClient, ObjectMapper objectMapper,
                                    UserRepository userRepository, UserRecipeRepository userRecipeRepository,
@@ -208,7 +210,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
      */
     @Override
     public List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByOcr(Long userId) {
-        log.info("OCR 기반 레시피 추천 시작 - userId: {}", userId);
+        if (ENABLE_VERBOSE_LOG) log.info("OCR 기반 레시피 추천 시작 - userId: {}", userId);
         
         // 사용자 정보 조회 (사용자 존재 검증)
         getUser(userId);
@@ -234,7 +236,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             return new ArrayList<>();
         }
         
-        log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
+        if (ENABLE_VERBOSE_LOG) log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
         
         // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
         List<RecipeWithScore> recipesWithScores = evaluateRecipeSuitabilityByHealth(
@@ -253,7 +255,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 .collect(Collectors.toList());
         Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
         
-        log.info("OCR 기반 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
+        if (ENABLE_VERBOSE_LOG) log.info("OCR 기반 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
         return topRecipes.stream()
                 .map(rws -> RecipeConverter.toRecipeSummaryDTO(rws.recipe, likedMap.get(rws.recipe.getId())))
                 .collect(Collectors.toList());
@@ -264,7 +266,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
      */
     @Override
     public List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByHealthGoal(Long userId) {
-        log.info("HealthGoal 기반 레시피 추천 시작 - userId: {}", userId);
+        if (ENABLE_VERBOSE_LOG) log.info("HealthGoal 기반 레시피 추천 시작 - userId: {}", userId);
         
         // 사용자 정보 조회 (사용자 존재 검증)
         getUser(userId);
@@ -287,7 +289,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             return new ArrayList<>();
         }
         
-        log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
+        if (ENABLE_VERBOSE_LOG) log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
         
         // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
         List<RecipeWithScore> scoredRecipes = evaluateRecipeSuitabilityByHealthGoal(
@@ -306,7 +308,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 .collect(Collectors.toList());
         Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
         
-        log.info("HealthGoal 기반 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
+        if (ENABLE_VERBOSE_LOG) log.info("HealthGoal 기반 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
         return topRecipes.stream()
                 .map(rws -> RecipeConverter.toRecipeSummaryDTO(rws.recipe, likedMap.get(rws.recipe.getId())))
                 .collect(Collectors.toList());
@@ -317,7 +319,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
      */
     @Override
     public List<UserRecipeResponse.RecipeSummaryDTO> recommendRecipesByCombined(Long userId) {
-        log.info("통합 레시피 추천 시작 - userId: {}", userId);
+        if (ENABLE_VERBOSE_LOG) log.info("통합 레시피 추천 시작 - userId: {}", userId);
         
         // 사용자 정보 조회 (사용자 존재 검증)
         getUser(userId);
@@ -339,7 +341,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             return new ArrayList<>();
         }
         
-        log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
+        if (ENABLE_VERBOSE_LOG) log.info("랜덤 선택된 레시피 수: {}", sampledRecipes.size());
         
         // AI가 각 레시피의 적합도를 평가 (랜덤 선택된 레시피 평가)
         List<RecipeWithScore> scoredRecipes = evaluateRecipeSuitabilityByCombined(
@@ -358,7 +360,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 .collect(Collectors.toList());
         Map<Long, Boolean> likedMap = getUserRecipeLikedMap(userId, recipeIds);
         
-        log.info("통합 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
+        if (ENABLE_VERBOSE_LOG) log.info("통합 레시피 추천 완료 - 추천된 레시피 수: {}", topRecipes.size());
         return topRecipes.stream()
                 .map(rws -> RecipeConverter.toRecipeSummaryDTO(rws.recipe, likedMap.get(rws.recipe.getId())))
                 .collect(Collectors.toList());
@@ -386,13 +388,13 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 중복 제거만 수행
         List<String> uniqueIngredients = new ArrayList<>(new LinkedHashSet<>(availableIngredients));
         
-        log.info("=== 적합도 평가 시작 ===");
-        log.info("사용자 보유 재료: {}", String.join(", ", uniqueIngredients));
-        log.info("사용자 알레르기 정보: {}", allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
-        log.info("전체 레시피 수: {}", recipes.size());
-        
-        // 모든 레시피 평가 (무작위 샘플링된 레시피들)
-        log.info("평가할 레시피 수: {}", recipes.size());
+        if (ENABLE_VERBOSE_LOG) {
+            log.info("=== 적합도 평가 시작 ===");
+            log.info("사용자 보유 재료: {}", String.join(", ", uniqueIngredients));
+            log.info("사용자 알레르기 정보: {}", allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+            log.info("전체 레시피 수: {}", recipes.size());
+            log.info("평가할 레시피 수: {}", recipes.size());
+        }
         
         try {
             // 배치 처리
@@ -402,7 +404,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             recipesWithScores.addAll(processIndividual(recipes, uniqueIngredients, allergyTypes));
         }
         
-        log.info("=== 적합도 평가 완료 ===");
+        if (ENABLE_VERBOSE_LOG) log.info("=== 적합도 평가 완료 ===");
         return recipesWithScores;
     }
 
@@ -482,17 +484,19 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                              List<String> allergyTypes) {
         List<RecipeWithScore> recipesWithScores = new ArrayList<>();
         
-        log.info("배치 처리 시작 - 사용자 재료: {}, 알레르기: {}", 
-                String.join(", ", availableIngredients), 
-                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+        if (ENABLE_VERBOSE_LOG) {
+            log.info("배치 처리 시작 - 사용자 재료: {}, 알레르기: {}", 
+                    String.join(", ", availableIngredients), 
+                    allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+        }
         
         try {
             // 배치 처리: 모든 레시피를 한 번에 AI에게 전달
             String batchPrompt = createBatchIngredientSuitabilityPrompt(recipes, availableIngredients, allergyTypes);
-            log.info("배치 프롬프트 생성 완료");
+            if (ENABLE_VERBOSE_LOG) log.info("배치 프롬프트 생성 완료");
             
             String batchResponse = callAI(batchPrompt);
-            log.info("AI 배치 응답: {}", batchResponse);
+            if (ENABLE_VERBOSE_LOG) log.info("AI 배치 응답: {}", batchResponse);
             
             // AI 응답에서 각 레시피의 점수 파싱
             Map<String, Double> scores = parseBatchScores(batchResponse, recipes);
@@ -500,7 +504,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             
             for (Recipe recipe : recipes) {
                 double score = scores.getOrDefault(recipe.getTitle(), 5.0);
-                log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
+                if (ENABLE_VERBOSE_LOG) log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
                 
                 if (score > 0) {
                     recipesWithScores.add(new RecipeWithScore(recipe, score));
@@ -525,9 +529,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                                   List<String> allergyTypes) {
         List<RecipeWithScore> recipesWithScores = new ArrayList<>();
         
-        log.info("개별 처리 시작 - 사용자 재료: {}, 알레르기: {}", 
-                String.join(", ", availableIngredients), 
-                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+        if (ENABLE_VERBOSE_LOG) {
+            log.info("개별 처리 시작 - 사용자 재료: {}, 알레르기: {}", 
+                    String.join(", ", availableIngredients), 
+                    allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+        }
         
         for (Recipe recipe : recipes) {
             try {
@@ -536,7 +542,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 String prompt = createIngredientSuitabilityPrompt(recipe, availableIngredients, allergyTypes);
                 double score = callAIForSuitabilityScore(prompt);
                 
-                log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
+                if (ENABLE_VERBOSE_LOG) log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
                 
                 if (score > 0) {
                     recipesWithScores.add(new RecipeWithScore(recipe, score));
@@ -561,18 +567,20 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                                      String healthInfo) {
         List<RecipeWithScore> recipesWithScores = new ArrayList<>();
         
-        log.info("건강 정보 기반 배치 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강정보: {}", 
-                String.join(", ", availableIngredients), 
-                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
-                healthInfo);
+        if (ENABLE_VERBOSE_LOG) {
+            log.info("건강 정보 기반 배치 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강정보: {}", 
+                    String.join(", ", availableIngredients), 
+                    allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
+                    healthInfo);
+        }
         
         try {
             // 배치 처리: 모든 레시피를 한 번에 AI에게 전달
             String batchPrompt = createBatchHealthSuitabilityPrompt(recipes, availableIngredients, allergyTypes, healthInfo);
-            log.info("건강 정보 기반 배치 프롬프트 생성 완료");
+            if (ENABLE_VERBOSE_LOG) log.info("건강 정보 기반 배치 프롬프트 생성 완료");
             
             String batchResponse = callAI(batchPrompt);
-            log.info("AI 배치 응답: {}", batchResponse);
+            if (ENABLE_VERBOSE_LOG) log.info("AI 배치 응답: {}", batchResponse);
             
             // AI 응답에서 각 레시피의 점수 파싱
             Map<String, Double> scores = parseBatchHealthScores(batchResponse, recipes);
@@ -580,7 +588,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             
             for (Recipe recipe : recipes) {
                 double score = scores.getOrDefault(recipe.getTitle(), 5.0);
-                log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
+                if (ENABLE_VERBOSE_LOG) log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
                 
                 if (score > 0) {
                     recipesWithScores.add(new RecipeWithScore(recipe, score));
@@ -606,10 +614,12 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                                           String healthInfo) {
         List<RecipeWithScore> recipesWithScores = new ArrayList<>();
         
-        log.info("건강 정보 기반 개별 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강정보: {}", 
-                String.join(", ", availableIngredients), 
-                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
-                healthInfo);
+        if (ENABLE_VERBOSE_LOG) {
+            log.info("건강 정보 기반 개별 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강정보: {}", 
+                    String.join(", ", availableIngredients), 
+                    allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
+                    healthInfo);
+        }
         
         for (Recipe recipe : recipes) {
             try {
@@ -618,7 +628,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 String prompt = createHealthSuitabilityPrompt(recipe, availableIngredients, allergyTypes, healthInfo);
                 double score = callAIForSuitabilityScore(prompt);
                 
-                log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
+                if (ENABLE_VERBOSE_LOG) log.info("레시피 '{}' 적합도 점수: {}", recipe.getTitle(), score);
                 
                 if (score > 0) {
                     recipesWithScores.add(new RecipeWithScore(recipe, score));
@@ -646,14 +656,14 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         // 중복 제거만 수행
         List<String> uniqueIngredients = new ArrayList<>(new LinkedHashSet<>(availableIngredients));
         
-        log.info("=== 건강 정보 기반 적합도 평가 시작 ===");
-        log.info("사용자 보유 재료: {}", String.join(", ", uniqueIngredients));
-        log.info("사용자 알레르기 정보: {}", allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
-        log.info("사용자 건강 정보: {}", healthInfo);
-        log.info("전체 레시피 수: {}", recipes.size());
-        
-        // 모든 레시피 평가 (무작위 샘플링된 레시피들)
-        log.info("평가할 레시피 수: {}", recipes.size());
+        if (ENABLE_VERBOSE_LOG) {
+            log.info("=== 건강 정보 기반 적합도 평가 시작 ===");
+            log.info("사용자 보유 재료: {}", String.join(", ", uniqueIngredients));
+            log.info("사용자 알레르기 정보: {}", allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes));
+            log.info("사용자 건강 정보: {}", healthInfo);
+            log.info("전체 레시피 수: {}", recipes.size());
+            log.info("평가할 레시피 수: {}", recipes.size());
+        }
         
         try {
             // 배치 처리
@@ -663,7 +673,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             recipesWithScores.addAll(processIndividualByHealth(recipes, uniqueIngredients, allergyTypes, healthInfo));
         }
         
-        log.info("=== 건강 정보 기반 적합도 평가 완료 ===");
+        if (ENABLE_VERBOSE_LOG) log.info("=== 건강 정보 기반 적합도 평가 완료 ===");
         return recipesWithScores;
     }
 
@@ -781,11 +791,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             }
 
             // Gemini 클라이언트는 이미 텍스트 콘텐츠를 반환하므로 바로 사용
-            log.info("AI 원본 응답: {}", response);
+            if (ENABLE_VERBOSE_LOG) log.info("AI 원본 응답: {}", response);
 
             // AI 응답에서 JSON 부분 추출 (코드블록 제거)
             String jsonContent = extractJsonFromAIResponse(response);
-            log.info("추출된 JSON: {}", jsonContent);
+            if (ENABLE_VERBOSE_LOG) log.info("추출된 JSON: {}", jsonContent);
             
             // AI 응답을 JSON으로 파싱
             JsonNode recommendationsRoot = objectMapper.readTree(jsonContent);
@@ -1217,23 +1227,23 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         Map<String, Double> scores = new HashMap<>();
         
         try {
-            log.info("AI 응답 내용: {}", response);
+            if (ENABLE_VERBOSE_LOG) log.info("AI 응답 내용: {}", response);
             
             // Gemini API 응답에서 JSON 부분 추출 (코드블록 제거)
             String jsonContent = extractJsonFromAIResponse(response);
-            log.info("추출된 JSON: {}", jsonContent);
+            if (ENABLE_VERBOSE_LOG) log.info("추출된 JSON: {}", jsonContent);
             
             // AI 응답을 JSON으로 파싱
             JsonNode scoresJson = objectMapper.readTree(jsonContent);
             JsonNode scoresNode = scoresJson.path("scores");
             
             if (!scoresNode.isMissingNode()) {
-                log.info("점수 노드 발견: {}", scoresNode.toString());
+                if (ENABLE_VERBOSE_LOG) log.info("점수 노드 발견: {}", scoresNode.toString());
                 
                 for (Recipe recipe : recipes) {
                     double score = scoresNode.path(recipe.getTitle()).asDouble(5.0);
                     scores.put(recipe.getTitle(), score);
-                    log.info("레시피 '{}' 점수: {}", recipe.getTitle(), score);
+                    if (ENABLE_VERBOSE_LOG) log.info("레시피 '{}' 점수: {}", recipe.getTitle(), score);
                 }
             } else {
                 log.warn("scores 노드를 찾을 수 없습니다.");
@@ -1250,7 +1260,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             }
         }
         
-        log.info("최종 파싱 결과: {}", scores);
+        if (ENABLE_VERBOSE_LOG) log.info("최종 파싱 결과: {}", scores);
         return scores;
     }
 
@@ -1635,11 +1645,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         Map<String, Double> scores = new HashMap<>();
         
         try {
-            log.info("AI 응답 내용: {}", response);
+            if (ENABLE_VERBOSE_LOG) log.info("AI 응답 내용: {}", response);
             
             // Gemini API 응답에서 JSON 부분 추출 (코드블록 제거)
             String jsonContent = extractJsonFromAIResponse(response);
-            log.info("추출된 JSON: {}", jsonContent);
+            if (ENABLE_VERBOSE_LOG) log.info("추출된 JSON: {}", jsonContent);
             
             // AI 응답을 JSON으로 파싱
             JsonNode scoresJson = objectMapper.readTree(jsonContent);
@@ -1651,7 +1661,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 for (Recipe recipe : recipes) {
                     double score = scoresNode.path(recipe.getTitle()).asDouble(5.0);
                     scores.put(recipe.getTitle(), score);
-                    log.info("레시피 '{}' 건강 적합도 점수: {}", recipe.getTitle(), score);
+                    if (ENABLE_VERBOSE_LOG) log.info("레시피 '{}' 건강 적합도 점수: {}", recipe.getTitle(), score);
                 }
             } else {
                 log.warn("scores 노드를 찾을 수 없습니다.");
@@ -1668,7 +1678,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             }
         }
         
-        log.info("최종 건강 정보 기반 파싱 결과: {}", scores);
+        if (ENABLE_VERBOSE_LOG) log.info("최종 건강 정보 기반 파싱 결과: {}", scores);
         return scores;
     }
 
@@ -1682,18 +1692,20 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                                         List<String> healthGoals) {
         List<RecipeWithScore> recipesWithScores = new ArrayList<>();
         
-        log.info("통합 정보 기반 배치 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강목표: {}", 
-                String.join(", ", availableIngredients), 
-                allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
-                healthGoals.isEmpty() ? "없음" : String.join(", ", healthGoals));
+        if (ENABLE_VERBOSE_LOG) {
+            log.info("통합 정보 기반 배치 처리 시작 - 사용자 재료: {}, 알레르기: {}, 건강목표: {}", 
+                    String.join(", ", availableIngredients), 
+                    allergyTypes.isEmpty() ? "없음" : String.join(", ", allergyTypes),
+                    healthGoals.isEmpty() ? "없음" : String.join(", ", healthGoals));
+        }
         
         try {
             // 배치 처리: 모든 레시피를 한 번에 AI에게 전달
             String batchPrompt = createBatchCombinedSuitabilityPrompt(recipes, availableIngredients, allergyTypes, ocrHealthData, healthGoals);
-            log.info("통합 정보 기반 배치 프롬프트 생성 완료");
+            if (ENABLE_VERBOSE_LOG) log.info("통합 정보 기반 배치 프롬프트 생성 완료");
             
             String batchResponse = callAI(batchPrompt);
-            log.info("AI 배치 응답: {}", batchResponse);
+            if (ENABLE_VERBOSE_LOG) log.info("AI 배치 응답: {}", batchResponse);
             
             // AI 응답에서 각 레시피의 점수 파싱
             Map<String, Double> scores = parseBatchCombinedScores(batchResponse, recipes);
@@ -1703,13 +1715,13 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 double score = scores.getOrDefault(recipe.getTitle(), 5.0);
                 if (score > 0) {
                     recipesWithScores.add(new RecipeWithScore(recipe, score));
-                    log.info("레시피 '{}' 통합 적합도 점수: {}", recipe.getTitle(), score);
+                    if (ENABLE_VERBOSE_LOG) log.info("레시피 '{}' 통합 적합도 점수: {}", recipe.getTitle(), score);
                 } else {
-                    log.info("레시피 {} 제외됨 (AI가 부적합으로 판단)", recipe.getTitle());
+                    if (ENABLE_VERBOSE_LOG) log.info("레시피 {} 제외됨 (AI가 부적합으로 판단)", recipe.getTitle());
                 }
             }
             
-            log.info("통합 정보 기반 배치 처리 완료 - {} 개 레시피 처리됨", recipesWithScores.size());
+            if (ENABLE_VERBOSE_LOG) log.info("통합 정보 기반 배치 처리 완료 - {} 개 레시피 처리됨", recipesWithScores.size());
             
         } catch (Exception e) {
             log.warn("통합 정보 기반 배치 처리 실패: {}", e.getMessage());
@@ -1730,19 +1742,19 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                                                              List<String> healthGoals) {
         List<RecipeWithScore> recipesWithScores = new ArrayList<>();
         
-        log.info("통합 정보 기반 개별 처리 시작 - {} 개 레시피", recipes.size());
+        if (ENABLE_VERBOSE_LOG) log.info("통합 정보 기반 개별 처리 시작 - {} 개 레시피", recipes.size());
         
         for (Recipe recipe : recipes) {
             try {
                 String prompt = createCombinedSuitabilityPrompt(recipe, availableIngredients, allergyTypes, ocrHealthData, healthGoals);
                 double score = callAIForSuitabilityScore(prompt);
                 
-                log.info("레시피 '{}' 통합 적합도 점수: {}", recipe.getTitle(), score);
+                if (ENABLE_VERBOSE_LOG) log.info("레시피 '{}' 통합 적합도 점수: {}", recipe.getTitle(), score);
                 
                 if (score > 0) {
                     recipesWithScores.add(new RecipeWithScore(recipe, score));
                 } else {
-                    log.info("레시피 {} 제외됨 (AI가 부적합으로 판단)", recipe.getTitle());
+                    if (ENABLE_VERBOSE_LOG) log.info("레시피 {} 제외됨 (AI가 부적합으로 판단)", recipe.getTitle());
                 }
             } catch (Exception e) {
                 log.warn("레시피 {} 통합 적합도 평가 실패: {}", recipe.getTitle(), e.getMessage());
@@ -1820,23 +1832,23 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         Map<String, Double> scores = new HashMap<>();
         
         try {
-            log.info("AI 응답 내용: {}", response);
+            if (ENABLE_VERBOSE_LOG) log.info("AI 응답 내용: {}", response);
             
             // Gemini API 응답에서 JSON 부분 추출 (코드블록 제거)
             String jsonContent = extractJsonFromAIResponse(response);
-            log.info("추출된 JSON: {}", jsonContent);
+            if (ENABLE_VERBOSE_LOG) log.info("추출된 JSON: {}", jsonContent);
             
             // AI 응답을 JSON으로 파싱
             JsonNode scoresJson = objectMapper.readTree(jsonContent);
             JsonNode scoresNode = scoresJson.path("scores");
             
             if (!scoresNode.isMissingNode()) {
-                log.info("점수 노드 발견: {}", scoresNode.toString());
+                if (ENABLE_VERBOSE_LOG) log.info("점수 노드 발견: {}", scoresNode.toString());
                 
                 for (Recipe recipe : recipes) {
                     double score = scoresNode.path(recipe.getTitle()).asDouble(5.0);
                     scores.put(recipe.getTitle(), score);
-                    log.info("레시피 '{}' 통합 적합도 점수: {}", recipe.getTitle(), score);
+                    if (ENABLE_VERBOSE_LOG) log.info("레시피 '{}' 통합 적합도 점수: {}", recipe.getTitle(), score);
                 }
             } else {
                 log.warn("scores 노드를 찾을 수 없습니다.");
@@ -1853,7 +1865,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             }
         }
         
-        log.info("최종 통합 정보 기반 파싱 결과: {}", scores);
+        if (ENABLE_VERBOSE_LOG) log.info("최종 통합 정보 기반 파싱 결과: {}", scores);
         return scores;
     }
 
@@ -1924,23 +1936,23 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         Map<String, Double> scores = new HashMap<>();
         
         try {
-            log.info("AI 응답 내용: {}", response);
+            if (ENABLE_VERBOSE_LOG) log.info("AI 응답 내용: {}", response);
             
             // Gemini API 응답에서 JSON 부분 추출 (코드블록 제거)
             String jsonContent = extractJsonFromAIResponse(response);
-            log.info("추출된 JSON: {}", jsonContent);
+            if (ENABLE_VERBOSE_LOG) log.info("추출된 JSON: {}", jsonContent);
             
             // AI 응답을 JSON으로 파싱
             JsonNode scoresJson = objectMapper.readTree(jsonContent);
             JsonNode scoresNode = scoresJson.path("scores");
             
             if (!scoresNode.isMissingNode()) {
-                log.info("점수 노드 발견: {}", scoresNode.toString());
+                if (ENABLE_VERBOSE_LOG) log.info("점수 노드 발견: {}", scoresNode.toString());
                 
                 for (Recipe recipe : recipes) {
                     double score = scoresNode.path(recipe.getTitle()).asDouble(5.0);
                     scores.put(recipe.getTitle(), score);
-                    log.info("레시피 '{}' 건강 목표 적합도 점수: {}", recipe.getTitle(), score);
+                    if (ENABLE_VERBOSE_LOG) log.info("레시피 '{}' 건강 목표 적합도 점수: {}", recipe.getTitle(), score);
                 }
             } else {
                 log.warn("scores 노드를 찾을 수 없습니다.");
@@ -1957,7 +1969,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
             }
         }
         
-        log.info("최종 HealthGoal 기반 파싱 결과: {}", scores);
+        if (ENABLE_VERBOSE_LOG) log.info("최종 HealthGoal 기반 파싱 결과: {}", scores);
         return scores;
     }
 
