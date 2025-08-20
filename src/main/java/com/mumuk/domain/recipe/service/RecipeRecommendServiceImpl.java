@@ -18,7 +18,7 @@ import com.mumuk.domain.user.repository.UserRecipeRepository;
 import com.mumuk.domain.user.entity.UserRecipe;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
-import com.mumuk.global.client.OpenAiClient;
+import com.mumuk.global.client.GeminiClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -48,7 +48,7 @@ import com.mumuk.domain.recipe.service.RecipeBlogImageService;
 @Service
 public class RecipeRecommendServiceImpl implements RecipeRecommendService {
 
-    private final OpenAiClient openAiClient;
+    private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
     private final UserRecipeRepository userRecipeRepository;
@@ -73,7 +73,7 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private static final int MAX_RECOMMENDATIONS = 4;
     
     /** 무작위 샘플 크기 (GET API용) */
-    private static final int RANDOM_SAMPLE_SIZE = 8;
+    private static final int RANDOM_SAMPLE_SIZE = 20;
     
     /** POST API로 생성할 레시피 개수 */
     private static final int POST_RECIPE_COUNT = 5;
@@ -81,13 +81,13 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     /** 이미지 URL 최대 길이 (엔티티 컬럼 길이와 일치) */
     private static final int MAX_IMAGE_URL_LENGTH = 500;
 
-    public RecipeRecommendServiceImpl(OpenAiClient openAiClient, ObjectMapper objectMapper,
+    public RecipeRecommendServiceImpl(GeminiClient geminiClient, ObjectMapper objectMapper,
                                    UserRepository userRepository, UserRecipeRepository userRecipeRepository,
                                    IngredientService ingredientService, AllergyService allergyService,
                                    RecipeRepository recipeRepository, RedisTemplate<String, Object> redisTemplate,
                                    UserHealthDataRepository userHealthDataRepository, HealthGoalService healthGoalService,
                                    RecipeBlogImageService recipeBlogImageService) {
-        this.openAiClient = openAiClient;
+        this.geminiClient = geminiClient;
         this.objectMapper = objectMapper;
         this.userRepository = userRepository;
         this.userRecipeRepository = userRecipeRepository;
@@ -780,17 +780,11 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                 throw new BusinessException(ErrorCode.OPENAI_INVALID_RESPONSE);
             }
 
-            // OpenAI API 응답에서 content 추출
-            JsonNode root = objectMapper.readTree(response);
-            String aiContent = root.path("choices").path(0).path("message").path("content").asText();
-            if (aiContent.isEmpty()) {
-                throw new BusinessException(ErrorCode.OPENAI_MISSING_CONTENT);
-            }
-            
-            log.info("AI 원본 응답: {}", aiContent);
-            
+            // Gemini 클라이언트는 이미 텍스트 콘텐츠를 반환하므로 바로 사용
+            log.info("AI 원본 응답: {}", response);
+
             // AI 응답에서 JSON 부분 추출 (코드블록 제거)
-            String jsonContent = extractJsonFromAIResponse(aiContent);
+            String jsonContent = extractJsonFromAIResponse(response);
             log.info("추출된 JSON: {}", jsonContent);
             
             // AI 응답을 JSON으로 파싱
@@ -979,48 +973,14 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         }
     }
 
-    // callAIWithSmartModelSwitch 메서드 완전 대체 및 간결화
+    // Gemini API를 사용하여 AI 호출
     private String callAI(String prompt) {
-        String model = "gpt-4o-mini";
-        String apiKey = System.getenv("OPEN_AI_KEY");
-        if (apiKey == null || apiKey.trim().isEmpty() || apiKey.startsWith("dummy") || apiKey.startsWith("test")) {
-            log.error("API 키가 설정되지 않았습니다.");
-            throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
-        }
-        
-        // API 키 길이 검증 (OpenAI API 키는 보통 51자)
-        if (apiKey.length() < 20) {
-            log.error("유효하지 않은 API 키 형식입니다.");
-            throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
-        }
-        
         try {
-            WebClient webClient = WebClient.builder()
-                    .baseUrl("https://api.openai.com/v1")
-                    .defaultHeader("Authorization", "Bearer " + apiKey)
-                    .build();
-            Map<String, Object> body = new HashMap<>();
-            body.put("model", model);
-            List<Map<String, String>> messages = new ArrayList<>();
-            Map<String, String> message = new HashMap<>();
-            message.put("role", "user");
-            message.put("content", prompt);
-            messages.add(message);
-            body.put("messages", messages);
-            String response = webClient.post()
-                    .uri("/chat/completions")
-                    .bodyValue(body)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(30))
-                    .block();
-            if (response != null && !response.isEmpty()) {
-                return response;
-            }
+            return geminiClient.chat(prompt).block(Duration.ofSeconds(30));
         } catch (Exception e) {
-            log.warn("gpt-4o-mini 모델로 AI 호출 실패: {}", e.getMessage());
+            log.error("Gemini API 호출 실패: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
         }
-        throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
     }
 
 
@@ -1068,7 +1028,6 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
                "- 실제 존재하는 보편적인 요리만 추천 (억지 조합 금지)\n" +
                "- 레시피 제목은 검색으로 조리법을 찾을 수 있을 정도로 대중적이고 보편적\n" +
                "- 예시: 된장찌개 O, 미나리 된장찌개 O, 돼지고기 앞다리살 감자 상추 된장찌개 X\n" +
-               "- 메인 요리, 반찬, 국물 요리, 볶음 요리, 구이 요리 등 다양한 조리법 포함\n" +
                "- 고기 요리, 생선 요리, 채식 요리, 면 요리 등 다양한 재료 활용\n" +
                "- 레시피 제목에는 사용 재료가 명확히 보이도록 작성 (토마토 바질 파스타)\n" +
                "- 레시피 제목에 포함된 재료는 2개 이하로, 주식(면(파스타, 우동 등), 밥(덮밥, 볶음밥 등))의 경우 3개까지 가능 (토마토 바질 파스타 O, 고추장 돼지고기 볶음 O, 고추장 양파 돼지고기 볶음 X)\n" +
@@ -1144,7 +1103,13 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
     private String buildRecipePostPromptRandom(String topic) {
         StringBuilder prompt = new StringBuilder();
         
-        if (topic != null && !topic.trim().isEmpty()) {
+        // 주제가 null이거나 빈 문자열인 경우 로깅
+        if (topic == null) {
+            log.info("주제가 null이므로 완전 랜덤 레시피 생성");
+        } else if (topic.trim().isEmpty()) {
+            log.info("주제가 빈 문자열이므로 완전 랜덤 레시피 생성");
+        } else {
+            log.info("주제 '{}' 기반 레시피 생성", topic.trim());
             prompt.append(String.format("'%s' 주제와 연관된 ", topic.trim()));
         }
         
@@ -1155,7 +1120,10 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
               .append("- 사용자가 개별적으로 알레르기 정보를 확인하고 선택하도록 안내\n\n")
               .append("총 ").append(POST_RECIPE_COUNT).append("개의 다양한 보편적인 요리를 추천해줘.");
         
-        return prompt.toString();
+        String finalPrompt = prompt.toString();
+        log.info("생성된 프롬프트 길이: {} 문자", finalPrompt.length());
+        
+        return finalPrompt;
     }
     
     /**
@@ -1249,14 +1217,10 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         Map<String, Double> scores = new HashMap<>();
         
         try {
-            // OpenAI API 응답에서 content 추출
-            JsonNode jsonNode = objectMapper.readTree(response);
-            String aiContent = jsonNode.path("choices").path(0).path("message").path("content").asText();
+            log.info("AI 응답 내용: {}", response);
             
-            log.info("AI 응답 내용: {}", aiContent);
-            
-            // AI 응답에서 JSON 부분 추출 (코드블록 제거)
-            String jsonContent = extractJsonFromAIResponse(aiContent);
+            // Gemini API 응답에서 JSON 부분 추출 (코드블록 제거)
+            String jsonContent = extractJsonFromAIResponse(response);
             log.info("추출된 JSON: {}", jsonContent);
             
             // AI 응답을 JSON으로 파싱
@@ -1362,16 +1326,25 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
      */
     private List<String> getUserHealthGoals(Long userId) {
         try {
+            log.info("사용자 {}의 HealthGoal 조회 시작", userId);
+            
             // HealthGoalService를 통해 사용자의 건강 목표 조회
             var healthGoalResponse = healthGoalService.getHealthGoalList(userId);
+            
             if (healthGoalResponse != null && healthGoalResponse.getHealthGoalList() != null) {
-                return healthGoalResponse.getHealthGoalList().stream()
+                List<String> healthGoals = healthGoalResponse.getHealthGoalList().stream()
+                    .filter(goal -> goal != null && goal.getHealthGoalType() != null)
                     .map(goal -> goal.getHealthGoalType().name())
                     .collect(Collectors.toList());
+                
+                log.info("사용자 {}의 HealthGoal 조회 성공: {}", userId, healthGoals);
+                return healthGoals;
+            } else {
+                log.warn("사용자 {}의 HealthGoal 응답이 null이거나 빈 목록", userId);
+                return new ArrayList<>();
             }
-            return new ArrayList<>();
         } catch (Exception e) {
-            log.warn("HealthGoal 조회 실패: {}", e.getMessage());
+            log.error("사용자 {}의 HealthGoal 조회 실패: {}", userId, e.getMessage(), e);
             return new ArrayList<>();
         }
     }
@@ -1662,14 +1635,10 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         Map<String, Double> scores = new HashMap<>();
         
         try {
-            // OpenAI API 응답에서 content 추출
-            JsonNode jsonNode = objectMapper.readTree(response);
-            String aiContent = jsonNode.path("choices").path(0).path("message").path("content").asText();
+            log.info("AI 응답 내용: {}", response);
             
-            log.info("AI 응답 내용: {}", aiContent);
-            
-            // AI 응답에서 JSON 부분 추출 (코드블록 제거)
-            String jsonContent = extractJsonFromAIResponse(aiContent);
+            // Gemini API 응답에서 JSON 부분 추출 (코드블록 제거)
+            String jsonContent = extractJsonFromAIResponse(response);
             log.info("추출된 JSON: {}", jsonContent);
             
             // AI 응답을 JSON으로 파싱
@@ -1851,14 +1820,10 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         Map<String, Double> scores = new HashMap<>();
         
         try {
-            // OpenAI API 응답에서 content 추출
-            JsonNode jsonNode = objectMapper.readTree(response);
-            String aiContent = jsonNode.path("choices").path(0).path("message").path("content").asText();
+            log.info("AI 응답 내용: {}", response);
             
-            log.info("AI 응답 내용: {}", aiContent);
-            
-            // AI 응답에서 JSON 부분 추출 (코드블록 제거)
-            String jsonContent = extractJsonFromAIResponse(aiContent);
+            // Gemini API 응답에서 JSON 부분 추출 (코드블록 제거)
+            String jsonContent = extractJsonFromAIResponse(response);
             log.info("추출된 JSON: {}", jsonContent);
             
             // AI 응답을 JSON으로 파싱
@@ -1959,14 +1924,10 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         Map<String, Double> scores = new HashMap<>();
         
         try {
-            // OpenAI API 응답에서 content 추출
-            JsonNode jsonNode = objectMapper.readTree(response);
-            String aiContent = jsonNode.path("choices").path(0).path("message").path("content").asText();
+            log.info("AI 응답 내용: {}", response);
             
-            log.info("AI 응답 내용: {}", aiContent);
-            
-            // AI 응답에서 JSON 부분 추출 (코드블록 제거)
-            String jsonContent = extractJsonFromAIResponse(aiContent);
+            // Gemini API 응답에서 JSON 부분 추출 (코드블록 제거)
+            String jsonContent = extractJsonFromAIResponse(response);
             log.info("추출된 JSON: {}", jsonContent);
             
             // AI 응답을 JSON으로 파싱
@@ -2035,9 +1996,13 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         log.info("AI 랜덤 레시피 생성 및 저장 시작 - userId: {}, topic: {}", userId, topic);
         
         try {
+            // 사용자 정보 검증
+            User user = getUser(userId);
+            log.info("사용자 검증 완료: userId={}, user={}", userId, user != null ? user.getId() : "null");
+            
             // 주제 기반 또는 완전 랜덤 프롬프트 생성
             String prompt = buildRecipePostPromptRandom(topic);
-            log.info("랜덤 레시피 생성 프롬프트 생성 완료 - 주제: {}", topic);
+            log.info("랜덤 레시피 생성 프롬프트 생성 완료 - 주제: {}, 프롬프트 길이: {}", topic, prompt.length());
             
             // AI 호출하여 레시피 생성 및 저장
             List<Recipe> recipes = callAIAndSaveRecipes(prompt);
