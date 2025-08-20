@@ -1,6 +1,5 @@
 package com.mumuk.domain.healthManagement.dto.response;
 
-import com.mumuk.domain.healthManagement.entity.HealthGoal;
 import com.mumuk.domain.healthManagement.entity.HealthGoalType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -7,10 +7,8 @@ import com.mumuk.domain.recipe.service.RecipeService;
 import com.mumuk.domain.user.dto.response.UserRecipeResponse;
 import com.mumuk.domain.user.entity.UserRecipe;
 import com.mumuk.domain.user.repository.UserRecipeRepository;
-import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.BusinessException;
-import com.mumuk.global.apiPayload.exception.GlobalException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

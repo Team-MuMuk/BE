@@ -1,11 +1,9 @@
 package com.mumuk.domain.healthManagement.entity;
 
-import com.mumuk.domain.recipe.entity.RecipeCategory;
 import com.mumuk.domain.user.entity.User;
 import com.mumuk.global.common.BaseEntity;
 import jakarta.persistence.*;
 
-import jakarta.validation.constraints.Email;
 @Entity
 @Table(name="health_goal")
 public class HealthGoal extends BaseEntity {

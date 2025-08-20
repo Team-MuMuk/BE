@@ -5,10 +5,7 @@ import com.mumuk.domain.user.entity.User;
 import com.mumuk.domain.user.repository.UserRepository;
 import com.mumuk.global.apiPayload.code.ErrorCode;
 import com.mumuk.global.apiPayload.exception.GlobalException;
-import com.mumuk.global.apiPayload.response.Response;
 import com.mumuk.global.security.exception.AuthException;
-import com.mumuk.global.security.jwt.JwtTokenProvider;
-import lombok.AllArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -16,19 +13,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-
 public class RecentSearchServiceImpl implements RecentSearchService {
 
     private final UserRepository userRepository;
-    private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public RecentSearchServiceImpl(UserRepository userRepository, JwtTokenProvider jwtTokenProvider, RedisTemplate<String, Object> redisTemplate) {
+    public RecentSearchServiceImpl(UserRepository userRepository,RedisTemplate<String, Object> redisTemplate) {
         this.userRepository = userRepository;
-        this.jwtTokenProvider = jwtTokenProvider;
         this.redisTemplate = redisTemplate;
     }
-
 
     @Override
     public void saveRecentSearch(Long userId, String title) {

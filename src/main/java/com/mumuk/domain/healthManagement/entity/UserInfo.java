@@ -5,8 +5,6 @@ import com.mumuk.global.common.BaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name="user_info")
@@ -34,7 +32,7 @@ public class UserInfo extends BaseEntity {
 
 
     //생성자
-    public UserInfo() {};
+    public UserInfo() {}
     public UserInfo(Long id, Gender gender, Double height, Double weight, User user) {
         this.id = id;
         this.gender = gender;
