@@ -32,7 +32,7 @@ public class UserInfo extends BaseEntity {
 
 
     //생성자
-    public UserInfo() {};
+    public UserInfo() {}
     public UserInfo(Long id, Gender gender, Double height, Double weight, User user) {
         this.id = id;
         this.gender = gender;
