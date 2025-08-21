@@ -18,17 +18,28 @@ public class GeminiClient {
 
     private final WebClient webClient;
     private final String model;
+    private final String accurateModel;
 
-    public GeminiClient(WebClient webClient, @Value("${gemini.api.model}") String model) {
+    public GeminiClient(WebClient webClient, @Value("${gemini.api.model}") String model,
+                        @Value("${gemini.api.model_accurate:${gemini.api.model}}") String accurateModel) {
         this.webClient = webClient;
         this.model = model;
+        this.accurateModel = accurateModel;
     }
 
     public Mono<String> chat(String prompt) {
+        return chatWithModel(prompt, this.model);
+    }
+
+    public Mono<String> chatAccurate(String prompt) {
+        return chatWithModel(prompt, this.accurateModel);
+    }
+
+    public Mono<String> chatWithModel(String prompt, String modelName) {
         Map<String, Object> body = createRequestBody(prompt);
 
         return webClient.post()
-                .uri("/v1beta/models/" + model + ":generateContent")
+                .uri("/v1beta/models/" + modelName + ":generateContent")
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
