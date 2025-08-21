@@ -95,4 +95,5 @@ gemini:
     key: ${GEMINI_API_KEY}
     url: https://generativelanguage.googleapis.com
     model: gemini-1.5-flash
+    model_accurate: gemini-1.5-pro
 

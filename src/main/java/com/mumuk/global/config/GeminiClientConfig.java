@@ -24,7 +24,9 @@ public class GeminiClientConfig {
     }
 
     @Bean
-    public GeminiClient geminiClient(WebClient geminiWebClient, @Value("${gemini.api.model}") String model) {
-        return new GeminiClient(geminiWebClient, model);
+    public GeminiClient geminiClient(WebClient geminiWebClient,
+                                     @Value("${gemini.api.model}") String model,
+                                     @Value("${gemini.api.model_accurate:${gemini.api.model}}") String accurateModel) {
+        return new GeminiClient(geminiWebClient, model, accurateModel);
     }
 }
