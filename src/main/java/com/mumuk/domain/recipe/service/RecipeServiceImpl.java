@@ -472,7 +472,6 @@ public class RecipeServiceImpl implements RecipeService {
 ---
 
 ## 4단계: 절대 불가 규칙 (Absolute Prohibitions)
-g
 아무리 대체 가능 기준에 부합해 보여도, 아래 규칙 중 하나라도 위반하면 즉시 `mismatch` 처리한다.
 
 * **카테고리 교차:** 다른 카테고리의 재료 간 대체는 절대 불가.
