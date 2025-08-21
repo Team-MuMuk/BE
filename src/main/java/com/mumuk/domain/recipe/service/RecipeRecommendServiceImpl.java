@@ -983,12 +983,12 @@ public class RecipeRecommendServiceImpl implements RecipeRecommendService {
         }
     }
 
-    // Gemini API를 사용하여 AI 호출
+    // Gemini API를 사용하여 AI 호출 (Pro 모델 사용)
     private String callAI(String prompt) {
         try {
-            return geminiClient.chat(prompt).block(Duration.ofSeconds(30));
+            return geminiClient.chatAccurate(prompt).block(Duration.ofSeconds(30));
         } catch (Exception e) {
-            log.error("Gemini API 호출 실패: {}", e.getMessage());
+            log.error("Gemini Pro API 호출 실패: {}", e.getMessage());
             throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
         }
     }
